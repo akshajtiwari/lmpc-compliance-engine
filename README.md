@@ -53,7 +53,7 @@ correct and intact. That is the intended behaviour, not a failure.
 | `lmpc/labels/` | Synthetic labels with exact ground truth; real-photo harvesting |
 | `stress/` | Scenario, campaign, real-world and resolution suites |
 | `tests/` | Unit, integration and adversarial fail-tests |
-| `docs/` | **Start with [`docs/README.md`](docs/README.md)** |
+| `docs/` | **Start with [`docs/README.md`](docs/README.md)** — new joiners: `00-TEAM-BRIEF` then `05-SYSTEM-MAP` |
 
 ## Design in one paragraph
 

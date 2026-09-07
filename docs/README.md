@@ -11,6 +11,10 @@ Legal Metrology (Packaged Commodities) Rules, 2011 — automated compliance chec
 | 2 | [`02-BUILD-SPEC.md`](02-BUILD-SPEC.md) | **The implementation document.** Every threshold, schema and refusal path. | reference |
 | 3 | [`03-ENGINEERING-PLAN.md`](03-ENGINEERING-PLAN.md) | What gets built, by whom, in what order. | 15 min |
 | 4 | [`04-FLOW.md`](04-FLOW.md) | One scan end to end: what the user sees, what runs. | 5 min |
+| 5 | [`05-SYSTEM-MAP.md`](05-SYSTEM-MAP.md) | How the pieces fit together — structure, architecture and both flows. | 15 min |
+
+> **New to the project?** Read `00` then `05`. Those two are enough to start work; `02` is
+> the reference you return to.
 
 ## Evidence
 
