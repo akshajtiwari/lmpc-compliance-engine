@@ -42,6 +42,19 @@ gates:
         - {field: category, in: [HANDLOOM_THREAD_COIL]}
     effect: ALL_RULES_NOT_APPLICABLE
 
+  - id: GATE-R26-DRUG-FORMULATION
+    clause: "Rule 26(c)"
+    node: lmpc/r26
+    operator: applicability
+    citation: {gsr: "G.S.R. 202(E)", page: 17, dated: "2011-03-07"}
+    params:
+      # Scheduled and non-scheduled formulations under the Drugs (Price Control) Order,
+      # 2013 are outside these rules entirely - but the proviso pulls medical devices
+      # declared as drugs back in.
+      any_of:
+        - {field: category, in: [DRUG_FORMULATION], unless_field: category, unless_in: [MEDICAL_DEVICE]}
+    effect: ALL_RULES_NOT_APPLICABLE
+
   - id: GATE-R7-5-OTHER-LAW
     clause: "Rule 7(5)"
     node: lmpc/r7/sr5
@@ -199,6 +212,59 @@ checks:
       - {upper_cm2: 500,  min_mm: 2.5, molded_mm: 4.0}
       - {upper_cm2: 2500, min_mm: 4.0, molded_mm: 6.0}
       - {upper_cm2: null, min_mm: 6.0, molded_mm: 6.0}
+
+  # --- Rule 9: manner of declaration (verified from the consolidated text, p.9) ---
+  - check: LMPC-R9-4-LANGUAGE
+    node: lmpc/r9/sr4
+    clause: "Rule 9(4)"
+    operator: script_allowed
+    effective_from: 2011-04-01
+    citation: {gsr: "G.S.R. 202(E)", page: 9}
+    params:
+      # "either in Hindi in Devanagiri script or in English"; any other language is
+      # permitted IN ADDITION, so a third script is never on its own a violation.
+      allowed_scripts: [LATIN, DEVANAGARI]
+      additional_permitted: true
+
+  - check: LMPC-R6-3-MRP-STICKER
+    node: lmpc/r6/sr3
+    clause: "Rule 6(3)"
+    operator: mrp_uniqueness
+    effective_from: 2011-04-01
+    citation: {gsr: "G.S.R. 202(E)", page: 6}
+    params:
+      # Stickers may not alter a declaration, EXCEPT a revised lower MRP - which must not
+      # cover the original. Two different MRPs is therefore lawful only if the second is
+      # lower; it always needs a human to look at the pack.
+      on_two_values: REVIEW_REQUIRED
+      higher_second_value: FAIL
+
+  - check: LMPC-R6-1-D-DATE-PLAUSIBLE
+    node: lmpc/r6/sr1/cld
+    clause: "Rule 6(1)(d)"
+    operator: date_plausible
+    field: mfg_date
+    effective_from: 2011-04-01
+    citation: {gsr: "G.S.R. 202(E)", page: 8}
+    params:
+      # A packing date after the inspection, or before the rules commenced, is either a
+      # misprint or a misreading. Either way it is not a finding a machine should make
+      # alone.
+      not_after: inspection_date
+      not_before: "2011-04-01"
+      on_violation: REVIEW_REQUIRED
+
+  - check: LMPC-R10-1-SMALL-PACKAGE-MARK
+    node: lmpc/r10/sr1
+    clause: "Rule 10(1) proviso"
+    operator: small_package_mark
+    effective_from: 2018-01-01
+    citation: {gsr: "G.S.R. 629(E)", page: 12, dated: "2017-06-23"}
+    params:
+      # 2017 raised this from 5 to 10 cubic cm: on such packages an identifying mark
+      # suffices instead of the full name and address.
+      capacity_cm3_at_or_below: 10
+      relaxes: LMPC-R6-1-A-MANUFACTURER
 
   # --- consistency ---
   - check: LMPC-XF-UNIT-PRICE-CONSISTENT

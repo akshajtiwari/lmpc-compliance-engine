@@ -373,3 +373,111 @@ OPERATORS = {
     "ratio_min": ratio_min, "clear_space": clear_space,
     "table_lookup": table_lookup, "cross_field": cross_field,
 }
+
+
+# ------------------------------------------------------------- 9. script_allowed ---
+_SCRIPTS = {"DEVANAGARI": re.compile(r"[ऀ-ॿ]"),
+            "LATIN": re.compile(r"[A-Za-z]"),
+            "BENGALI": re.compile(r"[ঀ-৿]"),
+            "TAMIL": re.compile(r"[஀-௿]"),
+            "TELUGU": re.compile(r"[ఀ-౿]"),
+            "ARABIC": re.compile(r"[؀-ۿ]"),
+            "CJK": re.compile(r"[一-鿿぀-ヿ]")}
+
+
+def script_allowed(spec, scan: Scan, fields) -> Result:
+    """Rule 9(4). Declarations must appear in Hindi (Devanagari) or English.
+
+    The proviso permits any other language IN ADDITION, so finding a third script is not
+    itself a violation - only the ABSENCE of both permitted scripts is.
+    """
+    p = spec["params"]
+    seen = set()
+    for f in fields.values():
+        if not f:
+            continue
+        for name, pat in _SCRIPTS.items():
+            if pat.search(f.text):
+                seen.add(name)
+    if not seen:
+        return _r(spec, Verdict.INDETERMINATE, "no declaration text was established")
+    permitted = seen & set(p["allowed_scripts"])
+    extra = sorted(seen - set(p["allowed_scripts"]))
+    if permitted:
+        note = f" (also present: {', '.join(extra)}, permitted in addition)" if extra else ""
+        return _r(spec, Verdict.PASS,
+                  f"declarations appear in {', '.join(sorted(permitted))}{note}",
+                  scripts=sorted(seen))
+    return _r(spec, Verdict.FAIL,
+              f"declarations appear only in {', '.join(extra)}; Hindi in Devanagari or "
+              f"English is required", scripts=sorted(seen))
+
+
+# ------------------------------------------------------------ 10. mrp_uniqueness ---
+def mrp_uniqueness(spec, scan: Scan, fields) -> Result:
+    """Rule 6(3). A sticker may not alter a declaration, except a revised LOWER MRP that
+    does not cover the original. Two prices on one pack always needs a human."""
+    prices = []
+    for t in scan.tokens:
+        if lexicon_match(t.text) and (m := normalize.money(t.text, require_currency=False)):
+            prices.append(m["amount"])
+    prices = sorted(set(prices))
+    if len(prices) < 2:
+        return _r(spec, Verdict.NOT_APPLICABLE, "a single retail price was declared",
+                  prices=prices)
+    return _r(spec, Verdict[spec["params"]["on_two_values"]],
+              f"{len(prices)} different retail prices found on the package ({prices}); "
+              f"lawful only as a revised lower price that does not cover the original",
+              prices=prices)
+
+
+def lexicon_match(text: str) -> bool:
+    from . import lexicon
+    return lexicon.match(text, "mrp") >= lexicon.THRESHOLD
+
+
+# ------------------------------------------------------------- 11. date_plausible ---
+def date_plausible(spec, scan: Scan, fields) -> Result:
+    """A packing date after the inspection, or before these rules commenced, is a misprint
+    or a misreading. Neither is a conclusion a machine should reach on its own."""
+    import datetime as dt
+    f = fields.get(spec["field"])
+    if not f or "year" not in (f.normalized or {}):
+        return _r(spec, Verdict.NOT_APPLICABLE, "no date established")
+    y, m = f.normalized["year"], f.normalized["month"]
+    when = dt.date(y, m, 1)
+    insp = dt.date.fromisoformat(scan.captured_at)
+    floor = dt.date.fromisoformat(spec["params"]["not_before"])
+    if when > insp:
+        return _r(spec, Verdict[spec["params"]["on_violation"]],
+                  f"declared packing date {m:02d}/{y} is after the inspection "
+                  f"({scan.captured_at})", declared=f"{m:02d}/{y}")
+    if when < floor:
+        return _r(spec, Verdict[spec["params"]["on_violation"]],
+                  f"declared packing date {m:02d}/{y} precedes the commencement of these "
+                  f"rules", declared=f"{m:02d}/{y}")
+    return _r(spec, Verdict.PASS, f"packing date {m:02d}/{y} is plausible",
+              declared=f"{m:02d}/{y}")
+
+
+# -------------------------------------------------------- 12. small_package_mark ---
+def small_package_mark(spec, scan: Scan, fields) -> Result:
+    """Rule 10(1) proviso, as raised from 5 to 10 cubic cm in 2017: on a very small
+    package an identifying mark suffices instead of the full name and address."""
+    cap = scan.capacity_cm3
+    if cap is None:
+        return _r(spec, Verdict.NOT_APPLICABLE, "package capacity not supplied")
+    if cap > spec["params"]["capacity_cm3_at_or_below"]:
+        return _r(spec, Verdict.NOT_APPLICABLE,
+                  f"capacity {cap} cm3 exceeds the {spec['params']['capacity_cm3_at_or_below']}"
+                  f" cm3 relaxation")
+    ident = fields.get("manufacturer_block") or fields.get("brand_name")
+    return _r(spec, Verdict.PASS if ident else Verdict.INDETERMINATE,
+              "an identifying mark suffices at this capacity" if ident else
+              "no identifying mark was established on a package eligible for the relaxation",
+              capacity_cm3=cap)
+
+
+OPERATORS.update({"script_allowed": script_allowed, "mrp_uniqueness": mrp_uniqueness,
+                  "date_plausible": date_plausible,
+                  "small_package_mark": small_package_mark})

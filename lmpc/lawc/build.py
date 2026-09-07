@@ -110,6 +110,13 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
                             "affects_nodes": g.get("affects_nodes", []),
                             "text": " ".join(g["disclosure"].split())})
 
+    # A binding that names an operator nobody implemented would silently produce
+    # SYSTEM_ERROR on every scan. Catch it at build time, not in the field.
+    from lmpc.engine.operators import OPERATORS
+    missing_ops = sorted({c["operator"] for c in b["checks"]} - set(OPERATORS))
+    if missing_ops:
+        raise BuildFailed(f"bindings name unimplemented operators: {missing_ops}")
+
     touched = {o["node"] for d in compiled["documents"] for o in d["ops"]}
     bound_nodes = {c["node"] for c in b["checks"] + b["gates"]}
     for d in disclosures:

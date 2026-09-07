@@ -13,6 +13,7 @@ def _lines(**repl):
         for key, new in repl.items():
             if key.upper().replace("_", " ") in text.upper() or \
                (key == "mrp" and text.startswith("MRP")) or \
+               (key == "mfg" and text.startswith("MFG")) or \
                (key == "qty" and text.startswith("Net Qty")):
                 text = new
         out.append((panel, text))
@@ -116,5 +117,54 @@ def build():
              net_quantity_g=500, mode="ECOMMERCE_LISTING"),
         {"LMPC-R6-1-D-MFG-DATE": "NOT_APPLICABLE", "LMPC-R6-1-E-MRP": "PASS"},
         "Rule 6(10): every declaration except month and year of packing")
+
+    # --- Rule 9(4): permitted scripts -------------------------------------------
+    hindi = [("FRONT", "अधिकतम खुदरा मूल्य 45.00 रुपये (सभी करों सहित)"),
+             ("FRONT", "शुद्ध मात्रा: 500 ग्राम"),
+             ("BACK",  "निर्मित: फू फूड्स, पुणे 411001")]
+    add("hindi_only_label_is_lawful",
+        make(lines=hindi, pdp_h_cm=18.2, pdp_w_cm=11.8, cap_mm=2.8, net_quantity_g=500),
+        {"LMPC-R9-4-LANGUAGE": "PASS"},
+        "Rule 9(4) permits Hindi in Devanagari OR English")
+
+    add("english_plus_another_script_is_lawful",
+        make(lines=COMPLIANT_LINES + [("BACK", "தரமான தயாரிப்பு")],
+             pdp_h_cm=18.2, pdp_w_cm=11.8, cap_mm=2.8, net_quantity_g=500),
+        {"LMPC-R9-4-LANGUAGE": "PASS"},
+        "the proviso permits any other language IN ADDITION")
+
+    # --- Rule 6(3): the lower-MRP sticker ---------------------------------------
+    add("two_prices_on_one_pack",
+        make(lines=COMPLIANT_LINES + [("FRONT", "MRP Rs. 40.00 (incl. of all taxes)")],
+             pdp_h_cm=18.2, pdp_w_cm=11.8, cap_mm=2.8, net_quantity_g=500),
+        {"LMPC-R6-3-MRP-STICKER": "REVIEW_REQUIRED"},
+        "lawful only as a revised lower price that does not cover the original")
+
+    add("single_price_is_not_flagged",
+        make(lines=COMPLIANT_LINES, pdp_h_cm=18.2, pdp_w_cm=11.8, cap_mm=2.8,
+             net_quantity_g=500),
+        {"LMPC-R6-3-MRP-STICKER": "NOT_APPLICABLE"}, "one price, nothing to review")
+
+    # --- date plausibility -------------------------------------------------------
+    add("packing_date_in_the_future",
+        make(lines=_lines(mfg="MFG 02/2030"), pdp_h_cm=18.2, pdp_w_cm=11.8,
+             cap_mm=2.8, net_quantity_g=500),
+        {"LMPC-R6-1-D-DATE-PLAUSIBLE": "REVIEW_REQUIRED"},
+        "a misprint or a misreading - never an automatic finding")
+
+    # --- Rule 10(1) proviso: very small packages ---------------------------------
+    add("sachet_under_10_cubic_cm",
+        make(lines=[("FRONT", "Manufactured by Foo Foods, Pune 411001")],
+             pdp_h_cm=3.0, pdp_w_cm=2.0, cap_mm=0.9, net_quantity_g=40,
+             capacity_cm3=8.0),
+        {"LMPC-R10-1-SMALL-PACKAGE-MARK": "PASS"},
+        "2017 raised the relaxation from 5 to 10 cubic cm")
+
+    # --- Rule 26(c): drugs are outside these rules entirely ----------------------
+    add("dpco_drug_formulation",
+        make(lines=COMPLIANT_LINES, pdp_h_cm=10.0, pdp_w_cm=5.0, cap_mm=2.0,
+             net_quantity_g=100, category="DRUG_FORMULATION"),
+        {"LMPC-R6-1-E-MRP": "NOT_APPLICABLE"},
+        "Drugs (Price Control) Order formulations are exempt")
 
     return S

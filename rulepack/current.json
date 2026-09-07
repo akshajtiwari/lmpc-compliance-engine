@@ -174,6 +174,32 @@
       "effect": "ALL_RULES_NOT_APPLICABLE"
     },
     {
+      "id": "GATE-R26-DRUG-FORMULATION",
+      "clause": "Rule 26(c)",
+      "node": "lmpc/r26",
+      "operator": "applicability",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 17,
+        "dated": "2011-03-07"
+      },
+      "params": {
+        "any_of": [
+          {
+            "field": "category",
+            "in": [
+              "DRUG_FORMULATION"
+            ],
+            "unless_field": "category",
+            "unless_in": [
+              "MEDICAL_DEVICE"
+            ]
+          }
+        ]
+      },
+      "effect": "ALL_RULES_NOT_APPLICABLE"
+    },
+    {
       "id": "GATE-R7-5-OTHER-LAW",
       "clause": "Rule 7(5)",
       "node": "lmpc/r7/sr5",
@@ -663,6 +689,72 @@
       "verdict_ceiling": "INDETERMINATE_NEAR_BOUNDARY"
     },
     {
+      "check": "LMPC-R9-4-LANGUAGE",
+      "node": "lmpc/r9/sr4",
+      "clause": "Rule 9(4)",
+      "operator": "script_allowed",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 9
+      },
+      "params": {
+        "allowed_scripts": [
+          "LATIN",
+          "DEVANAGARI"
+        ],
+        "additional_permitted": true
+      }
+    },
+    {
+      "check": "LMPC-R6-3-MRP-STICKER",
+      "node": "lmpc/r6/sr3",
+      "clause": "Rule 6(3)",
+      "operator": "mrp_uniqueness",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 6
+      },
+      "params": {
+        "on_two_values": "REVIEW_REQUIRED",
+        "higher_second_value": "FAIL"
+      }
+    },
+    {
+      "check": "LMPC-R6-1-D-DATE-PLAUSIBLE",
+      "node": "lmpc/r6/sr1/cld",
+      "clause": "Rule 6(1)(d)",
+      "operator": "date_plausible",
+      "field": "mfg_date",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      },
+      "params": {
+        "not_after": "inspection_date",
+        "not_before": "2011-04-01",
+        "on_violation": "REVIEW_REQUIRED"
+      }
+    },
+    {
+      "check": "LMPC-R10-1-SMALL-PACKAGE-MARK",
+      "node": "lmpc/r10/sr1",
+      "clause": "Rule 10(1) proviso",
+      "operator": "small_package_mark",
+      "effective_from": "2018-01-01",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 12,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "capacity_cm3_at_or_below": 10,
+        "relaxes": "LMPC-R6-1-A-MANUFACTURER"
+      }
+    },
+    {
       "check": "LMPC-XF-UNIT-PRICE-CONSISTENT",
       "node": "lmpc/r6/sr1/clll",
       "clause": "Rule 6(1)(ll)",
@@ -710,10 +802,12 @@
     "lmpc/r6/sr1/clf",
     "lmpc/r6/sr1/clh",
     "lmpc/r6/sr1/clll",
+    "lmpc/r6/sr3",
     "lmpc/r7/sr5",
-    "lmpc/r8"
+    "lmpc/r8",
+    "lmpc/r9/sr4"
   ],
-  "sha256": "b3b83a32c83aeb59ceb9ea36f457b110ba136aac663a87ab195de5617f4ec941",
-  "built_at": "2026-09-07T13:21:38+00:00",
-  "version": "lmpc-2026-09-07-b3b83a32"
+  "sha256": "4c38a851754edb1e51400c387d199a59fee2c3cfa95692e1e7ea2c0de150fc57",
+  "built_at": "2026-09-07T15:29:31+00:00",
+  "version": "lmpc-2026-09-07-4c38a851"
 }

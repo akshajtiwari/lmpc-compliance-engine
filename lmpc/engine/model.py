@@ -53,6 +53,9 @@ class Scan:
     pdp_w_cm: float | None = None
     net_quantity_g: float | None = None
     net_quantity_ml: float | None = None
+    capacity_cm3: float | None = None
+    is_outer_package: bool = False
+    outer_is_transparent: bool = False
 
     def pdp_area_cm2(self) -> float | None:
         """Rule 7(4). Rectangular: h x w of the PDP face. Cylindrical: 0.40 x h x

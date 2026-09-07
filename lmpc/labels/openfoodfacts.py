@@ -14,8 +14,18 @@ from pathlib import Path
 
 UA = "lmpc-compliance-research/1.0 (SIH prototype)"
 
-SEARCH = ("https://world.openfoodfacts.org/cgi/search.pl?action=process"
-          "&tagtype_0=countries&tag_contains_0=contains&tag_0=india&json=1")
+# Four sibling databases, four different kinds of packaged commodity. Category matters
+# legally: Rule 26(c) exempts DPCO drug formulations entirely, cosmetics carry no FSSAI
+# overlap, and the 2025 amendment moved medical devices under CDSCO rules. Testing only
+# on biscuits would never exercise any of that.
+SOURCES = {
+    "FOOD":      ("world.openfoodfacts.org",     "FOOD"),
+    "COSMETIC":  ("world.openbeautyfacts.org",   "COSMETIC"),
+    "GENERAL":   ("world.openproductsfacts.org", "GENERIC"),
+    "PETFOOD":   ("world.openpetfoodfacts.org",  "PETFOOD"),
+}
+SEARCH_TMPL = ("https://{host}/cgi/search.pl?action=process"
+               "&tagtype_0=countries&tag_contains_0=contains&tag_0=india&json=1")
 PANEL_OF = {"front": "FRONT", "ingredients": "BACK",
             "nutrition": "BACK", "packaging": "BACK"}
 
@@ -40,7 +50,7 @@ def _get(url: str, retries: int = 4) -> bytes:
 
 
 def search(pages: int = 3, page_size: int = 20,
-           cache: Path = Path("real/.search")) -> list[dict]:
+           cache: Path = Path("real/.search"), source: str = "FOOD") -> list[dict]:
     """Page through the index, caching each page to disk.
 
     The source is a free public API and goes down intermittently - it did so twice during
@@ -48,19 +58,24 @@ def search(pages: int = 3, page_size: int = 20,
     rather than aborting the whole harvest. Partial data is still useful; a lost harvest
     is not.
     """
+    host, category = SOURCES[source]
+    cache = cache / source
     cache.mkdir(parents=True, exist_ok=True)
+    base = SEARCH_TMPL.format(host=host)
     out, failed = [], 0
     for page in range(1, pages + 1):
         f = cache / f"page{page}.json"
         if not f.exists():
             try:
-                f.write_bytes(_get(f"{SEARCH}&page_size={page_size}&page={page}"))
+                f.write_bytes(_get(f"{base}&page_size={page_size}&page={page}"))
             except RuntimeError:
                 failed += 1
                 continue
             time.sleep(1.2)          # be a good citizen on a free public API
         try:
-            out += json.loads(f.read_text()).get("products", [])
+            for pr in json.loads(f.read_text()).get("products", []):
+                pr["_source"], pr["_category"] = source, category
+                out.append(pr)
         except json.JSONDecodeError:
             f.unlink(missing_ok=True)
             failed += 1
@@ -106,6 +121,9 @@ def download(products: list[dict], into: Path, max_products: int = 40,
             continue
         recs.append({
             "code": code,
+            "source": p.get("_source", "FOOD"),
+            "category": p.get("_category", "FOOD"),
+            "countries": (p.get("countries") or "").strip(),
             "name": (p.get("product_name") or "").strip(),
             "brands": (p.get("brands") or "").strip(),
             # Ground truth we did not author: the declared net quantity on the record.
@@ -136,9 +154,9 @@ def enrich(products: list[dict], cache: Path = Path("real/.products")) -> list[d
         f = cache / f"{code}.json"
         if not f.exists():
             try:
+                host = SOURCES[p.get("_source", "FOOD")][0]
                 f.write_bytes(_get(
-                    f"https://world.openfoodfacts.org/api/v0/product/{code}.json",
-                    retries=2))
+                    f"https://{host}/api/v0/product/{code}.json", retries=2))
             except RuntimeError:
                 out.append(p); continue
             time.sleep(0.4)
@@ -157,19 +175,33 @@ def enrich(products: list[dict], cache: Path = Path("real/.products")) -> list[d
 
 
 def load_or_fetch(into: Path, manifest: Path, max_products: int = 40,
-                  pages: int = 8, min_panels: int = 1) -> list[dict]:
+                  pages: int = 8, min_panels: int = 1,
+                  sources=("FOOD",)) -> list[dict]:
     if manifest.exists():
         return json.loads(manifest.read_text())
-    recs = download(enrich(search(pages=pages)), into, max_products, min_panels)
+    found = []
+    for src in sources:
+        try:
+            found += search(pages=pages, source=src)
+        except Exception as e:
+            print(f"  {src}: unavailable ({e})")
+    recs = download(enrich(found), into, max_products, min_panels)
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text(json.dumps(recs, indent=2, ensure_ascii=False))
     return recs
 
 
 if __name__ == "__main__":
-    r = load_or_fetch(Path("real/images"), Path("real/manifest.json"),
-                      max_products=60, pages=10, min_panels=1)
+    import sys
+    tag = sys.argv[1] if len(sys.argv) > 1 else "food"
+    if tag == "wide":
+        r = load_or_fetch(Path("real/wide"), Path("real/wide.json"),
+                          max_products=80, pages=6, min_panels=1,
+                          sources=("COSMETIC", "GENERAL", "PETFOOD"))
+    else:
+        r = load_or_fetch(Path("real/images"), Path("real/manifest.json"),
+                          max_products=60, pages=10, min_panels=1)
     print(f"{len(r)} products, {sum(len(x['panels']) for x in r)} panel images")
     for x in r[:6]:
-        print(f"  {x['code']}  {x['name'][:34]:<34} {x['declared_quantity']:<10} "
-              f"{len(x['panels'])} panels")
+        print(f"  {x['code']}  {x.get('category','?'):<9} {x['name'][:30]:<30} "
+              f"{x['declared_quantity']:<9} {len(x['panels'])} panels")
