@@ -199,9 +199,14 @@ def ratio_min(spec, scan: Scan, fields) -> Result:
     """Rule 7(3). A pure pixel ratio — no scale reference needed."""
     p = spec["params"]
     excl = set(p.get("exclude_glyphs", []))
+    # Rule 7(3) governs "the declaration". Measuring marketing copy is not just useless,
+    # it produces violations against text the rule does not cover - a real photograph gave
+    # us a FAIL computed from "A QUALITY PRODUCT OF".
+    MANDATORY = {"mrp", "net_quantity", "mfg_date", "consumer_care",
+                 "manufacturer_block", "country_of_origin", "unit_sale_price"}
     worst = None
-    for f in fields.values():
-        if not f:
+    for kind, f in fields.items():
+        if not f or kind not in MANDATORY:
             continue
         for t in f.tokens:
             # Only a SINGLE recognised region may be measured. An assembled line spans
