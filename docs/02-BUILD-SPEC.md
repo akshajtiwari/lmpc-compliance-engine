@@ -2293,8 +2293,15 @@ in state `ACTIVE`.
 5. **P8 dependency check** — fail if any LLM package is in the runtime tree
 6. **Import-graph check** — fail if `lmpc.lawc` is importable from the request path
 7. **RBAC matrix completeness** — fail if a route has no matrix row
-8. **Rulepack/doc consistency** — fail if documented checks, gates or operators differ from
-   the built rulepack
+8. **Rulepack/doc consistency** (`tests/test_spec_consistency.py`) — fail if documented
+   checks, gates or operators differ from the built rulepack, if a stated threshold does
+   not match the code, or if a cited defect is undefined
+8b. **Cross-document consistency** (`tests/test_docs_consistency.py`) — fail if any current
+   document repeats a retracted claim, if defect or rule totals disagree between documents,
+   if a document is missing from the index, if an internal link is broken, or if an evidence
+   report whose findings were superseded carries no correction. *This exists because a
+   correction once landed in the specification while four other documents went on stating
+   the retracted claim.*
 9. `pip-audit`, `npm audit`, Trivy image scan
 10. Build images; do not push
 
@@ -2441,7 +2448,7 @@ Beyond ordinary security, because outputs may be used in enforcement:
 
 | Suite | Command | Scope | Current |
 |---|---|---|---|
-| Unit + integration | `pytest -q` | Rulepack integrity, operators, temporal logic, adversarial fail-tests | **45 passing** |
+| Unit + integration | `pytest -q` | Rulepack integrity, operators, temporal logic, adversarial fail-tests, spec/code and cross-document consistency | **74 passing** |
 | Synthetic stress | `python -m stress.run` | 22 scenarios / 28 expectations, noise sweep, sensitivity sweep | passing |
 | Validation campaign | `python -m stress.campaign` | 24 checks across ingestion, compilation, comparison | **24/24** |
 | Real world | `python -m stress.realworld food\|wide` | 140 real products, 394 photographs | passing |
@@ -2772,7 +2779,7 @@ real/             harvested product photographs  (git-ignored; lmpc.labels.openf
 | 1.0 | Sep 2026 | Initial draft — superseded; rule values were wrong against the notified law |
 | 2.0 | 2026-09-07 | Consolidated after validation; 17 defects catalogued |
 | 3.0 | 2026-09-07 | Full engineering specification: API, schema, auth, RBAC, console, mobile, infrastructure, observability, security, testing, delivery |
-| 3.1 | 2026-09-08 | Client/server split traced to the problem statement (3.5). Three defects corrected: the recogniser cannot emit Devanagari (M.19); every "GPU" figure was CPU and a GPU is **not** required (M.18); synthetic Hindi rendered in a font with no Devanagari glyphs (M.20). Recogniser upgrade path recorded (25.11) |
+| 3.1 | 2026-09-08 | Cross-document consistency enforced in CI (18.4 §8b). Client/server split traced to the problem statement (3.5). Three defects corrected: the recogniser cannot emit Devanagari (M.19); every "GPU" figure was CPU and a GPU is **not** required (M.18); synthetic Hindi rendered in a font with no Devanagari glyphs (M.20). Recogniser upgrade path recorded (25.11) |
 
 **Review cadence.** This document MUST be reviewed whenever a new rulepack is approved,
 whenever a Part 25 question closes, and at each release tag. A change to any measured value
