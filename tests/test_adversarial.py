@@ -19,6 +19,16 @@ from lmpc.labels.generate import make, COMPLIANT_LINES
 CORPUS = Path("corpus")
 GENERAL = Path("corpus_general")
 
+# Corpora are fetched, not committed - they are reproducible inputs, not source. Tests
+# that need one skip with the command that produces it rather than failing on a clean
+# checkout.
+needs_corpus = pytest.mark.skipif(
+    not list(CORPUS.glob("*.pdf")),
+    reason="run lmpc/lawc/fetch.sh to fetch the Packaged Commodities corpus")
+needs_general = pytest.mark.skipif(
+    not list(GENERAL.glob("*.pdf")),
+    reason="run lmpc/lawc/fetch-general.sh to fetch the General Rules corpus")
+
 
 @pytest.fixture(scope="module")
 def pack():
@@ -27,6 +37,7 @@ def pack():
 
 # ------------------------------------------------------ ingestion under attack ---
 
+@needs_corpus
 def test_corrupt_pdf_does_not_crash_the_build(tmp_path):
     """A truncated or garbage file must be classified, not parsed as law."""
     shutil.copy(CORPUS / "2017-8xii.pdf", tmp_path / "good.pdf")
@@ -45,6 +56,7 @@ def test_empty_corpus_fails_loudly(tmp_path):
         B.build(corpus=tmp_path, out=tmp_path / "rp")
 
 
+@needs_corpus
 def test_scanned_documents_are_excluded_not_guessed():
     """2011-2015 gazettes are two-column scans. They must be flagged for OCR, never
     half-parsed into a chain."""
@@ -56,6 +68,7 @@ def test_scanned_documents_are_excluded_not_guessed():
 
 # ------------------------------------------------- identity and chain integrity ---
 
+@needs_general
 def test_gsr_numbers_collide_across_years_and_are_detected():
     """The bug that would have spliced a 2021 amendment onto a 2025 one."""
     out = parse.main(GENERAL)
@@ -66,12 +79,14 @@ def test_gsr_numbers_collide_across_years_and_are_detected():
     assert keys == ["G.S.R. 875(E)@2016", "G.S.R. 875(E)@2025"]
 
 
+@needs_corpus
 def test_chain_keys_include_the_year():
     out = parse.main(CORPUS)
     for w in out["chain"]["walk"]:
         assert "@" in w["key"] and w["key"].split("@")[1].isdigit()
 
 
+@needs_general
 def test_rule_families_are_walked_separately():
     """Merging families made the walk pick an arbitrary root and invent gaps."""
     out = parse.main(GENERAL)
@@ -81,6 +96,7 @@ def test_rule_families_are_walked_separately():
     assert chains["G.S.R. 71(E)"] is not chains["G.S.R. 593(E)"]
 
 
+@needs_general
 def test_parser_generalises_to_an_unseen_rule_family():
     """Regexes were written against Packaged Commodities. They must not be overfit."""
     out = parse.main(GENERAL)
