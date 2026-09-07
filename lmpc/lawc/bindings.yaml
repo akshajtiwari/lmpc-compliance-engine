@@ -86,7 +86,18 @@ checks:
     citation: {gsr: "G.S.R. 629(E)", page: 10, dated: "2017-06-23"}
     params:
       # The four illustrations given in the 2017 amendment, p.10.
-      regex: '(?i)\b(m\.?r\.?p|max(imum)?\.?\s+retail\s+price)\b.{0,20}?(rs\.?|₹)\s*\d+(\.\d{1,2})?\s*\(?\s*(incl\.?|inclusive)\s+of\s+all\s+taxes'
+      # Structure only: the anchor and the numeral. Digits are the finding, so these
+      # are matched exactly.
+      # The anchor is NOT re-checked here: extraction already established that this
+      # block is the MRP, using fuzzy matching. Re-asserting it with an exact regex only
+      # re-fails on OCR damage ("MRPRs.", "MeP"). This checks the value and the wording.
+      regex: '(?i)(rs\.?|₹|inr)\s*\d+(\.\d{1,2})?'
+      # The prescribed wording is matched FUZZILY: OCR damages words ("of"->"vf"), and a
+      # damaged reading of compliant wording is not a violation.
+      phrase_any: ["inclusive of all taxes", "incl. of all taxes", "incl of all taxes"]
+      phrase_present_at: 85      # >= this: the wording is there
+      phrase_absent_below: 60    # < this: the wording is genuinely missing
+                                 # in between: INDETERMINATE, a human reads the crop
       illustrations:
         - "Maximum retail price Rs. xx.xx (inclusive of all taxes)"
         - "Max. retail price Rs. xx.xx inclusive of all taxes"

@@ -15,6 +15,15 @@ from .model import Token, Scan, Field
 from . import lexicon, normalize
 
 FLOOR = 45.0        # below this, nothing was really found
+NEAR_MISS = 28.0    # above this, something resembling the field WAS on the label
+LEGIBLE = 0.80      # below this, a token cannot support any finding at all
+ACCUSE = 0.95       # below this, a token cannot support a CHARACTER-LEVEL accusation
+
+# Two thresholds, because two different claims are being made. "There is text here" is
+# robust to a misread character. "This character is wrong, therefore the declaration
+# violates the prescribed form" is not - a single bad glyph decides it. The stress run
+# showed exactly this: 'Net Qty: 500 z', 'MFG 02/2f25', 'MRP Rt. 45.00' were all read at
+# ~0.9 confidence and all produced false violations on compliant labels.
 MARGIN = 12.0       # two candidates closer than this are indistinguishable
 
 NEGATIVE = re.compile(
@@ -59,9 +68,16 @@ def score(tok: Token, kind: str, scan: Scan) -> tuple[float, dict]:
     return sum(f.values()), f
 
 
-def extract(scan: Scan, kinds: list[str]) -> dict[str, Field | None]:
+class Fields(dict):
+    """Winning candidates, plus why the losers lost. The diagnostics are what let a
+    presence check tell 'this declaration is missing' apart from 'we could not read it'."""
+    diag: dict
+
+
+def extract(scan: Scan, kinds: list[str]) -> Fields:
     """Return the winning candidate per field kind, or None when too close to call."""
-    out: dict[str, Field | None] = {}
+    out = Fields()
+    out.diag = {}
     for kind in kinds:
         ranked = sorted(((score(t, kind, scan), t) for t in scan.tokens),
                         key=lambda p: p[0][0], reverse=True)
@@ -71,6 +87,8 @@ def extract(scan: Scan, kinds: list[str]) -> dict[str, Field | None]:
         (top, feats), tok = ranked[0]
         second = ranked[1][0][0] if len(ranked) > 1 else 0.0
         margin = top - second
+        out.diag[kind] = {"top": round(top, 1), "margin": round(margin, 1),
+                          "best_text": tok.text, "conf": tok.conf}
         if top < FLOOR or margin < MARGIN:
             out[kind] = None
             continue

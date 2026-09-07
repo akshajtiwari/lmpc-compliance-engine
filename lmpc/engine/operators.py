@@ -11,6 +11,54 @@ from .model import Verdict, Result, Scan, Field
 from . import normalize
 
 
+# Characters a recogniser routinely swaps. Correcting them can only ever DOWNGRADE a
+# FAIL to INDETERMINATE - it never manufactures a PASS - so over-correcting is safe.
+# G->6 and Z->2 were tried and removed: the stress run showed them corrupting "MFG02"
+# into "MF 602", turning a compliant date into a violation. A repair that can damage a
+# neighbouring word is worse than no repair.
+_OCR_FIX = str.maketrans({"O": "0", "o": "0", "l": "1", "I": "1", "S": "5", "B": "8"})
+
+
+_NUMERIC_RUN = re.compile(r"[0-9OolISB.,]{2,}")
+
+
+def fix_numerals(text: str) -> str:
+    """Undo digit/letter confusions inside numeric runs only.
+
+    Translating the whole string would break the words the rule depends on: 'Rs.' becomes
+    'R5.' and 'incl.' becomes 'inc1.', so a compliant label would still read as a
+    violation. Only runs that already contain a real digit are corrected."""
+    def sub(m):
+        run = m.group(0)
+        return run.translate(_OCR_FIX) if any(c.isdigit() for c in run) else run
+    return _NUMERIC_RUN.sub(sub, text)
+
+
+def repair_separators(text: str) -> str:
+    """Re-insert separators a recogniser dropped: 'MFG02/2025', '2022were published'."""
+    text = re.sub(r"(?<=[A-Za-z])(?=\d)", " ", text)
+    return re.sub(r"(?<=\d)(?=[A-Za-z])", " ", text)
+
+
+REPAIRS = [("numeral confusions", fix_numerals),
+           ("dropped separators", lambda t: repair_separators(fix_numerals(t)))]
+
+
+def _read_confidently(spec, f, regex):
+    """MATCH | (ONLY_AFTER_CORRECTION, how) | NO_MATCH.
+
+    A format check may only accuse on text we are confident we read correctly. If the
+    declaration matches once known OCR damage is repaired, the label is probably fine and
+    the recogniser was wrong - which is a human's call, not a violation. Repair can only
+    downgrade FAIL to INDETERMINATE; it never produces a PASS."""
+    if re.search(regex, f.text):
+        return "MATCH", None
+    for how, fn in REPAIRS:
+        if re.search(regex, fn(f.text)):
+            return "ONLY_AFTER_CORRECTION", how
+    return "NO_MATCH", None
+
+
 def _r(spec, verdict, reason, **ev) -> Result:
     return Result(check=spec["check"], clause=spec["clause"], verdict=verdict,
                   reason=reason, citation=spec.get("citation", {}), evidence=ev)
@@ -22,17 +70,32 @@ def presence(spec, scan: Scan, fields: dict[str, Field | None]) -> Result:
     if f:
         return _r(spec, Verdict.PASS, f"found on {f.panel} panel",
                   text=f.text, score=f.score, margin=f.margin, panel=f.panel)
-    # Absence of evidence is not evidence of absence. If a surface was never
-    # photographed, we cannot say the declaration is missing.
-    if scan.panels_captured != {"FRONT", "BACK", "SIDE"} - (
-            {"SIDE"} - scan.panels_captured):
-        pass
+    # Absence of evidence is not evidence of absence. Three separate reasons we might
+    # not have found a declaration, and only one of them is a violation.
     if not {"FRONT", "BACK"} <= scan.panels_captured:
         missing = sorted({"FRONT", "BACK"} - scan.panels_captured)
         return _r(spec, Verdict.INDETERMINATE,
                   f"not found, but {', '.join(missing)} panel(s) were never photographed",
                   panels_captured=sorted(scan.panels_captured))
-    return _r(spec, Verdict.FAIL, "declaration not found on any photographed panel",
+
+    d = getattr(fields, "diag", {}).get(spec["field"], {})
+    from .extract import NEAR_MISS, LEGIBLE
+    if d.get("top", 0) >= NEAR_MISS:
+        return _r(spec, Verdict.INDETERMINATE,
+                  "something resembling this declaration is present but could not be "
+                  "identified with enough confidence to judge it",
+                  best_candidate=d.get("best_text"), score=d.get("top"),
+                  margin=d.get("margin"))
+
+    illegible = [t for t in scan.tokens if t.conf < LEGIBLE]
+    if illegible:
+        return _r(spec, Verdict.INDETERMINATE,
+                  f"{len(illegible)} of {len(scan.tokens)} text regions were read below "
+                  f"the legibility threshold; absence cannot be concluded from an "
+                  f"unreadable image",
+                  min_confidence=round(min(t.conf for t in illegible), 2))
+
+    return _r(spec, Verdict.FAIL, "declaration not found on any legibly photographed panel",
               panels_captured=sorted(scan.panels_captured))
 
 
@@ -41,8 +104,43 @@ def format_regex(spec, scan: Scan, fields) -> Result:
     f = fields.get(spec["field"])
     if not f:
         return _r(spec, Verdict.NOT_APPLICABLE, "field not established; presence check governs")
-    if re.search(spec["params"]["regex"], f.text):
+    from .extract import LEGIBLE, ACCUSE
+    p = spec["params"]
+    verdict, how = _read_confidently(spec, f, p["regex"])
+    if verdict == "MATCH":
+        if "phrase_any" in p:
+            from rapidfuzz import fuzz
+            sim = max(fuzz.partial_ratio(w.lower(), f.text.lower()) for w in p["phrase_any"])
+            # A phrase-level claim ("thirty characters of required wording are simply
+            # not here") survives a few misread glyphs, so it only needs legibility.
+            # A character-level claim needs ACCUSE. Different claims, different bars.
+            if sim < p["phrase_absent_below"] and \
+                    min((t.conf for t in f.tokens), default=1.0) >= LEGIBLE:
+                return _r(spec, Verdict.FAIL,
+                          f"the prescribed wording is absent (best match {sim:.0f}%)",
+                          text=f.text, required_wording=p["phrase_any"])
+            if sim < p["phrase_present_at"]:
+                return _r(spec, Verdict.INDETERMINATE,
+                          f"the prescribed wording is only a {sim:.0f}% match; confirm "
+                          f"against the evidence crop before judging",
+                          text=f.text, required_wording=p["phrase_any"])
+            return _r(spec, Verdict.PASS,
+                      f"structure and prescribed wording present ({sim:.0f}% match)",
+                      text=f.text)
         return _r(spec, Verdict.PASS, "matches the prescribed form", text=f.text)
+    if verdict == "ONLY_AFTER_CORRECTION":
+        return _r(spec, Verdict.INDETERMINATE,
+                  f"matches the prescribed form once {how} are repaired; the reading, "
+                  f"not the label, is in doubt",
+                  text=f.text, corrected=fix_numerals(f.text))
+    conf = min((t.conf for t in f.tokens), default=1.0)
+    if conf < ACCUSE:
+        return _r(spec, Verdict.INDETERMINATE,
+                  f"does not match the prescribed form, but the region was read at "
+                  f"{conf:.2f} confidence - too low to attribute the mismatch to the "
+                  f"label rather than the reading",
+                  text=f.text, confidence=round(conf, 2),
+                  accuse_threshold=ACCUSE)
     return _r(spec, Verdict.FAIL, "does not match the prescribed form",
               text=f.text, expected=spec["params"].get("illustrations"))
 
@@ -52,6 +150,25 @@ def numeric_predicate(spec, scan: Scan, fields) -> Result:
     f = fields.get(spec["field"])
     if not f or "amount" not in f.normalized:
         return _r(spec, Verdict.NOT_APPLICABLE, "no numeric value established")
+    from .extract import LEGIBLE, ACCUSE
+    # Inspect the NUMERAL only. "incl. of all taxes" is full of confusable letters, but
+    # they are not part of the value being judged.
+    span = re.search(r"(?:rs\.?|₹|inr)\s*([^\s(]+)", f.text, re.I)
+    numeral = (span.group(1) if span else f.text).rstrip(").,")
+    # The parser must consume the WHOLE numeral. The stress run caught "45.b0" being read
+    # as 45.0 - the paise were silently dropped and an unrounded price passed as rounded.
+    # A value we only partly read is a value we do not know.
+    consumed = re.match(r"[0-9OolISB]+(?:[.,][0-9OolISB]{1,2})?$", numeral)
+    if not consumed:
+        return _r(spec, Verdict.INDETERMINATE,
+                  "the numeral could not be read end to end; a partial reading cannot "
+                  "support a finding about its value", text=f.text, numeral=numeral)
+    if min((t.conf for t in f.tokens), default=1.0) < LEGIBLE or \
+       numeral != numeral.translate(_OCR_FIX):
+        return _r(spec, Verdict.INDETERMINATE,
+                  "the numeral contains characters a recogniser commonly confuses; "
+                  "confirm the printed value before judging rounding",
+                  text=f.text, numeral=numeral)
     amt = f.normalized["amount"]
     pred = spec["params"]["predicate"]
     ok = getattr(normalize, pred)(amt)

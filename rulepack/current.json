@@ -1,7 +1,7 @@
 {
   "rulepack": "lmpc",
   "schema": 1,
-  "built_at": "2026-09-07T12:53:49+00:00",
+  "built_at": "2026-09-07T12:59:48+00:00",
   "currency": {
     "newest_instrument": "G.S.R. 418(E)",
     "chain_links_verified": 12,
@@ -304,7 +304,14 @@
         "dated": "2017-06-23"
       },
       "params": {
-        "regex": "(?i)\\b(m\\.?r\\.?p|max(imum)?\\.?\\s+retail\\s+price)\\b.{0,20}?(rs\\.?|₹)\\s*\\d+(\\.\\d{1,2})?\\s*\\(?\\s*(incl\\.?|inclusive)\\s+of\\s+all\\s+taxes",
+        "regex": "(?i)(rs\\.?|₹|inr)\\s*\\d+(\\.\\d{1,2})?",
+        "phrase_any": [
+          "inclusive of all taxes",
+          "incl. of all taxes",
+          "incl of all taxes"
+        ],
+        "phrase_present_at": 85,
+        "phrase_absent_below": 60,
         "illustrations": [
           "Maximum retail price Rs. xx.xx (inclusive of all taxes)",
           "Max. retail price Rs. xx.xx inclusive of all taxes",
@@ -619,6 +626,6 @@
     "lmpc/r7/sr5",
     "lmpc/r8"
   ],
-  "sha256": "d8af561056346f698802002135bfc775de92a11ec5c148543ac4189ab6ab4f03",
-  "version": "lmpc-2026-09-07-d8af5610"
+  "sha256": "fd80fd0e1b6484e786ab62e0ece403bd7c02fb936c6e1f99a54550925ee03aeb",
+  "version": "lmpc-2026-09-07-fd80fd0e"
 }

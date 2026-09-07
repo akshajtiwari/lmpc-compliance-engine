@@ -98,7 +98,9 @@ def _ceiling(spec, r: Result) -> Result:
     reliable enough to accuse anyone (the generic name). The measurement and the
     reasoning still appear — only the accusation is withheld."""
     cap = spec.get("verdict_ceiling")
-    if cap and r.verdict is Verdict.FAIL:
+    # INDETERMINATE_NEAR_BOUNDARY is enforced inside table_lookup, which knows where the
+    # boundaries are. Only an absolute ceiling withholds every FAIL.
+    if cap == "INDETERMINATE" and r.verdict is Verdict.FAIL:
         return Result(r.check, r.clause, Verdict.INDETERMINATE,
                       f"{r.reason} — withheld from FAIL: "
                       f"{' '.join(spec.get('ceiling_reason', cap).split())}",
