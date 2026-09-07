@@ -143,6 +143,27 @@ therefore it breaks the rule"* does not.
 
 ---
 
+## 5.5 Why it is not all inside the phone app
+
+A fair question, and the problem statement answers it. It asks for a **repository** of
+scanned products, **dashboards** for officials, **search** over previous inspections,
+**role-based access**, and a "**web** and/or mobile" application. None of those exist on
+one isolated handset — roles mean nothing without a central authority, and a repository
+spanning officers is by definition shared.
+
+Two more reasons of our own: a verdict computed on a device nobody controls is not
+defensible evidence, and if the rules lived on phones then every amendment would need a
+fleet-wide app update — with old handsets quietly applying repealed law.
+
+**The phone still does plenty, and still works offline:** it guides the capture, rejects
+bad photos, asserts coverage, queues scans with no signal, and syncs later. It holds no
+thresholds, no comparisons and no rule text.
+
+**And "server" does not mean cloud.** The whole stack runs on one departmental machine
+with `docker compose up`.
+
+---
+
 ## 6. What is NOT in the system
 
 | Not here | Why |

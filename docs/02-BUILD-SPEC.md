@@ -43,7 +43,7 @@ measured is marked `[ESTIMATE]`.
 |---|---|---|
 | 1 | Product definition, personas, use cases | Product |
 | 2 | Engineering principles | All |
-| 3 | System architecture and topology | Architecture |
+| 3 | System architecture, client/server split, topology | Architecture |
 | 4 | Domain model and data contracts | Backend |
 | 5 | Law compiler subsystem | Compiler |
 | 6 | Rulepack format and lifecycle | Compiler |
@@ -279,7 +279,57 @@ Client            API           Redis      OCR Worker    Rules Worker      DB / 
 | Client | PWA | Native Android | Any device; no store review |
 | Auth | Keycloak (OIDC) | Hand-rolled JWT | Departmental SSO must plug in without rework |
 
-### 3.5 Deployment constraints
+### 3.5 Why the work is split between client and server
+
+A reasonable first assumption is that everything ships inside a phone app. It cannot, and
+the problem statement itself is what rules it out. Six of its stated requirements are
+impossible on an isolated device:
+
+| Problem-statement requirement | Why it needs a server |
+|---|---|
+| "User-friendly **web** and/or mobile-based software application" | A web application *is* a server-side deployment |
+| "Maintaining a **repository** of scanned products and compliance history" | A repository spanning officers cannot live on one handset |
+| "Providing **dashboards** for enforcement officials" | Aggregation across inspections, officers and jurisdictions |
+| "**Search and retrieval** facility for previously scanned products and reports" | Search over a shared corpus |
+| "**Role-based user access** and secure authentication" | Roles are meaningless without a central authority; a device-local role is self-asserted |
+| "Technical documentation describing software architecture and **deployment framework**" | A deployment framework is being asked for explicitly |
+
+Three further reasons are ours, not the problem statement's:
+
+1. **Evidence integrity.** A verdict computed on a device the inspected party's counterpart
+   controls is not defensible. Originals are hashed on arrival and stored immutably
+   server-side; the device never holds the authoritative copy.
+2. **Rulepack currency.** When the law changes, a reviewer approves a diff and the new
+   rulepack is live for everyone (Part 6.6). If rules lived on devices, every amendment
+   would need an app release and a fleet-wide update — and old handsets would silently
+   apply repealed law.
+3. **Reproducibility.** SC-6 requires an 18-month-old report to reproduce byte-identically.
+   That needs the rulepack, the model hashes and the execution manifest under one
+   controlled configuration, not whatever version a particular phone happened to run.
+
+**What the client does keep.** Capture, quality gates, the coverage assertion, offline
+queueing and rendering — see Part 7 and Part 17. Field work continues with no
+connectivity; scans queue locally and sync when the officer returns to signal. The
+client holds **no legal logic**: no thresholds, no comparisons, no rule text.
+
+**Why OCR is server-side rather than on-device.** It is technically possible via ONNX
+Runtime Web, and was considered:
+
+| | On-device | Server-side (chosen) |
+|---|---|---|
+| Model download | ~21 MB per handset, over mobile data | Once, into a container |
+| Speed | Mid-range phone CPU, unmeasured | 1.6 s/panel measured |
+| Model updates | Fleet-wide app update | Container redeploy |
+| Evidence chain | Verdict computed on an uncontrolled device | Controlled infrastructure |
+| Offline capture | Works either way — capture is local, evaluation is deferred | Works either way |
+
+Nothing is lost offline: the officer still captures, and evaluation happens on sync.
+
+**On-premises is supported.** "Server-side" does not mean "someone else's cloud". The
+entire stack runs on a single departmental machine via Docker Compose (Part 18), with
+MinIO for storage and PostgreSQL for data. See 3.6.
+
+### 3.6 Deployment constraints
 
 - MUST be deployable on-premises or on a MeitY/NIC-empanelled cloud.
 - MUST NOT depend on a proprietary managed service unavailable in such an environment.
