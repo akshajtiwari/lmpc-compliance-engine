@@ -1,0 +1,4 @@
+pillow>=10.0      # render synthetic label images with exact, known glyph sizes
+rapidfuzz>=3.0    # fuzzy lexicon matching (replaces "ask a model what this heading is")
+pytest>=7.0       # test runner
+# stdlib only otherwise. Law compilation needs poppler's `pdftotext` on PATH.
