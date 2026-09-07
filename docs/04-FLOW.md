@@ -12,7 +12,7 @@ Officer opens PWA → photographs 4 faces → taps Submit
         ↓
   upload + hash (WORM)
         ↓
-  OCR (PaddleOCR, en+hi) → text + polygons
+  OCR (PP-OCR: English + Devanagari models) → text + polygons
         ↓
   extractors → ExtractedLabel (candidate facts, with confidence)
         ↓
@@ -38,7 +38,7 @@ with review. The engine executes that rulepack and nothing else.
 | 3 | Repeats for back, sides, base | The app tracks which faces were done and, only when all are, sets a **coverage assertion** on the scan. Without it the engine may never say a declaration is missing — only that it could not find one. This single flag is what separates "the MRP is missing" from "we never saw the back" |
 | 4 | Optionally lays a bank card in frame | An ISO ID-1 card (85.60 mm) or AprilTag is the scale reference. Without it, millimetre checks abstain rather than guess |
 | 5 | Taps Submit; sees "Processing" | Originals go to WORM storage, sha256 recorded. A job is queued (Redis + Dramatiq). The API returns immediately — nothing blocks on OCR |
-| 6 | Steps appear one by one, live | PaddleOCR (English + Devanagari) returns text tokens **with polygons**. Geometry is preserved because typography rules need it |
+| 6 | Steps appear one by one, live | PP-OCR returns text tokens **with polygons** — geometry is preserved because typography rules need it. Two specialist recognisers, English and Devanagari; the default Chinese model cannot emit Devanagari at all |
 | 7 | — | Extractors pull candidate facts — MRP, net quantity, dates, address, consumer care — and normalise units, money and dates into `ExtractedLabel`. Fuzzy lexicon match + a scored layout rubric pick between competing candidates (§ below); a weak winning margin yields `INDETERMINATE` rather than a guess. Every field keeps its source token IDs |
 | 8 | **"Not applicable — Rule 26"** *(sometimes the flow ends here)* | Applicability gates run **first**: bulk/industrial (Rule 3), small pack ≤10 g/ml, fast food, DPCO (Rule 26). An exempt package is never evaluated, so it can never be falsely accused |
 | 9 | A list of rule cards, colour-coded | The rule engine walks the rulepack: presence → format → semantics → typography → placement. Each check is plain Python a person can read |
@@ -56,7 +56,7 @@ with review. The engine executes that rulepack and nothing else.
 |---|---|---|
 | PWA capture client | Officer's browser | **No** — camera, quality gates, upload, rendering |
 | API + rule engine | Server (FastAPI, modular monolith) | **Yes** — the rulepack, and only the rulepack |
-| GPU | Server only | No — but required: a dense ingredients panel is minutes on CPU, 2.3 s on GPU |
+| GPU | Server only, optional | No — an ordinary CPU reads a photo in 1.6 s once photos are shrunk to 1800 px |
 | OCR / measurement workers | Server, async queue | No — they produce evidence, not verdicts |
 | Postgres + MinIO | Server | Scans, verdicts, WORM originals, reports |
 | Gazette PDFs & extracts | Repo, **build-time only** | Compiled by hand into the rulepack in Week 1 |
@@ -73,6 +73,6 @@ step 3 exists solely to make that distinction possible.
 *rule-based* compliance checking, and that is literally what runs. Field identification is
 fuzzy lexicon matching plus a scored layout rubric; report wording is templated strings
 from the rulepack; "which documents affect Rule 6" is a SQL query over the amendment
-ledger. Vision AI (PaddleOCR) produces *evidence*; deterministic Python draws every
+ledger. Vision AI (PP-OCR) produces *evidence*; deterministic Python draws every
 *conclusion*. Nothing in the verdict path can hallucinate, drift between runs, or fail to
 explain itself.

@@ -50,11 +50,14 @@ them first. Half of that was wrong: Rule 7(3) needs **per-letter** measurement, 
 detection boxes cannot provide, and it produced 11 false accusations before it was gated.
 Budget glyph segmentation or drop the check.
 
-**2.4 The server needs a GPU; field devices do not.**
-A dense ingredients panel exceeds a 30-second budget on CPU and finishes in 2.3 s on an
-RTX 3050. Recognition happens server-side; the client only captures.
+**2.4 A GPU is optional; the resolution cap is what mattered.**
+This previously read "the server needs a GPU", on the strength of timings that turned out
+to be CPU all along — `onnxruntime` advertises CUDA even with no CUDA runtime installed and
+falls back silently (M.18). **CPU manages 1.6 s per panel**, comfortably inside the budget.
+The original unbounded runtimes were caused by feeding 64 MP frames to the recogniser, not
+by missing hardware. Recognition still happens server-side; the client only captures.
 
-**2.5 Assume a sixth measurement bug.**
+**2.5 Assume a further measurement bug.**
 Five separate times a check answered confidently from a measurement it should not have
 trusted (M.2, M.7, M.15, M.16, M.17). The fifth was found *after* the spec was written, by
 the campaign rather than by unit tests — our own OCR repair respaced `4S.3s` into `4 S.3 s`
@@ -165,7 +168,7 @@ A gate is not a status meeting. If its criteria fail, the following week's scope
 | Hindi unvalidated | Med | Half the country's labels | N.5 promoted to a Week 2 gate |
 | Repealed law reaches the rulepack | Low | Fatal to credibility | Compiler cross-checks values; build fails on drift |
 | A 2026 amendment lands mid-build | Low | Currency claim breaks | Chain walk + quarantine; an unapproved amendment in quarantine is a demo asset |
-| CPU-only deployment | Med | Latency budget blown | GPU is a stated server requirement |
+| Latency on modest departmental hardware | Low | Budget blown | Measured at 1.6 s/panel on an ordinary CPU; `MAX_EDGE` is the tuning lever, and a GPU is available headroom if needed |
 | Scope creep into "misleading" | Med | Unfalsifiable claims | Named non-goal; report states what was and was not checked |
 
 ---

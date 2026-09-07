@@ -1,7 +1,7 @@
 # Build Specification — Legal Metrology Compliance System
 
-**Document ID:** LMPC-SPEC-002 · **Version:** 3.0 · **Status:** Approved for implementation
-**Date:** 2026-09-07
+**Document ID:** LMPC-SPEC-002 · **Version:** 3.1 · **Status:** Approved for implementation
+**Date:** 2026-09-08
 **Supersedes:** v2.0; `archive/2026-09-engineering-spec-superseded.md`;
 `archive/2026-09-technical-spec-superseded.md`
 
@@ -35,7 +35,7 @@ measured is marked `[ESTIMATE]`.
 | Real product photographs | 140 products, 394 images, 4 categories |
 | Rule evaluations executed | 2,940 |
 | Synthetic labels | rendered at 300 DPI with exact known glyph geometry |
-| Hardware | NVIDIA RTX 3050 6 GB for GPU figures; same host CPU for CPU figures |
+| Hardware | Ordinary laptop CPU. **Every timing here is a CPU figure** — an RTX 3050 was present but `onnxruntime` never actually used it (M.18) |
 
 ### 0.4 Contents
 
@@ -202,7 +202,7 @@ pass a label declaring 45.30. A correction may only ever downgrade a `FAIL`.
 ════════ RUN TIME (per scan, seconds) ════════════════════════════│════════
 
  Capture ─▶ API ─▶ Queue ─▶ OCR Worker ─▶ Extraction ─▶ Rule Engine ◀┘
- (client)                    (GPU)                          │
+ (client)                   (CPU; GPU optional)              │
                                                             ▼
                               Evidence · Verdicts · Report · Repository
 ```
@@ -212,7 +212,7 @@ pass a label declaring 45.30. A correction may only ever downgrade a `FAIL`.
 | Service | Runtime | Replicas (pilot) | Scaling signal | GPU |
 |---|---|---|---|---|
 | `api` | FastAPI / Uvicorn | 2 | CPU + RPS | No |
-| `worker-ocr` | Python + ONNX Runtime | 2 | Redis queue depth | **Yes** |
+| `worker-ocr` | Python + ONNX Runtime | 2 | Redis queue depth | Optional |
 | `worker-rules` | Python | 2 | Redis queue depth | No |
 | `worker-reports` | Python + WeasyPrint | 1 | Redis queue depth | No |
 | `web` | Next.js (SSR) | 2 | CPU | No |
@@ -255,7 +255,7 @@ Client            API           Redis      OCR Worker    Rules Worker      DB / 
   │◀ 200 detail ───┤              │             │              │              │
 ```
 
-**Latency budget** (4 panels, `MAX_EDGE=1800`, GPU):
+**Latency budget** (4 panels, `MAX_EDGE=1800`, **CPU** — see M.18):
 
 | Stage | Target p95 | Measured |
 |---|---|---|
@@ -271,7 +271,7 @@ Client            API           Redis      OCR Worker    Rules Worker      DB / 
 |---|---|---|---|
 | Rule representation | Compiled rulepack | RAG over PDFs | Non-reproducible; retrieves repealed text; cannot be cited |
 | Backend shape | Modular monolith + workers | Microservices | Pilot scale; one deployable; no distributed transactions |
-| OCR placement | Server-side | On-device | Evidence stays on controlled infrastructure; phones lack the GPU |
+| OCR placement | Server-side | On-device | Evidence stays on controlled infrastructure; models update without a fleet-wide app release; a verdict computed on an uncontrolled device is not defensible |
 | OCR runtime | RapidOCR (ONNX) | PaddlePaddle | 200 MB vs ~2 GB; identical model family |
 | Field identification | Fuzzy lexicon + scored rubric | LLM / LayoutLM | P8; a rubric is explainable in court |
 | Orchestration | Docker Compose | Kubernetes | Pilot scale; operational burden |
@@ -1020,7 +1020,7 @@ if max(im.size) > MAX_EDGE:
     im = im.resize(scaled, Image.LANCZOS)  # land exactly on the cap
 ```
 
-Measured, 10 products, GPU:
+Measured, 10 products, **CPU** (M.18):
 
 | Long edge | s / photo | Regions | MRPs found |
 |---|---|---|---|
@@ -1064,7 +1064,7 @@ Acceptance for the future implementation: mean absolute error of measured glyph 
 | Image unreadable | `scan_images.upload_status='FAILED'`; scan continues with remaining panels; coverage assertion revoked |
 | OCR returns zero regions | Not an error; downstream presence checks return `INDETERMINATE` |
 | Worker OOM | Job retried once at `MAX_EDGE=1280`; second failure → `SYSTEM_ERROR` result, alert |
-| GPU unavailable at start-up | Fall back to CPU, log at ERROR, emit `ocr_gpu_unavailable` metric |
+| GPU requested but unusable | Fall back to CPU, log at **WARN** (not ERROR — CPU is a supported configuration), emit `ocr_gpu_unavailable`. MUST verify by probing a real session, never the advertised provider list (M.18) |
 
 ---
 
@@ -2246,7 +2246,7 @@ device reports thermal pressure. Frames are downscaled to 2400 px before storage
 | Image | Base | Notes |
 |---|---|---|
 | `lmpc/api` | `python:3.12-slim` | FastAPI + Uvicorn |
-| `lmpc/worker-ocr` | `nvidia/cuda:12.4-runtime` | ONNX Runtime GPU; models baked in with pinned hashes |
+| `lmpc/worker-ocr` | `python:3.12-slim` (default) · `nvidia/cuda:12.4-runtime` (optional GPU variant) | ONNX Runtime; recogniser models baked in with pinned hashes. **The slim image is the default** — CPU meets the budget (M.18). Build the CUDA variant only where a GPU exists and higher `MAX_EDGE` or throughput is wanted |
 | `lmpc/worker-rules` | `python:3.12-slim` | |
 | `lmpc/worker-reports` | `python:3.12-slim` | WeasyPrint system deps |
 | `lmpc/web` | `node:20-slim` → distroless | Next.js standalone output |
@@ -2318,7 +2318,8 @@ recorded.
 ### 18.6 Scaling
 
 Workers scale on Redis queue depth: target ≤ 20 queued jobs per replica; scale up at 40,
-down at 5, with a 5-minute cooldown. `worker-ocr` replicas are bounded by available GPUs.
+down at 5, with a 5-minute cooldown. On the CPU image `worker-ocr` scales like any other
+worker; on the CUDA variant replicas are bounded by available GPUs.
 The API scales on CPU at 60 %.
 
 ---
@@ -2771,6 +2772,7 @@ real/             harvested product photographs  (git-ignored; lmpc.labels.openf
 | 1.0 | Sep 2026 | Initial draft — superseded; rule values were wrong against the notified law |
 | 2.0 | 2026-09-07 | Consolidated after validation; 17 defects catalogued |
 | 3.0 | 2026-09-07 | Full engineering specification: API, schema, auth, RBAC, console, mobile, infrastructure, observability, security, testing, delivery |
+| 3.1 | 2026-09-08 | Client/server split traced to the problem statement (3.5). Three defects corrected: the recogniser cannot emit Devanagari (M.19); every "GPU" figure was CPU and a GPU is **not** required (M.18); synthetic Hindi rendered in a font with no Devanagari glyphs (M.20). Recogniser upgrade path recorded (25.11) |
 
 **Review cadence.** This document MUST be reviewed whenever a new rulepack is approved,
 whenever a Part 25 question closes, and at each release tag. A change to any measured value

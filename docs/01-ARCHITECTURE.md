@@ -267,7 +267,7 @@ or `legal_reviewer_required`. Where interpretation is unclear, block automated f
 ```
 A. Capture validation   blur, glare, exposure, perspective, surface coverage
 B. Geometric processing rectification, panel segmentation, marker detection
-C. OCR routing          PaddleOCR; script detection per region
+C. OCR routing          PP-OCR via ONNX; English + Devanagari recognisers per region
 D. Candidate generation regex + fuzzy lexicon + scored layout rubric (04 §4.1)
 E. Normalization        units, dates, currency — preserving raw evidence
 ```
@@ -404,7 +404,7 @@ admissibility needs more and is out of scope — say so.)
 | Capture client | **PWA** — `getUserMedia`, service worker | Fits "web and/or mobile"; any judge device |
 | Console | React + TanStack Query | Standard, fast to build |
 | Backend | FastAPI + Pydantic + SQLAlchemy, **modular monolith** | One deployable; Pydantic doubles as the schema contract |
-| OCR | **PaddleOCR** (English + Devanagari) | Best multilingual accuracy/effort ratio; ML Kit for on-device preview |
+| OCR | **PP-OCR via ONNX Runtime** — English + Devanagari specialist recognisers, ~21 MB | Runs server-side on CPU. The default Chinese recogniser has zero Devanagari characters (see `02-BUILD-SPEC.md` M.19) |
 | Gazette OCR | OCRmyPDF + Tesseract `hin+eng` | Only for the ~50% scanned instruments |
 | Geometry | OpenCV + AprilTag | Homography, distortion, marker pose |
 | Database | PostgreSQL 16 (JSONB + `tstzrange`) | Bitemporal rule validity, no second store needed |

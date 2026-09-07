@@ -173,3 +173,23 @@ to proceed until they do — is worth more than a better OCR model.
 | **Failed (accusations)** | **2** |
 | **False accusations on unseen panels** | **0** |
 | Bugs found and fixed by this test | **5** |
+
+---
+
+> ### Correction — 2026-09-08
+>
+> This report is kept as the dated record of what was found on the day. Two of its
+> conclusions were later shown to be wrong, and are corrected here rather than edited
+> above.
+>
+> **1. Hindi was not "untested" — it was impossible.** The report attributes the absence of
+> Devanagari to the photographs showing English-facing panels. The real cause is that the
+> shipped recogniser is the **Chinese** PP-OCRv3 model, whose 6,625-character set contains
+> **zero Devanagari characters**. Rendered Hindi returns `00000.00000 2`. Fixed by shipping
+> specialist English and Devanagari recognisers — see `02-BUILD-SPEC.md` M.19 and
+> `07-WHAT-RUNS-WHERE.md` §6.
+>
+> **2. The timings recorded as GPU were CPU.** `onnxruntime` advertises
+> `CUDAExecutionProvider` even with no CUDA runtime installed and falls back to CPU with a
+> warning that was being swallowed. Every figure in this report is a CPU figure — which is
+> good news: CPU is fast enough, and a GPU is optional. See M.18.
