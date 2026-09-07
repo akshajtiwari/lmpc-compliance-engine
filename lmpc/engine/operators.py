@@ -258,8 +258,35 @@ def table_lookup(spec, scan: Scan, fields) -> Result:
         return _r(spec, Verdict.INDETERMINATE,
                   "no scale reference in frame; millimetre height cannot be measured")
 
+    from .engine import in_force
+    versions = p.get("versions") or [{"effective_from": "2011-04-01", "effective_to": None,
+                                      "keyed_by": p["input"], "rows": p["rows"],
+                                      "source_instrument": p.get("source_instrument")}]
+    live = [v for v in versions if in_force(v, scan.captured_at)]
+    if not live:
+        return _r(spec, Verdict.INDETERMINATE,
+                  f"no version of this table was in force on {scan.captured_at}")
+    ver = live[-1]
+    if ver["keyed_by"] != "pdp_area_cm2":
+        # Pre-2018 law keyed the threshold to net quantity, not panel area.
+        key = scan.net_quantity_g if ver["keyed_by"] == "net_quantity_g" else None
+        if key is None:
+            return _r(spec, Verdict.INDETERMINATE,
+                      f"the table in force on {scan.captured_at} is keyed to "
+                      f"{ver['keyed_by']}, which was not supplied")
+        band = next(r for r in ver["rows"] if r["upper"] is None or key <= r["upper"])
+        required = band["molded_mm"] if scan.is_molded else band["min_mm"]
+        measured = max((t.cap_height_px or t.h) for f in fields.values() if f
+                       for t in f.tokens if f.kind in ("mrp", "net_quantity")) / scan.px_per_mm
+        ok = measured >= required
+        return _r(spec, Verdict.PASS if ok else Verdict.FAIL,
+                  f"measured {measured:.2f} mm against {required} mm required by the "
+                  f"table in force on {scan.captured_at} (keyed to net quantity)",
+                  measured_mm=round(measured, 2), required_mm=required,
+                  law_version=ver["effective_from"], source=ver.get("source_instrument"))
+
     band, lo = None, 0.0
-    for row in p["rows"]:
+    for row in ver["rows"]:
         hi = row["upper_cm2"]
         if hi is None or area <= hi:
             band = row

@@ -6,6 +6,8 @@ reach a declaration check. Running presence checks on an exempt package is how a
 automated system accuses someone of breaking a rule that never applied to them.
 """
 from __future__ import annotations
+import datetime as _dt
+
 from .model import Verdict, Result, Scan
 from .operators import OPERATORS
 from .extract import extract
@@ -13,6 +15,18 @@ from .extract import extract
 FIELD_KINDS = ["mrp", "net_quantity", "mfg_date", "consumer_care",
                "manufacturer_block", "country_of_origin", "generic_name",
                "unit_sale_price"]
+
+
+def in_force(spec: dict, on: str) -> bool:
+    """Was this requirement law on the day of the inspection?"""
+    d = _dt.date.fromisoformat(on)
+    fr = spec.get("effective_from")
+    to = spec.get("effective_to")
+    if fr and d < _dt.date.fromisoformat(str(fr)):
+        return False
+    if to and d > _dt.date.fromisoformat(str(to)):
+        return False
+    return True
 
 
 def _cond(c: dict, scan: Scan) -> bool:
@@ -63,6 +77,12 @@ def run(pack: dict, scan: Scan) -> dict:
     fields = extract(scan, FIELD_KINDS)
     results = []
     for c in pack["checks"]:
+        if not in_force(c, scan.captured_at):
+            results.append(Result(c["check"], c["clause"], Verdict.NOT_APPLICABLE,
+                                  f"not in force on {scan.captured_at} "
+                                  f"(effective from {c.get('effective_from')})",
+                                  c.get("citation", {})))
+            continue
         if c["check"] in excluded:
             results.append(Result(c["check"], c["clause"], Verdict.NOT_APPLICABLE,
                                   f"not required in {scan.mode} (Rule 6(10))",

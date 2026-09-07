@@ -160,7 +160,12 @@ checks:
     node: lmpc/r7/table-I
     clause: "Rule 7(2) Table-I"
     operator: table_lookup
-    effective_from: 2018-01-01
+    # Rule 7(2) has required a minimum letter height since 2011. What the 2017 amendment
+    # changed is the TABLE, not the existence of the requirement - so the check runs from
+    # 2011 and the table versions below carry their own windows. Dating the check itself
+    # to 2018 would wrongly report "no such rule" for a 2015 inspection.
+    effective_from: 2011-04-01
+    table_effective_from: 2018-01-01   # when the substituted Table-I came into force
     citation: {gsr: "G.S.R. 629(E)", page: 11, dated: "2017-06-23"}
     params:
       input: pdp_area_cm2
@@ -176,6 +181,18 @@ checks:
         reviewer rules, measurements within the guard band abstain.
       policy: guard_band
       guard_band_cm2: 0.5
+    # The table before the 2017 amendment: keyed to NET QUANTITY, not panel area.
+    # It is repealed, but a package inspected before 2018-01-01 is still governed by it.
+    # Deleting superseded law makes old findings unreproducible.
+    superseded:
+      - effective_from: 2011-04-01
+        effective_to: 2017-12-31
+        keyed_by: net_quantity_g
+        source_instrument: "G.S.R. 202(E)"
+        rows:
+          - {upper: 200,   min_mm: 1.0, molded_mm: 1.0}
+          - {upper: 1000,  min_mm: 2.0, molded_mm: 2.0}
+          - {upper: null,  min_mm: 4.0, molded_mm: 4.0}
     confirmed_values:
       - {upper_cm2: 50,   min_mm: 1.0, molded_mm: 1.5}
       - {upper_cm2: 100,  min_mm: 1.5, molded_mm: 3.0}

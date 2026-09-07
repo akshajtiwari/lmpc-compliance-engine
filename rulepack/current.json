@@ -1,7 +1,7 @@
 {
   "rulepack": "lmpc",
   "schema": 1,
-  "built_at": "2026-09-07T12:59:48+00:00",
+  "built_at": "2026-09-07T13:16:48+00:00",
   "currency": {
     "newest_instrument": "G.S.R. 418(E)",
     "chain_links_verified": 12,
@@ -497,7 +497,8 @@
       "node": "lmpc/r7/table-I",
       "clause": "Rule 7(2) Table-I",
       "operator": "table_lookup",
-      "effective_from": "2018-01-01",
+      "effective_from": "2011-04-01",
+      "table_effective_from": "2018-01-01",
       "citation": {
         "gsr": "G.S.R. 629(E)",
         "page": 11,
@@ -565,7 +566,93 @@
             "boundary_confirmed_by_human": false
           }
         ],
-        "source_instrument": "G.S.R. 629(E)"
+        "source_instrument": "G.S.R. 629(E)",
+        "versions": [
+          {
+            "effective_from": "2011-04-01",
+            "effective_to": "2017-12-31",
+            "keyed_by": "net_quantity_g",
+            "source_instrument": "G.S.R. 202(E)",
+            "rows": [
+              {
+                "upper": 200,
+                "min_mm": 1.0,
+                "molded_mm": 1.0
+              },
+              {
+                "upper": 1000,
+                "min_mm": 2.0,
+                "molded_mm": 2.0
+              },
+              {
+                "upper": null,
+                "min_mm": 4.0,
+                "molded_mm": 4.0
+              }
+            ]
+          },
+          {
+            "effective_from": "2018-01-01",
+            "effective_to": null,
+            "keyed_by": "pdp_area_cm2",
+            "source_instrument": "G.S.R. 629(E)",
+            "rows": [
+              {
+                "upper_cm2": 50,
+                "min_mm": 1.0,
+                "molded_mm": 1.5,
+                "band_as_printed": "A < 50",
+                "boundary_operator_from_text_layer": [
+                  "<"
+                ],
+                "boundary_confirmed_by_human": false
+              },
+              {
+                "upper_cm2": 100,
+                "min_mm": 1.5,
+                "molded_mm": 3.0,
+                "band_as_printed": "50 < A < 100",
+                "boundary_operator_from_text_layer": [
+                  "<",
+                  "<"
+                ],
+                "boundary_confirmed_by_human": false
+              },
+              {
+                "upper_cm2": 500,
+                "min_mm": 2.5,
+                "molded_mm": 4.0,
+                "band_as_printed": "100 < A < 500",
+                "boundary_operator_from_text_layer": [
+                  "<",
+                  "<"
+                ],
+                "boundary_confirmed_by_human": false
+              },
+              {
+                "upper_cm2": 2500,
+                "min_mm": 4.0,
+                "molded_mm": 6.0,
+                "band_as_printed": "500 < A < 2500",
+                "boundary_operator_from_text_layer": [
+                  "<",
+                  "<"
+                ],
+                "boundary_confirmed_by_human": false
+              },
+              {
+                "upper_cm2": null,
+                "min_mm": 6.0,
+                "molded_mm": 6.0,
+                "band_as_printed": "2500<A",
+                "boundary_operator_from_text_layer": [
+                  "<"
+                ],
+                "boundary_confirmed_by_human": false
+              }
+            ]
+          }
+        ]
       },
       "boundary_review": {
         "status": "UNRESOLVED",
@@ -626,6 +713,6 @@
     "lmpc/r7/sr5",
     "lmpc/r8"
   ],
-  "sha256": "fd80fd0e1b6484e786ab62e0ece403bd7c02fb936c6e1f99a54550925ee03aeb",
-  "version": "lmpc-2026-09-07-fd80fd0e"
+  "sha256": "73c68e6f6cb088ca040c30dcaced16516da930cc699eefb49bc589342c27e2d4",
+  "version": "lmpc-2026-09-07-73c68e6f"
 }

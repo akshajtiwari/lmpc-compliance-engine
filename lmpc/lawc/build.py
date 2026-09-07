@@ -128,7 +128,22 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
             entry["params"]["rows"] = check_table_against_review(
                 table, c["confirmed_values"], c["node"])
             entry["params"]["source_instrument"] = src["self_gsr"]
+            # Historical versions travel WITH the rulepack. A scan is judged by the law
+            # in force on the day it was captured, and an old report must stay
+            # reproducible after an amendment.
+            entry["params"]["versions"] = (c.get("superseded", []) + [{
+                "effective_from": str(c.get("table_effective_from",
+                                            c["effective_from"])),
+                "effective_to": None,
+                "keyed_by": c["params"]["input"],
+                "source_instrument": src["self_gsr"],
+                "rows": entry["params"]["rows"],
+            }])
+            for v in entry["params"]["versions"]:
+                v["effective_from"] = str(v["effective_from"])
+                v["effective_to"] = str(v["effective_to"]) if v.get("effective_to") else None
             entry.pop("confirmed_values", None)
+            entry.pop("superseded", None)
             # Boundary unresolved -> the check may measure and explain, never FAIL.
             if c.get("boundary_review", {}).get("status") == "UNRESOLVED":
                 entry["verdict_ceiling"] = "INDETERMINATE_NEAR_BOUNDARY"

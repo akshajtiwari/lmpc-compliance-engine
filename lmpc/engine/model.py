@@ -31,6 +31,10 @@ class Token:
 @dataclass
 class Scan:
     tokens: list[Token]
+    # The date the package was inspected. Every verdict is judged by the law in force on
+    # this day - never by today's law. Without it, an amendment would silently rewrite
+    # findings made years earlier.
+    captured_at: str = "2026-09-07"
     panels_captured: set[str] = field(default_factory=lambda: {"FRONT"})
     mode: str = "PHYSICAL_PACKAGE"
     category: str = "GENERIC"
