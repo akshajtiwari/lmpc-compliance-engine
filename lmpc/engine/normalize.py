@@ -11,8 +11,13 @@ MONTHS = {m[:3].lower(): i for i, m in enumerate(
 DIGIT_FIX = str.maketrans({"O": "0", "o": "0", "l": "1", "I": "1", "S": "5", "B": "8"})
 
 
-def money(text: str) -> dict | None:
-    m = re.search(r"(?:rs\.?|₹|inr)\s*([0-9OolISB]+(?:[.,][0-9OolISB]{1,2})?)", text, re.I)
+def money(text: str, require_currency: bool = True) -> dict | None:
+    """Parse a price. `require_currency=False` is used only once the field has already
+    been identified as the MRP by its anchor - real labels print "MRP: 10.00" with no
+    "Rs.", and recognisers routinely turn "Rs" into "R" or "R5"."""
+    m = re.search(r"(?:rs?\.?|₹|inr)\s*([0-9OolISB]+(?:[.,][0-9OolISB]{1,2})?)", text, re.I)
+    if not m and not require_currency:
+        m = re.search(r"([0-9OolISB]+[.,][0-9OolISB]{2})(?!\d)", text)
     if not m:
         return None
     raw = m.group(1).translate(DIGIT_FIX).replace(",", ".")

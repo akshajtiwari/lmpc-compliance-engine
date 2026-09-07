@@ -204,15 +204,29 @@ def ratio_min(spec, scan: Scan, fields) -> Result:
         if not f:
             continue
         for t in f.tokens:
+            # Only a SINGLE recognised region may be measured. An assembled line spans
+            # gaps and sometimes two baselines, so its box height is not a glyph height.
+            # Real photographs produced ratios of 0.001 from composites - a nonsense
+            # number that was being issued as a violation.
+            if len(t.src) > 1 or not t.h:
+                continue
             letters = [c for c in t.text if c.isalnum() and c not in excl]
-            if not letters or not t.h:
+            if not letters:
                 continue
             ratio = (t.w / len(t.text)) / t.h        # mean advance width over line height
             if worst is None or ratio < worst[0]:
                 worst = (ratio, t.text)
     if worst is None:
-        return _r(spec, Verdict.INDETERMINATE, "no measurable glyphs")
+        return _r(spec, Verdict.INDETERMINATE,
+                  "no single recognised region was measurable")
     ratio, text = worst
+    # A mean advance width outside this range is a detection artefact - a rotated region,
+    # a merged block, a box that clipped the text - not a typographic violation.
+    if not 0.05 <= ratio <= 3.0:
+        return _r(spec, Verdict.INDETERMINATE,
+                  f"measured ratio {ratio:.3f} is outside the physically plausible range; "
+                  f"the text region, not the label, is in doubt",
+                  ratio=round(ratio, 3), text=text)
     ok = ratio >= p["min"]
     return _r(spec, Verdict.PASS if ok else Verdict.FAIL,
               f"narrowest mean width/height ratio {ratio:.3f} vs minimum {p['min']}",
@@ -228,6 +242,10 @@ def clear_space(spec, scan: Scan, fields) -> Result:
     if not f:
         return _r(spec, Verdict.NOT_APPLICABLE, "quantity declaration not established")
     q = f.tokens[0]
+    if len(q.src) > 1:
+        return _r(spec, Verdict.INDETERMINATE,
+                  "the quantity declaration was assembled from several recognised "
+                  "regions; clear space cannot be measured from a composite box")
     need_v, need_h = p["above_below_multiple"] * q.h, p["left_right_multiple"] * q.h
     got_v = got_h = float("inf")
     for t in scan.tokens:
@@ -237,6 +255,12 @@ def clear_space(spec, scan: Scan, fields) -> Result:
             got_v = min(got_v, q.y - (t.y + t.h) if t.y < q.y else t.y - (q.y + q.h))
         if t.y < q.y + q.h and t.y + t.h > q.y:                     # horizontally aligned
             got_h = min(got_h, q.x - (t.x + t.w) if t.x < q.x else t.x - (q.x + q.w))
+    if got_v < 0 or got_h < 0:
+        # Overlapping detection boxes. Real photographs produced -122 px of "clear space",
+        # which is a recogniser artefact and must never read as crowding.
+        return _r(spec, Verdict.INDETERMINATE,
+                  "recognised text regions overlap; the spacing measurement is not "
+                  "trustworthy", above_below_px=round(got_v), left_right_px=round(got_h))
     ok = got_v >= need_v and got_h >= need_h
     return _r(spec, Verdict.PASS if ok else Verdict.FAIL,
               f"clear space above/below {got_v:.0f}px (need {need_v:.0f}), "

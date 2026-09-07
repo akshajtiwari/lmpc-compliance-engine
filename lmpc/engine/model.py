@@ -20,7 +20,11 @@ class Token:
     x: int; y: int; w: int; h: int
     conf: float = 1.0
     panel: str = "FRONT"
-    cap_height_px: float | None = None      # glyph height excluding ascenders/descenders
+    cap_height_px: float | None = None
+    # Which raw OCR regions this token was built from. Assembled candidates share
+    # provenance with their parts, which is how the margin test avoids comparing a line
+    # against a rephrasing of itself.
+    src: frozenset = frozenset()      # glyph height excluding ascenders/descenders
 
     @property
     def cx(self) -> float: return self.x + self.w / 2

@@ -6,3 +6,8 @@ corpus/*.pdf
 corpus/*.txt
 out/
 *.egg-info/
+real/images/
+real/.search/
+out/
+corpus_general/*.pdf
+corpus_general/*.txt

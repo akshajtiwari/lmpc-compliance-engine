@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 from .model import Token, Scan, Field
 from . import lexicon, normalize
+from .layout import candidates
 
 FLOOR = 45.0        # below this, nothing was really found
 NEAR_MISS = 28.0    # above this, something resembling the field WAS on the label
@@ -44,7 +45,9 @@ def score(tok: Token, kind: str, scan: Scan) -> tuple[float, dict]:
     f: dict[str, float] = {"anchor": _anchor(t, kind)}
 
     if kind == "mrp":
-        f["value_pattern"] = 25.0 if normalize.money(t) else 0.0
+        anchored = lexicon.match(t, "mrp") >= lexicon.THRESHOLD
+        f["value_pattern"] = 25.0 if normalize.money(
+            t, require_currency=not anchored) else 0.0
         f["cotext_taxes"] = 20.0 if TAXES.search(t) else 0.0
     elif kind == "net_quantity":
         q = normalize.quantity(t)
@@ -78,14 +81,21 @@ def extract(scan: Scan, kinds: list[str]) -> Fields:
     """Return the winning candidate per field kind, or None when too close to call."""
     out = Fields()
     out.diag = {}
+    # Score raw regions AND assembled lines: on real labels the anchor and its value are
+    # usually in different regions (see layout.py).
+    pool = candidates(scan.tokens)
     for kind in kinds:
-        ranked = sorted(((score(t, kind, scan), t) for t in scan.tokens),
+        ranked = sorted(((score(t, kind, scan), t) for t in pool),
                         key=lambda p: p[0][0], reverse=True)
         if not ranked:
             out[kind] = None
             continue
         (top, feats), tok = ranked[0]
-        second = ranked[1][0][0] if len(ranked) > 1 else 0.0
+        # The runner-up must be a MATERIALLY different candidate. A line and its respaced
+        # rewriting describe the same pixels; treating them as rivals would make every
+        # field ambiguous and abstain on everything.
+        second = next((s for (s, _), t in ranked[1:]
+                       if not (t.src & tok.src)), 0.0)
         margin = top - second
         out.diag[kind] = {"top": round(top, 1), "margin": round(margin, 1),
                           "best_text": tok.text, "conf": tok.conf}
@@ -94,8 +104,10 @@ def extract(scan: Scan, kinds: list[str]) -> Fields:
             continue
         fl = Field(kind=kind, text=tok.text, tokens=[tok], score=round(top, 1),
                    margin=round(margin, 1))
-        fl.normalized = ({"mrp": normalize.money, "net_quantity": normalize.quantity,
-                          "mfg_date": normalize.month_year}.get(kind, lambda _: {}) )(tok.text) or {}
+        parse = {"mrp": lambda x: normalize.money(x, require_currency=False),
+                 "net_quantity": normalize.quantity,
+                 "mfg_date": normalize.month_year}.get(kind, lambda _: {})
+        fl.normalized = parse(tok.text) or {}
         fl.normalized["_features"] = {k: round(v, 1) for k, v in feats.items() if v}
         out[kind] = fl
     return out
