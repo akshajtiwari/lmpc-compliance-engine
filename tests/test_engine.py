@@ -22,17 +22,25 @@ def test_missing_panel_is_indeterminate_not_fail(pack):
     assert verdict(pack, lab.scan, "LMPC-R6-1-F-CONSUMER-CARE") is Verdict.INDETERMINATE
 
 
+def test_unasserted_coverage_cannot_prove_absence(pack):
+    """A third-party photograph proves nothing about what was NOT photographed."""
+    scan = Scan(tokens=[Token("HELLO", 0, 0, 100, 20, conf=1.0)],
+                panels_captured={"FRONT", "BACK"}, coverage_asserted=False)
+    assert verdict(pack, scan, "LMPC-R6-1-E-MRP") is Verdict.INDETERMINATE
+
+
 def test_illegible_image_cannot_prove_absence(pack):
     scan = Scan(tokens=[Token("###### ???", 0, 0, 100, 20, conf=0.4)],
-                panels_captured={"FRONT", "BACK"})
+                panels_captured={"FRONT", "BACK"}, coverage_asserted=True)
     assert verdict(pack, scan, "LMPC-R6-1-E-MRP") is Verdict.INDETERMINATE
 
 
 def test_clean_empty_label_does_fail(pack):
-    """A legible photograph of every panel showing no MRP is a genuine violation."""
+    """A legible photograph of every panel showing no MRP is a genuine violation —
+    but only once the capture flow has ASSERTED that every panel was photographed."""
     scan = Scan(tokens=[Token("HELLO WORLD", 0, 0, 100, 20, conf=1.0),
                         Token("SOME BRAND", 0, 40, 100, 20, conf=1.0, panel="BACK")],
-                panels_captured={"FRONT", "BACK"})
+                panels_captured={"FRONT", "BACK"}, coverage_asserted=True)
     assert verdict(pack, scan, "LMPC-R6-1-E-MRP") is Verdict.FAIL
 
 

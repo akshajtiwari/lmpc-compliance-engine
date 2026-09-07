@@ -55,6 +55,14 @@ class Scan:
     net_quantity_ml: float | None = None
     capacity_cm3: float | None = None
     is_outer_package: bool = False
+    # True only when the capture flow confirmed every surface was photographed. A photo
+    # library labels an image "ingredients" because it shows the ingredients - that is not
+    # the same as having seen the whole back panel. Without an assertion of coverage,
+    # "we did not find the MRP" can never become "the MRP is missing".
+    coverage_asserted: bool = False
+    # True only when glyph-level segmentation is available. A detection box spans
+    # ascenders, descenders and padding, so its height is not a letter height.
+    glyph_segmentation: bool = False
     outer_is_transparent: bool = False
 
     def pdp_area_cm2(self) -> float | None:

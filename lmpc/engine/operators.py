@@ -72,6 +72,11 @@ def presence(spec, scan: Scan, fields: dict[str, Field | None]) -> Result:
                   text=f.text, score=f.score, margin=f.margin, panel=f.panel)
     # Absence of evidence is not evidence of absence. Three separate reasons we might
     # not have found a declaration, and only one of them is a violation.
+    if not scan.coverage_asserted:
+        return _r(spec, Verdict.INDETERMINATE,
+                  "not found, and the capture was not confirmed to cover every surface; "
+                  "absence cannot be concluded",
+                  panels_captured=sorted(scan.panels_captured))
     if not {"FRONT", "BACK"} <= scan.panels_captured:
         missing = sorted({"FRONT", "BACK"} - scan.panels_captured)
         return _r(spec, Verdict.INDETERMINATE,
@@ -225,6 +230,17 @@ def ratio_min(spec, scan: Scan, fields) -> Result:
         return _r(spec, Verdict.INDETERMINATE,
                   "no single recognised region was measurable")
     ratio, text = worst
+    if not scan.glyph_segmentation:
+        # Rule 7(3) compares a LETTER's width to ITS OWN height. What we have is mean
+        # advance width over a detection-box height that includes ascenders, descenders
+        # and padding - a systematically low ratio. On real photographs this produced 11
+        # violations at plausible-looking values like 0.151. Measuring the wrong thing
+        # carefully is still measuring the wrong thing.
+        return _r(spec, Verdict.INDETERMINATE,
+                  f"approximate width/height ratio {ratio:.3f} (minimum {p['min']}); "
+                  f"Rule 7(3) needs per-letter measurement, which detection boxes do not "
+                  f"provide", ratio=round(ratio, 3), minimum=p["min"], text=text,
+                  needs="glyph segmentation")
     # A mean advance width outside this range is a detection artefact - a rotated region,
     # a merged block, a box that clipped the text - not a typographic violation.
     if not 0.05 <= ratio <= 3.0:

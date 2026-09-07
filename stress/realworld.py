@@ -18,8 +18,16 @@ from lmpc.engine import ocr, normalize
 from lmpc.labels.openfoodfacts import load_or_fetch
 
 G, R, Y, D, E = "\033[32m", "\033[31m", "\033[33m", "\033[2m", "\033[0m"
-IMAGES, MANIFEST, CACHE = Path("real/images"), Path("real/manifest.json"), Path("real/ocr.json")
 DEVANAGARI = re.compile(r"[ऀ-ॿ]")
+
+DATASETS = {
+    # name: (images dir, manifest, ocr cache, sources to harvest)
+    "food": (Path("real/images"), Path("real/manifest.json"), Path("real/ocr.json"),
+             ("FOOD",)),
+    "wide": (Path("real/wide"), Path("real/wide.json"), Path("real/wide-ocr.json"),
+             ("COSMETIC", "GENERAL", "PETFOOD")),
+}
+IMAGES = MANIFEST = CACHE = None      # bound in main()
 
 
 def ocr_all(recs: list[dict]) -> dict:
@@ -41,10 +49,31 @@ def ocr_all(recs: list[dict]) -> dict:
     return cache
 
 
+# The product record's own category, mapped to the legal category the gates test.
+CATEGORY = {"FOOD": "FOOD", "COSMETIC": "COSMETIC", "PETFOOD": "FOOD",
+            "GENERIC": "GENERIC"}
+DRUGGY = re.compile(r"(?i)\b(vaporub|balm|tablet|capsule|syrup|ointment|antiseptic|"
+                    r"pain\s*relief|fruit\s*salt|digestive|churna|ayurved)")
+
+
+def legal_category(rec: dict) -> str:
+    """Category decides which rules apply at all - a drug formulation is outside these
+    rules entirely under Rule 26(c). Product records do not carry a legal category, so
+    this is a heuristic FLAG for review, never a silent reclassification."""
+    if DRUGGY.search(rec.get("name", "")):
+        return "DRUG_FORMULATION"
+    return CATEGORY.get(rec.get("category", "FOOD"), "GENERIC")
+
+
 def to_scan(rec: dict, toks: list[dict]) -> Scan:
     from lmpc.engine.model import Token
     q = normalize.quantity(rec.get("declared_quantity", "") or "")
+    countries = (rec.get("countries") or "").lower()
     return Scan(
+        category=legal_category(rec),
+        # A package made abroad must declare its country of origin. The record's country
+        # list is the only signal available here.
+        is_imported=bool(countries and "india" not in countries),
         tokens=[Token(t["text"], t["x"], t["y"], t["w"], t["h"], t["conf"],
                       t["panel"], t["cap"]) for t in toks],
         panels_captured={p["panel"] for p in rec["panels"]},
@@ -57,9 +86,13 @@ def to_scan(rec: dict, toks: list[dict]) -> Scan:
 
 
 def main() -> int:
+    global IMAGES, MANIFEST, CACHE
+    name = sys.argv[1] if len(sys.argv) > 1 else "food"
+    IMAGES, MANIFEST, CACHE, sources = DATASETS[name]
     pack = load()
-    recs = load_or_fetch(IMAGES, MANIFEST, max_products=45, pages=10, min_panels=2)
-    print(f"{Y}REAL-WORLD RUN{E}  {len(recs)} products, "
+    recs = load_or_fetch(IMAGES, MANIFEST, max_products=80, pages=8, min_panels=1,
+                         sources=sources)
+    print(f"{Y}REAL-WORLD RUN [{name}]{E}  {len(recs)} products, "
           f"{sum(len(r['panels']) for r in recs)} photographs")
     print(f"rulepack {pack['version']} · current to "
           f"{pack['currency']['newest_instrument']}\n")
@@ -118,6 +151,18 @@ def main() -> int:
     for k, v in outcomes.most_common():
         print(f"  {k:<18}{v:>5}  {v/tot:>5.0%}")
 
+    print(f"\n{Y}BY CATEGORY{E}")
+    bycat: dict[str, Counter] = {}
+    for r, res, fields, toks in rows:
+        c = bycat.setdefault(legal_category(r), Counter())
+        c["products"] += 1
+        c["gated_out"] += bool(res["gates_fired"])
+        c["mrp"] += bool(fields.get("mrp"))
+        c["fail"] += sum(1 for x in res["results"] if x.verdict is Verdict.FAIL)
+    for cat, c in sorted(bycat.items()):
+        print(f"  {cat:<18}{c['products']:>3} products · {c['gated_out']:>2} outside the "
+              f"rules · MRP found {c['mrp']:>2} · {c['fail']:>2} violation(s)")
+
     print(f"\n{Y}SAFETY{E}")
     print(f"  FAIL issued for a declaration on an unphotographed panel: "
           f"{G if false_fail_backpanel == 0 else R}{false_fail_backpanel}{E}  (must be 0)")
@@ -128,12 +173,12 @@ def main() -> int:
         parts = " ".join(f"{k[:4]}={v}" for k, v in c.most_common())
         print(f"  {chk:<32}{parts}")
 
-    json.dump({"products": n, "found": dict(found), "outcomes": dict(outcomes),
+    json.dump({"dataset": name, "products": n, "found": dict(found), "outcomes": dict(outcomes),
                "qty_hit": qty_hit, "qty_total": qty_total,
                "per_check": {k: dict(v) for k, v in per_check.items()},
                "false_fail_backpanel": false_fail_backpanel,
                "devanagari_products": devanagari_products},
-              open("real/summary.json", "w"), indent=2)
+              open(f"real/summary-{name}.json", "w"), indent=2)
     return 0 if false_fail_backpanel == 0 else 1
 
 

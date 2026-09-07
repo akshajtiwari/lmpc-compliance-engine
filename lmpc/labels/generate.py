@@ -106,9 +106,12 @@ def make(*, lines: list[tuple[str, str]], pdp_h_cm: float, pdp_w_cm: float,
         img.save(write_to, dpi=(DPI, DPI))
         path = write_to
 
+    # A rendered label is fully known: we drew every panel and every glyph, so coverage
+    # and glyph geometry are facts here. Neither is true of a photograph.
     scan = Scan(tokens=[t for t in tokens if t.panel in panels],
                 panels_captured=set(panels), pdp_h_cm=pdp_h_cm, pdp_w_cm=pdp_w_cm,
-                px_per_mm=PX_PER_MM, **scan_kw)
+                px_per_mm=PX_PER_MM, coverage_asserted=True, glyph_segmentation=True,
+                **scan_kw)
     return Label(scan=scan, image=path,
                  truth={"cap_mm_requested": cap_mm,
                         "cap_mm_rendered": round(cap_px / PX_PER_MM, 3),
