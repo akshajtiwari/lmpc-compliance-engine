@@ -1,0 +1,622 @@
+{
+  "rulepack": "lmpc",
+  "schema": 1,
+  "built_at": "2026-09-07T12:49:52+00:00",
+  "currency": {
+    "newest_instrument": "G.S.R. 418(E)",
+    "chain_links_verified": 12,
+    "chain_complete": false,
+    "acknowledged_gaps": [
+      {
+        "gsr": "G.S.R. 910(E)",
+        "dated": "2022-12-29",
+        "reviewer": "akshaj.tiwari",
+        "reviewed_on": "2026-09-07",
+        "affects_nodes": [],
+        "text": "One instrument in the amendment chain (G.S.R. 910(E), 29 December 2022) is not published on the Department of Consumer Affairs website and could not be obtained. It lies on the compliance-deadline branch and is assessed as not affecting any check in this rulepack. This disclosure appears on every report."
+      }
+    ],
+    "corpus_documents": 30,
+    "documents_needing_ocr": 8,
+    "chain": [
+      {
+        "gsr": "G.S.R. 418(E)",
+        "prev": "G.S.R. 312(E)",
+        "prev_date": "27 April 2026"
+      },
+      {
+        "gsr": "G.S.R. 312(E)",
+        "prev": "G.S.R. 128(E)",
+        "prev_date": "13 February 2026"
+      },
+      {
+        "gsr": "G.S.R. 128(E)",
+        "prev": "G.S.R. 881(E)",
+        "prev_date": "2 December 2025"
+      },
+      {
+        "gsr": "G.S.R. 881(E)",
+        "prev": "G.S.R. 778(E)",
+        "prev_date": "23 October 2025"
+      },
+      {
+        "gsr": "G.S.R. 778(E)",
+        "prev": "G.S.R. 722(E)",
+        "prev_date": "6 October 2023"
+      },
+      {
+        "gsr": "G.S.R. 722(E)",
+        "prev": "G.S.R. 714(E)",
+        "prev_date": "30 September 2023"
+      },
+      {
+        "gsr": "G.S.R. 714(E)",
+        "prev": "G.S.R. 640(E)",
+        "prev_date": "30 August 2023"
+      },
+      {
+        "gsr": "G.S.R. 640(E)",
+        "prev": "G.S.R. 463(E)",
+        "prev_date": "28 June 2023"
+      },
+      {
+        "gsr": "G.S.R. 463(E)",
+        "prev": "G.S.R. 412(E)",
+        "prev_date": "5 June 2023"
+      },
+      {
+        "gsr": "G.S.R. 412(E)",
+        "prev": "G.S.R. 214(E)",
+        "prev_date": "24 March 2023"
+      },
+      {
+        "gsr": "G.S.R. 214(E)",
+        "prev": "G.S.R. 60(E)",
+        "prev_date": "27 January 2023"
+      },
+      {
+        "gsr": "G.S.R. 60(E)",
+        "prev": "G.S.R. 910(E)",
+        "prev_date": "29 December 2022"
+      }
+    ]
+  },
+  "gates": [
+    {
+      "id": "GATE-R3-BULK",
+      "clause": "Rule 3(a)(b)(c)",
+      "node": "lmpc/r3",
+      "operator": "applicability",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 3,
+        "dated": "2011-03-07"
+      },
+      "params": {
+        "any_of": [
+          {
+            "field": "net_quantity_g",
+            "gt": 25000
+          },
+          {
+            "field": "net_quantity_ml",
+            "gt": 25000
+          },
+          {
+            "field": "category",
+            "in": [
+              "CEMENT",
+              "FERTILIZER",
+              "FARM_PRODUCE"
+            ],
+            "and_field": "net_quantity_g",
+            "gt": 50000
+          },
+          {
+            "field": "buyer_type",
+            "in": [
+              "INDUSTRIAL",
+              "INSTITUTIONAL"
+            ]
+          }
+        ]
+      },
+      "effect": "CHAPTER_II_NOT_APPLICABLE"
+    },
+    {
+      "id": "GATE-R26-EXEMPT",
+      "clause": "Rule 26",
+      "node": "lmpc/r26",
+      "operator": "applicability",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 17,
+        "dated": "2011-03-07"
+      },
+      "params": {
+        "any_of": [
+          {
+            "field": "net_quantity_g",
+            "lte": 10,
+            "unless_field": "category",
+            "unless_in": [
+              "TOBACCO"
+            ]
+          },
+          {
+            "field": "net_quantity_ml",
+            "lte": 10,
+            "unless_field": "category",
+            "unless_in": [
+              "TOBACCO"
+            ]
+          },
+          {
+            "field": "category",
+            "in": [
+              "RESTAURANT_FAST_FOOD"
+            ]
+          },
+          {
+            "field": "category",
+            "in": [
+              "DPCO_FORMULATION"
+            ]
+          },
+          {
+            "field": "category",
+            "in": [
+              "HANDLOOM_THREAD_COIL"
+            ]
+          }
+        ]
+      },
+      "effect": "ALL_RULES_NOT_APPLICABLE"
+    },
+    {
+      "id": "GATE-R7-5-OTHER-LAW",
+      "clause": "Rule 7(5)",
+      "node": "lmpc/r7/sr5",
+      "operator": "applicability",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 12,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "when": {
+          "field": "other_law_requires_same_info",
+          "eq": true
+        }
+      },
+      "effect": "SKIP_TYPOGRAPHY_EXCEPT",
+      "exceptions": [
+        "net_quantity",
+        "mrp",
+        "expiry_date",
+        "consumer_care"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "check": "LMPC-R6-1-A-MANUFACTURER",
+      "node": "lmpc/r6/sr1/cla",
+      "clause": "Rule 6(1)(a)",
+      "operator": "presence",
+      "field": "manufacturer_block",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-1-B-GENERIC-NAME",
+      "node": "lmpc/r6/sr1/clb",
+      "clause": "Rule 6(1)(b)",
+      "operator": "presence",
+      "field": "generic_name",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-1-C-NET-QUANTITY",
+      "node": "lmpc/r6/sr1/clc",
+      "clause": "Rule 6(1)(c)",
+      "operator": "presence",
+      "field": "net_quantity",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-1-D-MFG-DATE",
+      "node": "lmpc/r6/sr1/cld",
+      "clause": "Rule 6(1)(d)",
+      "operator": "presence",
+      "field": "mfg_date",
+      "effective_from": "2011-04-01",
+      "not_required_when": {
+        "scan_mode": "ECOMMERCE_LISTING"
+      },
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-1-E-MRP",
+      "node": "lmpc/r6/sr1/cle",
+      "clause": "Rule 6(1)(e)",
+      "operator": "presence",
+      "field": "mrp",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-1-F-CONSUMER-CARE",
+      "node": "lmpc/r6/sr1/clf",
+      "clause": "Rule 6(1)(f)",
+      "operator": "presence",
+      "field": "consumer_care",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-COUNTRY-OF-ORIGIN",
+      "node": "lmpc/r6/sr1/clh",
+      "clause": "Rule 6(1)",
+      "operator": "presence",
+      "field": "country_of_origin",
+      "only_when": {
+        "is_imported": true
+      },
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      }
+    },
+    {
+      "check": "LMPC-R6-1-E-MRP-FORM",
+      "node": "lmpc/r6/sr1/cle",
+      "clause": "Rule 6(1)(e)",
+      "operator": "format_regex",
+      "field": "mrp",
+      "effective_from": "2018-01-01",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 10,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "regex": "(?i)\\b(m\\.?r\\.?p|max(imum)?\\.?\\s+retail\\s+price)\\b.{0,20}?(rs\\.?|₹)\\s*\\d+(\\.\\d{1,2})?\\s*\\(?\\s*(incl\\.?|inclusive)\\s+of\\s+all\\s+taxes",
+        "illustrations": [
+          "Maximum retail price Rs. xx.xx (inclusive of all taxes)",
+          "Max. retail price Rs. xx.xx inclusive of all taxes",
+          "MRP Rs. xx.xx incl. of all taxes",
+          "MRP Rs. xx.xx (incl. of all taxes)"
+        ]
+      }
+    },
+    {
+      "check": "LMPC-R6-1-E-MRP-ROUNDING",
+      "node": "lmpc/r6/sr1/cle",
+      "clause": "Rule 6(1)(e)",
+      "operator": "numeric_predicate",
+      "field": "mrp",
+      "effective_from": "2018-01-01",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 10,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "predicate": "rounded_to_rupee_or_50_paise"
+      }
+    },
+    {
+      "check": "LMPC-R6-1-C-QTY-FORM",
+      "node": "lmpc/r6/sr1/clc",
+      "clause": "Rule 6(1)(c)",
+      "operator": "format_regex",
+      "field": "net_quantity",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      },
+      "params": {
+        "regex": "(?i)\\b\\d+(\\.\\d+)?\\s*(g|gm|gms|kg|ml|l|litre|liter|n|u)\\b"
+      }
+    },
+    {
+      "check": "LMPC-R6-1-D-DATE-FORM",
+      "node": "lmpc/r6/sr1/cld",
+      "clause": "Rule 6(1)(d)",
+      "operator": "format_regex",
+      "field": "mfg_date",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 8
+      },
+      "params": {
+        "regex": "(?i)(\\b(0?[1-9]|1[0-2])[/-]\\d{2,4}\\b|\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s*,?\\s*\\d{4}\\b)"
+      }
+    },
+    {
+      "check": "LMPC-R10-PIN-CODE",
+      "node": "lmpc/r10/sr1",
+      "clause": "Rule 10(1) Expl. 1",
+      "operator": "format_regex",
+      "field": "manufacturer_block",
+      "effective_from": "2018-01-01",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 12,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "regex": "\\b\\d{6}\\b"
+      }
+    },
+    {
+      "check": "LMPC-R6-1-LL-UNIT-SALE-PRICE",
+      "node": "lmpc/r6/sr1/clll",
+      "clause": "Rule 6(1)(ll)",
+      "operator": "tiered_format",
+      "field": "unit_sale_price",
+      "effective_from": "2022-04-01",
+      "citation": {
+        "gsr": "G.S.R. 226(E)",
+        "page": 2,
+        "dated": "2022-03-28"
+      },
+      "params": {
+        "tiers": [
+          {
+            "when": {
+              "measure": "weight",
+              "lt_value": 1000,
+              "unit": "g"
+            },
+            "form": "Rs. _ per g"
+          },
+          {
+            "when": {
+              "measure": "weight",
+              "gte_value": 1000,
+              "unit": "g"
+            },
+            "form": "Rs. _ per kg"
+          },
+          {
+            "when": {
+              "measure": "volume",
+              "lt_value": 1000,
+              "unit": "ml"
+            },
+            "form": "Rs. _ per ml"
+          },
+          {
+            "when": {
+              "measure": "volume",
+              "gte_value": 1000,
+              "unit": "ml"
+            },
+            "form": "Rs. _ per litre"
+          },
+          {
+            "when": {
+              "measure": "length",
+              "lt_value": 100,
+              "unit": "cm"
+            },
+            "form": "Rs. _ per cm"
+          },
+          {
+            "when": {
+              "measure": "length",
+              "gte_value": 100,
+              "unit": "cm"
+            },
+            "form": "Rs. _ per meter"
+          },
+          {
+            "when": {
+              "measure": "count"
+            },
+            "form": "Rs. _ per number"
+          }
+        ]
+      }
+    },
+    {
+      "check": "LMPC-R7-3-WIDTH-RATIO",
+      "node": "lmpc/r7/sr3",
+      "clause": "Rule 7(3)",
+      "operator": "ratio_min",
+      "effective_from": "2018-01-01",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 11,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "numerator": "glyph_width_px",
+        "denominator": "glyph_height_px",
+        "min": 0.3333,
+        "exclude_glyphs": [
+          "1",
+          "i",
+          "I",
+          "l"
+        ]
+      }
+    },
+    {
+      "check": "LMPC-R8-CLEAR-SPACE",
+      "node": "lmpc/r8",
+      "clause": "Rule 8",
+      "operator": "clear_space",
+      "effective_from": "2011-04-01",
+      "citation": {
+        "gsr": "G.S.R. 202(E)",
+        "page": 12
+      },
+      "params": {
+        "field": "net_quantity",
+        "above_below_multiple": 1.0,
+        "left_right_multiple": 2.0
+      }
+    },
+    {
+      "check": "LMPC-R7-2-MIN-HEIGHT",
+      "node": "lmpc/r7/table-I",
+      "clause": "Rule 7(2) Table-I",
+      "operator": "table_lookup",
+      "effective_from": "2018-01-01",
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 11,
+        "dated": "2017-06-23"
+      },
+      "params": {
+        "input": "pdp_area_cm2",
+        "compare": "glyph_height_mm",
+        "molded_column_when": {
+          "field": "is_molded",
+          "eq": true
+        },
+        "rows": [
+          {
+            "upper_cm2": 50,
+            "min_mm": 1.0,
+            "molded_mm": 1.5,
+            "band_as_printed": "A < 50",
+            "boundary_operator_from_text_layer": [
+              "<"
+            ],
+            "boundary_confirmed_by_human": false
+          },
+          {
+            "upper_cm2": 100,
+            "min_mm": 1.5,
+            "molded_mm": 3.0,
+            "band_as_printed": "50 < A < 100",
+            "boundary_operator_from_text_layer": [
+              "<",
+              "<"
+            ],
+            "boundary_confirmed_by_human": false
+          },
+          {
+            "upper_cm2": 500,
+            "min_mm": 2.5,
+            "molded_mm": 4.0,
+            "band_as_printed": "100 < A < 500",
+            "boundary_operator_from_text_layer": [
+              "<",
+              "<"
+            ],
+            "boundary_confirmed_by_human": false
+          },
+          {
+            "upper_cm2": 2500,
+            "min_mm": 4.0,
+            "molded_mm": 6.0,
+            "band_as_printed": "500 < A < 2500",
+            "boundary_operator_from_text_layer": [
+              "<",
+              "<"
+            ],
+            "boundary_confirmed_by_human": false
+          },
+          {
+            "upper_cm2": null,
+            "min_mm": 6.0,
+            "molded_mm": 6.0,
+            "band_as_printed": "2500<A",
+            "boundary_operator_from_text_layer": [
+              "<"
+            ],
+            "boundary_confirmed_by_human": false
+          }
+        ],
+        "source_instrument": "G.S.R. 629(E)"
+      },
+      "boundary_review": {
+        "status": "UNRESOLVED",
+        "note": "Reviewers could not agree whether row edges are '<' or '≤'; the printed table shows 'A < 50' and '50 < A < 100', leaving A=50 undefined. Until a legal reviewer rules, measurements within the guard band abstain.\n",
+        "policy": "guard_band",
+        "guard_band_cm2": 0.5
+      },
+      "verdict_ceiling": "INDETERMINATE_NEAR_BOUNDARY"
+    },
+    {
+      "check": "LMPC-XF-UNIT-PRICE-CONSISTENT",
+      "node": "lmpc/r6/sr1/clll",
+      "clause": "Rule 6(1)(ll)",
+      "operator": "cross_field",
+      "effective_from": "2022-04-01",
+      "citation": {
+        "gsr": "G.S.R. 226(E)",
+        "page": 2,
+        "dated": "2022-03-28"
+      },
+      "params": {
+        "expr": "unit_price_matches_mrp_over_quantity",
+        "tolerance_pct": 5.0,
+        "on_mismatch": "REVIEW_REQUIRED"
+      }
+    }
+  ],
+  "modes": {
+    "PHYSICAL_PACKAGE": {
+      "excludes": []
+    },
+    "ECOMMERCE_LISTING": {
+      "excludes": [
+        "LMPC-R6-1-D-MFG-DATE",
+        "LMPC-R6-1-D-DATE-FORM",
+        "LMPC-R7-2-MIN-HEIGHT",
+        "LMPC-R7-3-WIDTH-RATIO",
+        "LMPC-R8-CLEAR-SPACE"
+      ],
+      "citation": {
+        "gsr": "G.S.R. 629(E)",
+        "page": 10,
+        "dated": "2017-06-23"
+      }
+    }
+  },
+  "unverified_bindings": [
+    "lmpc/r10/sr1",
+    "lmpc/r3",
+    "lmpc/r6/sr1/cla",
+    "lmpc/r6/sr1/clb",
+    "lmpc/r6/sr1/clc",
+    "lmpc/r6/sr1/cld",
+    "lmpc/r6/sr1/cle",
+    "lmpc/r6/sr1/clf",
+    "lmpc/r6/sr1/clh",
+    "lmpc/r6/sr1/clll",
+    "lmpc/r7/sr5",
+    "lmpc/r8"
+  ],
+  "sha256": "c9a4e1cc7a5e7845b85eeae631815d9a33ca26e9dcd21afaf8c94603f7171e13",
+  "version": "lmpc-2026-09-07-c9a4e1cc"
+}

@@ -1,0 +1,31 @@
+# Acknowledged gaps in the amendment chain.
+#
+# The chain walk is a reachability proof: if it cannot reach the base rules, we cannot
+# claim the rulepack is current. When a referenced instrument is genuinely not published,
+# a human must record what they searched and what they concluded. The build then proceeds
+# — but the gap travels inside the rulepack and onto every report generated from it.
+#
+# This is deliberately noisy. An unrecorded gap fails the build; a recorded one is
+# visible on every verdict. Neither can be ignored quietly.
+
+gaps:
+  - gsr: "G.S.R. 910(E)"
+    dated: "2022-12-29"
+    referenced_by: "G.S.R. 60(E)"
+    searched:
+      - {source: "consumeraffairs.gov.in/pages/legal-metrology-act", on: "2026-09-07", result: NOT_LISTED}
+      - {source: "93 PDF links enumerated from that page", on: "2026-09-07", result: NOT_PRESENT}
+    assessment: >
+      G.S.R. 60(E) amends the Legal Metrology (Packaged Commodities) Amendment Rules,
+      2022 — the compliance-deadline extension branch — not the principal rules. The
+      instruments on that branch move implementation dates; none of them substitutes a
+      node that any binding in bindings.yaml depends on.
+    affects_nodes: []
+    decision: ACCEPT_WITH_DISCLOSURE
+    reviewer: "akshaj.tiwari"
+    reviewed_on: "2026-09-07"
+    disclosure: >
+      One instrument in the amendment chain (G.S.R. 910(E), 29 December 2022) is not
+      published on the Department of Consumer Affairs website and could not be obtained.
+      It lies on the compliance-deadline branch and is assessed as not affecting any
+      check in this rulepack. This disclosure appears on every report.
