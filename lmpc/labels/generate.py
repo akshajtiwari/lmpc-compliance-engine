@@ -12,6 +12,7 @@ dropped separators, split ordinals, and reduced confidence.
 """
 from __future__ import annotations
 import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,21 +27,34 @@ FONT_PATHS = ["/usr/share/fonts/TTF/DejaVuSans.ttf",
               "/usr/share/fonts/dejavu/DejaVuSans.ttf",
               "/usr/share/fonts/liberation/LiberationSans-Regular.ttf"]
 
+# DejaVu Sans carries NO Devanagari glyphs. Rendering Hindi with it produces tofu boxes,
+# so a "Hindi label" drawn that way tests the renderer's fallback, not the recogniser.
+# Devanagari text MUST be drawn with a Devanagari font.
+DEVANAGARI_FONT_PATHS = ["/usr/share/fonts/noto/NotoSansDevanagari-Regular.ttf",
+                         "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+                         "/usr/share/fonts/TTF/NotoSansDevanagari-Regular.ttf"]
+DEV_RANGE = re.compile(r"[ऀ-ॿ]")
+
 CONFUSIONS = {"0": "O", "1": "l", "5": "S", "8": "B", "O": "0", "I": "1"}
 
 
-def _font_file() -> str:
-    for p in FONT_PATHS:
+def _font_file(devanagari: bool = False) -> str:
+    for p in (DEVANAGARI_FONT_PATHS if devanagari else []) + FONT_PATHS:
         if Path(p).exists():
             return p
     raise RuntimeError("no usable TTF font found")
 
 
-def font_for_cap_height(mm: float) -> tuple[ImageFont.FreeTypeFont, float]:
+def needs_devanagari(text: str) -> bool:
+    return bool(DEV_RANGE.search(text))
+
+
+def font_for_cap_height(mm: float, devanagari: bool = False
+                        ) -> tuple[ImageFont.FreeTypeFont, float]:
     """Pick the pixel em-size whose CAP height is closest to `mm`, and report what was
     actually achieved. Rule 7 measures the letter, not the em box."""
     target_px = mm * PX_PER_MM
-    path, best = _font_file(), None
+    path, best = _font_file(devanagari), None
     for size in range(4, 400):
         f = ImageFont.truetype(path, size)
         box = f.getbbox("H")                       # (x0, y0, x1, y1)
@@ -84,6 +98,8 @@ def make(*, lines: list[tuple[str, str]], pdp_h_cm: float, pdp_w_cm: float,
     """`lines` is [(panel, text), ...]. Everything else describes the physical package."""
     rng = random.Random(seed)
     font, cap_px = font_for_cap_height(cap_mm)
+    dev_font, _ = (font_for_cap_height(cap_mm, devanagari=True)
+                   if any(needs_devanagari(t) for _, t in lines) else (font, cap_px))
     w_px, h_px = int(pdp_w_cm * 10 * PX_PER_MM), int(pdp_h_cm * 10 * PX_PER_MM)
     img = Image.new("RGB", (max(w_px, 200), max(h_px, 200)), "white")
     draw = ImageDraw.Draw(img)
@@ -91,11 +107,12 @@ def make(*, lines: list[tuple[str, str]], pdp_h_cm: float, pdp_w_cm: float,
     tokens, y = [], int(6 * PX_PER_MM)
     for panel, text in lines:
         shown, conf = noisy(text, noise, rng)
-        box = draw.textbbox((0, 0), shown, font=font)
+        line_font = dev_font if needs_devanagari(shown) else font
+        box = draw.textbbox((0, 0), shown, font=line_font)
         tw, th = box[2] - box[0], box[3] - box[1]
         x = int(5 * PX_PER_MM)
         if panel == "FRONT":
-            draw.text((x, y), shown, font=font, fill="black")
+            draw.text((x, y), shown, font=line_font, fill="black")
         tokens.append(Token(text=shown, x=x, y=y, w=tw, h=th, conf=conf,
                             panel=panel, cap_height_px=cap_px))
         y += th + int((0.6 if crowd_quantity else 4.0) * PX_PER_MM)

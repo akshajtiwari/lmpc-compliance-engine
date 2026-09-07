@@ -193,10 +193,10 @@ accusations.
 |---|---|---|
 | Phone app | PWA (a website that uses the camera) | Works on any phone, no app store |
 | Server | FastAPI (Python) | One program, not twenty microservices |
-| Reading text from photos | PaddleOCR | Handles English and Hindi |
+| Reading text from photos | PP-OCR (English + Devanagari models) | Two small specialist models, ~21 MB. The default Chinese one cannot read Hindi at all |
 | Image maths | OpenCV | Straightens photos, measures letters |
 | Word matching | rapidfuzz | Matches `MR.P` to `MRP` despite typos |
-| Speed | a GPU on the server | A dense ingredients panel takes minutes on CPU, 2.3 seconds on a GPU |
+| Speed | shrink photos before reading them | A 64-megapixel photo never finishes; capped at 1800px it takes 1.6 seconds on an ordinary CPU |
 | Database | PostgreSQL | Stores scans, results, history |
 | File storage | MinIO | Stores the original photos, unchanged |
 | Background jobs | Redis + Dramatiq | So the app does not freeze during OCR |

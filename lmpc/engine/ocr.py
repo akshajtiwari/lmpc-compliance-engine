@@ -24,9 +24,30 @@ MAX_EDGE = 1800       # long edge in pixels handed to the recogniser
 
 
 def _cuda_available() -> bool:
+    """Whether a session ACTUALLY runs on CUDA — not merely whether it is advertised.
+
+    onnxruntime-gpu lists CUDAExecutionProvider in get_available_providers() even when the
+    CUDA runtime libraries are absent; session creation then falls back to CPU with only a
+    warning. We measured "GPU" timings for an entire round that were silently CPU. Probe
+    by building a session and asking what it is really using.
+    """
     try:
-        import onnxruntime as ort
-        return "CUDAExecutionProvider" in ort.get_available_providers()
+        import numpy as np, onnxruntime as ort
+        if "CUDAExecutionProvider" not in ort.get_available_providers():
+            return False
+        import tempfile, os
+        # A 1-node model is enough to force provider assignment.
+        from onnx import helper, TensorProto, save
+        g = helper.make_graph(
+            [helper.make_node("Relu", ["x"], ["y"])], "probe",
+            [helper.make_tensor_value_info("x", TensorProto.FLOAT, [1])],
+            [helper.make_tensor_value_info("y", TensorProto.FLOAT, [1])])
+        f = tempfile.NamedTemporaryFile(suffix=".onnx", delete=False)
+        save(helper.make_model(g), f.name)
+        sess = ort.InferenceSession(f.name, providers=["CUDAExecutionProvider"])
+        used = "CUDAExecutionProvider" in sess.get_providers()
+        os.unlink(f.name)
+        return used
     except Exception:
         return False
 

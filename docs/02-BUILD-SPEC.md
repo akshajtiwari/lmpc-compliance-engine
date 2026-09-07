@@ -222,8 +222,14 @@ pass a label declaring 45.30. A correction may only ever downgrade a `FAIL`.
 | `keycloak` | Keycloak 25 | 1 | — | No |
 | `lawc` | Python CronJob | on demand | schedule | No |
 
-**The GPU is not optional on `worker-ocr`.** A dense ingredients panel takes minutes on
-CPU and 2.3 s on an RTX 3050. A CPU-only deployment cannot meet SC-2.
+**A GPU is a nice-to-have on `worker-ocr`, not a requirement.** An earlier revision of
+this document claimed the opposite. That claim was wrong: `onnxruntime` advertises
+`CUDAExecutionProvider` even when the CUDA runtime libraries are absent, and session
+creation then falls back to CPU with only a warning — so the figures recorded as "GPU"
+were measured on CPU throughout (M.18). **CPU at 1.6 s/panel meets SC-2 with margin.**
+The real cause of the original unbounded runtimes was feeding 64 MP frames to the
+recogniser, fixed by `MAX_EDGE` (Part 8.2). Provision a GPU to raise `MAX_EDGE` or
+throughput, not to make the system viable.
 
 ### 3.3 Request sequence — UC-1
 
@@ -905,12 +911,50 @@ PP-OCR detection + angle classification + recognition, executed under ONNX Runti
 `rapidocr-onnxruntime`.
 
 ```python
-CUDA = "CUDAExecutionProvider" in onnxruntime.get_available_providers()
-# GPU: rewrite config.yaml with Det/Cls/Rec use_cuda=true, pass config_path
-# CPU: default construction
+# Probing the provider LIST is not the same as using it: onnxruntime-gpu lists
+# CUDAExecutionProvider even with no CUDA runtime present, and silently falls back.
+# MUST build a probe session and ask what it actually got (M.18).
+sess = ort.InferenceSession(tiny_model, providers=["CUDAExecutionProvider"])
+CUDA = "CUDAExecutionProvider" in sess.get_providers()
 ```
 
+Measured on this host: providers advertised `['Tensorrt','CUDA','CPU']`; a session
+actually reported `['CPUExecutionProvider']` because `libcublasLt.so.13` was absent.
+Every timing in this document is therefore a **CPU** figure.
+
 Model files MUST be pinned by SHA-256 in the execution manifest (Part 11.2).
+
+**Recognition models — the current default is wrong for this domain.**
+
+| Model | Size | Classes | Devanagari | Latin |
+|---|---|---|---|---|
+| `ch_PP-OCRv3_rec` *(current default)* | 10.7 MB | 6,625 | **0** | yes |
+| `en_PP-OCRv3_rec` | 9.0 MB | 95 | 0 | yes |
+| `devanagari_PP-OCRv3_rec` | 9.0 MB | 167 | **86** | yes (52) |
+
+The shipped default is the **Chinese** recogniser. It cannot emit a single Devanagari
+character, so Hindi extraction is not merely untested — it is impossible (M.19). Measured
+on a Hindi label rendered with Noto Sans Devanagari:
+
+```
+current (Chinese)     '3  45.00'      ' HT 500 '     'MRP Rs. 45.00 (incl. of all taxes)'  0.91
+devanagari model      'अिधकतमखुदरामूलय४.॰ठरपये'  'शुदमाऋड००याम'  'MRP Rs. 45.O0 Jincl. Of all taxes'   0.90
+```
+
+The Devanagari model reads Hindi (imperfectly — matra ordering and spacing need work) and
+is **slightly worse on English**. The system MUST therefore run **two specialist
+recognisers** and select per region, not one general model:
+
+| Configuration | Total model size | Hindi | English |
+|---|---|---|---|
+| Current: one Chinese model | 13.7 MB | none | good |
+| **Required: `en` + `devanagari` + shared detector/classifier** | **~21 MB** | usable | good |
+
++7 MB in a server-side container is not a size concern; the models are already the
+smallest class PP-OCR publishes. **Selection rule:** run both recognisers on each region
+and keep the higher-confidence result, subject to a script-consistency check. `[ESTIMATE]`
+— the selection policy MUST be measured against a labelled Hindi set before it ships
+(Part 25.5).
 
 ### 8.2 Resolution budget
 
@@ -2539,7 +2583,7 @@ packing**. Excluded checks: `LMPC-R6-1-D-MFG-DATE`, `LMPC-R6-1-D-DATE-FORM`,
 
 ## Part 24 — Defect register
 
-Seventeen defects found by testing. Each was working code reaching a wrong legal
+Twenty defects found by testing. Each was working code reaching a wrong legal
 conclusion; none was visible from reading the code.
 
 | # | Defect | Found by | Fix |
@@ -2560,6 +2604,9 @@ conclusion; none was visible from reading the code.
 | M.14 | **64 MP photos exhausted memory and never returned**; two fix attempts silently no-oped | real photographs | `MAX_EDGE` cap; every edit asserted |
 | M.15 | Width ratio measured detection-box height → **11 false accusations** at plausible values; also measured `A QUALITY PRODUCT OF` | real photographs | Abstain without glyph segmentation; declarations only |
 | M.16 | Third-party image labels treated as coverage → declarations "missing" on unphotographed sides | wide real-world | `coverage_asserted` (P4) |
+| M.18 | **Every "GPU" measurement was actually CPU.** `onnxruntime` advertises `CUDAExecutionProvider` with no CUDA runtime present and falls back silently; the spec's "GPU is not optional" claim rested on it | model-swap investigation | Probe a real session, not the provider list; claim corrected |
+| M.19 | **The OCR model cannot emit Devanagari.** The shipped default is the *Chinese* recogniser; "Hindi untested" was really "Hindi impossible" | model-swap investigation | Ship `en` + `devanagari` specialist recognisers |
+| M.20 | The synthetic Hindi label was rendered in DejaVu Sans, which has **no Devanagari glyphs** — the scenario tested tofu, not Hindi | model-swap investigation | Devanagari text renders with Noto Sans Devanagari |
 | M.17 | **Our own repair manufactured a PASS**: respacing `4S.3s` → `4 S.3 s` let the parser read `4`, call it rounded, and pass an unrounded price | campaign regression | Value judgements forbidden on repaired text (P9) |
 
 **The pattern.** Five separate times a check answered confidently from a measurement it
@@ -2578,7 +2625,7 @@ measurement (21.5).
 | 25.2 | 12 bindings trace to the base 2011 rules, which are an un-OCR'd bilingual scan | Emptying `unverified_bindings` | Legal pair | Week 2 |
 | 25.3 | `<` vs `≤` at all four Table-I boundaries; the text layer drops `≤` | Rule 7(2) near boundaries | Legal reviewer | Week 1 day 3 |
 | 25.4 | Devanagari letter height — is the shirorekha included? | Rule 7(2) on Hindi labels | Legal reviewer | Week 1 day 5 |
-| 25.5 | **No real Hindi label has been through the pipeline.** Both real datasets show English-facing panels | Rule 9(4) and all Hindi extraction | Data owner | Week 2 |
+| 25.5 | **Hindi is impossible today, not merely untested** — the shipped recogniser is the Chinese model (M.19). Ship `en` + `devanagari` recognisers, measure the per-region selection policy against a labelled Hindi set, and fix matra/spacing errors | Rule 9(4) and all Hindi extraction | Vision owner | **Week 1** |
 | 25.6 | Glyph segmentation for Rule 7(3) — billed as "build first, no calibration needed", which was wrong | Rule 7(3) verdicts | Vision owner | Week 4 |
 | 25.7 | MRP identified on ~50 % of packets where it is legible | SC-3, and shipping | Extraction owner | Week 3 |
 | 25.8 | Image retention period against departmental records policy | Part 13.6 | Programme | Before pilot |
