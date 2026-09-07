@@ -12,6 +12,7 @@ Legal Metrology (Packaged Commodities) Rules, 2011 — automated compliance chec
 | 3 | [`03-ENGINEERING-PLAN.md`](03-ENGINEERING-PLAN.md) | What gets built, by whom, in what order. | 15 min |
 | 4 | [`04-FLOW.md`](04-FLOW.md) | One scan end to end: what the user sees, what runs. | 5 min |
 | 5 | [`05-SYSTEM-MAP.md`](05-SYSTEM-MAP.md) | How the pieces fit together — structure, architecture and both flows. | 15 min |
+| 6 | [`06-RULEPACK.md`](06-RULEPACK.md) | The rulepack alone — what is in it, how it is made, how it stays current. | 10 min |
 
 > **New to the project?** Read `00` then `05`. Those two are enough to start work; `02` is
 > the reference you return to.
