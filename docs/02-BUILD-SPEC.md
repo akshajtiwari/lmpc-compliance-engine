@@ -18,7 +18,7 @@ over-cautious until you see what they prevent.
 
 | Part | Subject |
 |---|---|
-| 0 | Principles — the eight rules everything else follows from |
+| 0 | Principles — the nine rules everything else follows from |
 | A | The law compiler: gazette PDFs → a versioned, hashed rulepack |
 | B | Capture: guided photography and the coverage assertion |
 | C | Vision and OCR |
@@ -78,6 +78,13 @@ rulepack. A scan is judged by the law in force on its capture date.
 **P8 — There is no language model in the deployed system.**
 The problem statement specifies rule-based checking. Vision AI (PP-OCR) produces
 *evidence*; deterministic Python draws every *conclusion*.
+
+**P9 — Repair locates a declaration; it never reads one.**
+Correcting OCR damage is how we *find* the MRP. It must never be the text a *value* is read
+from: respacing `4S.3s` into `4 S.3 s` let the parser consume `4`, call it rounded to the
+rupee, and pass a label declaring 45.30. Repaired candidates carry `repaired=True` and
+every operator that judges a number refuses them, so a correction can only ever downgrade
+a `FAIL` — never manufacture a `PASS`.
 
 ---
 
@@ -450,6 +457,7 @@ class Token:
     panel: str                           # FRONT | BACK | SIDE | TOP | BOTTOM
     cap_height_px: float | None          # h * 0.62 — a documented bias, not a fact
     src: frozenset                       # provenance: which raw regions this came from
+    repaired: bool                       # text was respaced or joined — see P9
 ```
 
 Geometry lives in the resized frame. Every check that uses it is a **ratio**, so a uniform
@@ -645,6 +653,8 @@ finding; the words are the context.
 
 **`numeric_predicate(field, predicate)`**
 ```
+token.repaired                       → INDETERMINATE   (P9 / M.17: "4S.3s" respaced to
+                                                        "4 S.3 s" read as 4, called rounded)
 numeral span not consumed end-to-end → INDETERMINATE   (M.7: "45.b0" parsed as 45.0)
 numeral contains confusable chars    → INDETERMINATE
 conf < LEGIBLE                       → INDETERMINATE
@@ -970,7 +980,7 @@ with `coverage_asserted=false` is an alertable bug**.
 | Suite | Command | Covers |
 |---|---|---|
 | Unit + integration | `pytest -q` | 45 tests: rulepack integrity, operators, temporal, adversarial |
-| Synthetic stress | `python -m stress.run` | 28 scenarios, noise sweep, sensitivity sweep |
+| Synthetic stress | `python -m stress.run` | 22 scenarios / 28 expectations, noise and sensitivity sweeps |
 | Validation campaign | `python -m stress.campaign` | 24 checks across ingestion, compilation, comparison |
 | Real world | `python -m stress.realworld food\|wide` | 140 real products, 394 photographs |
 | Resolution | `python -m stress.resolution` | time vs accuracy vs pixel budget |
@@ -979,7 +989,7 @@ with `coverage_asserted=false` is an alertable bug**.
 
 | Gate | Bar | Measured |
 |---|---|---|
-| Scenario expectations | all met | 28/28 |
+| Scenario expectations | all met | 28/28 across 22 scenarios |
 | False accusations on compliant labels | ≤ 2 % | **0 %** at 0–40 % character error |
 | Violations silently passed | 0 | **0** |
 | FAIL without asserted coverage | 0 | **0** in 2,940 real evaluations |
@@ -1110,7 +1120,8 @@ it should not have trusted. Assume a fifth exists.
 
 ```
 lmpc/
-  lawc/       parse.py · build.py · bindings.yaml · gaps.yaml · fetch.sh
+  lawc/       parse.py · build.py · bindings.yaml · gaps.yaml
+              fetch.sh (Packaged Commodities) · fetch-general.sh (General Rules, GATC)
   engine/     model.py · ocr.py · layout.py · lexicon.py · normalize.py
               extract.py · operators.py · engine.py · report.py
   labels/     generate.py (synthetic, exact ground truth) · openfoodfacts.py (real)
@@ -1118,6 +1129,9 @@ rulepack/     current.json  (generated; hash-addressed)
 stress/       run.py · campaign.py · realworld.py · resolution.py · scenarios.py
 tests/        test_rulepack.py · test_engine.py · test_adversarial.py · test_stress.py
 docs/         00-TEAM-BRIEF · 01-ARCHITECTURE · 02-BUILD-SPEC · 03-ENGINEERING-PLAN
-              04-FLOW · evidence/ · archive/ · source-extracts/
-corpus/       gazette PDFs (git-ignored; fetched by lawc/fetch.sh)
+              04-FLOW · 05-SYSTEM-MAP · 06-RULEPACK
+              evidence/ · archive/ · source-extracts/
+corpus/           Packaged Commodities gazettes  (git-ignored; fetch.sh)
+corpus_general/   General Rules + GATC gazettes  (git-ignored; fetch-general.sh)
+real/             harvested product photographs  (git-ignored; lmpc.labels.openfoodfacts)
 ```

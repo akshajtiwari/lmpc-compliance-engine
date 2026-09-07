@@ -22,7 +22,7 @@ proposal; it is a report on a partly-built system.
 | Capture app | **Not built.** This is now the highest-value missing piece |
 | Web console | **Not built** |
 | Reports, repository, auth | **Not built** |
-| Tests | 45 unit/integration · 28 scenarios · 24 campaign checks · 140 real products |
+| Tests | 45 unit/integration · 22 scenarios (28 expectations) · 24 campaign checks · 140 real products |
 
 **Validated behaviour:** 0 false accusations in 2,940 real rule evaluations; 0 violations
 silently passed; 0 % false-FAIL rate on compliant labels across 0–40 % simulated character
@@ -54,10 +54,12 @@ Budget glyph segmentation or drop the check.
 A dense ingredients panel exceeds a 30-second budget on CPU and finishes in 2.3 s on an
 RTX 3050. Recognition happens server-side; the client only captures.
 
-**2.5 Assume a fifth measurement bug.**
-Four separate rounds each found a check answering confidently from a measurement it should
-not have trusted (M.2, M.7, M.15, M.16). Every new check ships gated on the trustworthiness
-of its own measurement.
+**2.5 Assume a sixth measurement bug.**
+Five separate times a check answered confidently from a measurement it should not have
+trusted (M.2, M.7, M.15, M.16, M.17). The fifth was found *after* the spec was written, by
+the campaign rather than by unit tests — our own OCR repair respaced `4S.3s` into `4 S.3 s`
+and passed an unrounded price. Every new check ships gated on the trustworthiness of its
+own measurement, and the campaign runs in CI.
 
 ---
 

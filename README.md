@@ -36,7 +36,7 @@ pip install -r requirements.txt          # + onnxruntime-gpu if you have CUDA
 
 python -m lmpc.lawc.build                # fetch gazettes, compile, write the rulepack
 pytest -q                                # 45 unit and adversarial tests
-python -m stress.run                     # 28 scenarios, noise and sensitivity sweeps
+python -m stress.run                     # 22 scenarios, noise and sensitivity sweeps
 python -m stress.campaign                # 24 validation checks
 python -m stress.realworld food          # real photographs, real OCR
 ```
