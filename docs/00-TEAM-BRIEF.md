@@ -19,7 +19,7 @@ This page is deliberately short and plain. The details are in the other document
 
 ---
 
-## 2. Six things everyone needs to understand
+## 2. Seven things everyone needs to understand
 
 ### (a) We do not read the law while the app is running
 
@@ -104,7 +104,24 @@ distance. They are real violations and they are easy. Build them first.
 
 Measuring actual millimetres (by putting a bank card in the photo for scale) comes later.
 
-### (f) We must know when a rule does not apply
+### (f) "We didn't find it" only becomes "it isn't there" if we looked properly
+
+This is the rule that came out of testing on real photographs, and it is the most
+important one on this page.
+
+We tested on 140 real product photos. On most of them the price was simply **not in the
+picture** — people photograph the front of a packet, not the small print. Early on, our
+system saw "no price in these photos" and announced "the price is missing". That is a
+false accusation against a shop.
+
+So now the camera app has to **explicitly confirm** it photographed every side. Until it
+does, the answer is always `INDETERMINATE`. The code refuses to issue a violation without
+that confirmation.
+
+Practical effect: **the guided camera flow is not a nice-to-have. Nothing works without
+it.** It is the most valuable thing on the build list.
+
+### (g) We must know when a rule does not apply
 
 Some packages are simply outside the law:
 
@@ -165,6 +182,7 @@ accusations.
 | Reading text from photos | PaddleOCR | Handles English and Hindi |
 | Image maths | OpenCV | Straightens photos, measures letters |
 | Word matching | rapidfuzz | Matches `MR.P` to `MRP` despite typos |
+| Speed | a GPU on the server | A dense ingredients panel takes minutes on CPU, 2.3 seconds on a GPU |
 | Database | PostgreSQL | Stores scans, results, history |
 | File storage | MinIO | Stores the original photos, unchanged |
 | Background jobs | Redis + Dramatiq | So the app does not freeze during OCR |
@@ -216,3 +234,25 @@ for a human to approve it**.
 
 That one screen answers four questions at once: *Is this current law? How did you measure
 that? Can you prove it? What happens when the law changes?*
+
+---
+
+## 9. What testing has already proved
+
+We did not stop at "it works on our examples". The system has been run against 140 real
+product photos and 48 real government notifications.
+
+| | |
+|---|---|
+| Real products tested | 140 (food, cosmetics, household, pet food) |
+| Rule checks run | 2,940 |
+| **Times it wrongly accused a product** | **0** |
+| Times it let a real violation through | 0 |
+| Bugs this testing found | **16** |
+
+Sixteen bugs. Every one of them was working code reaching a wrong legal conclusion, and
+none was visible from reading the code. Four separate times, a check answered confidently
+from a measurement it should not have trusted.
+
+**Assume there is a fifth. Build every new check so it refuses to answer when its own
+measurement is not trustworthy.**

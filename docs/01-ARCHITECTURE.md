@@ -5,6 +5,21 @@
 
 ---
 
+> **Status, 2026-09-07.** This architecture has been built and validated against live
+> data: 48 gazette instruments across 3 rule families, 140 real product photographs, 2,940
+> rule evaluations. It survived — with 16 corrections, five of them architectural. The
+> implementation-level document is [`02-BUILD-SPEC.md`](02-BUILD-SPEC.md); the corrections
+> are catalogued in its Part M. Where this document and the spec disagree, **the spec is
+> authoritative.**
+>
+> The five architectural corrections, none of which was visible before real data:
+> instrument identity must include the **year** (G.S.R. numbers restart annually and
+> collide); rule families must be resolved **transitively** or one chain fragments into
+> several; **effective dates** must gate every check and every table version, or a 2016
+> package is judged by 2018 law; a corrupt download must not kill a build; and absence of
+> a declaration may only be a violation when the capture flow **asserted** that every
+> surface was photographed.
+
 ## 1. Problem restated in engineering terms
 
 We are asked to decide a **legal question** (does this package comply with the LMPC

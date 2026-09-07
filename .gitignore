@@ -11,3 +11,6 @@ real/.search/
 out/
 corpus_general/*.pdf
 corpus_general/*.txt
+real/
+.pytest_cache/
+rulepack/current.json
