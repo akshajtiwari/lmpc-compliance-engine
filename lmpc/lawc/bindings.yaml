@@ -56,7 +56,20 @@ gates:
 checks:
   # --- presence, Rule 6(1) ---
   - {check: LMPC-R6-1-A-MANUFACTURER, node: lmpc/r6/sr1/cla, clause: "Rule 6(1)(a)", operator: presence, field: manufacturer_block, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
-  - {check: LMPC-R6-1-B-GENERIC-NAME, node: lmpc/r6/sr1/clb, clause: "Rule 6(1)(b)", operator: presence, field: generic_name, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
+  - check: LMPC-R6-1-B-GENERIC-NAME
+    node: lmpc/r6/sr1/clb
+    clause: "Rule 6(1)(b)"
+    operator: presence
+    field: generic_name
+    effective_from: 2011-04-01
+    citation: {gsr: "G.S.R. 202(E)", page: 8}
+    # A generic name carries no heading to anchor on — "Biscuits" and a brand name look
+    # identical to a scorer. Until an officer confirms it, this check may report and
+    # explain, never accuse.
+    verdict_ceiling: INDETERMINATE
+    ceiling_reason: >
+      No lexical anchor exists for the common or generic name; distinguishing it from a
+      brand name requires human judgement.
   - {check: LMPC-R6-1-C-NET-QUANTITY, node: lmpc/r6/sr1/clc, clause: "Rule 6(1)(c)", operator: presence, field: net_quantity, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
   - {check: LMPC-R6-1-D-MFG-DATE, node: lmpc/r6/sr1/cld, clause: "Rule 6(1)(d)", operator: presence, field: mfg_date, effective_from: 2011-04-01, not_required_when: {scan_mode: ECOMMERCE_LISTING}, citation: {gsr: "G.S.R. 202(E)", page: 8}}
   - {check: LMPC-R6-1-E-MRP, node: lmpc/r6/sr1/cle, clause: "Rule 6(1)(e)", operator: presence, field: mrp, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}

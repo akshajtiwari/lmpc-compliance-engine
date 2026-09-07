@@ -1,7 +1,7 @@
 {
   "rulepack": "lmpc",
   "schema": 1,
-  "built_at": "2026-09-07T12:49:52+00:00",
+  "built_at": "2026-09-07T12:53:49+00:00",
   "currency": {
     "newest_instrument": "G.S.R. 418(E)",
     "chain_links_verified": 12,
@@ -221,7 +221,9 @@
       "citation": {
         "gsr": "G.S.R. 202(E)",
         "page": 8
-      }
+      },
+      "verdict_ceiling": "INDETERMINATE",
+      "ceiling_reason": "No lexical anchor exists for the common or generic name; distinguishing it from a brand name requires human judgement.\n"
     },
     {
       "check": "LMPC-R6-1-C-NET-QUANTITY",
@@ -617,6 +619,6 @@
     "lmpc/r7/sr5",
     "lmpc/r8"
   ],
-  "sha256": "c9a4e1cc7a5e7845b85eeae631815d9a33ca26e9dcd21afaf8c94603f7171e13",
-  "version": "lmpc-2026-09-07-c9a4e1cc"
+  "sha256": "d8af561056346f698802002135bfc775de92a11ec5c148543ac4189ab6ab4f03",
+  "version": "lmpc-2026-09-07-d8af5610"
 }
