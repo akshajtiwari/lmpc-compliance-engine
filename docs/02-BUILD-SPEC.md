@@ -2681,6 +2681,7 @@ measurement (21.5).
 | 25.8 | Image retention period against departmental records policy | Part 13.6 | Programme | Before pilot |
 | 25.9 | Whether a single-officer office may self-review (`ALLOW_SELF_REVIEW`) | Part 15.5 | Department | Before pilot |
 | 25.10 | Qualified Legal Metrology officer for rulepack sign-off | Production use | Programme | Before pilot |
+| 25.11 | Recogniser upgrade path. Ship `en` + `devanagari` PP-OCRv3 specialists immediately (nearly free, unblocks Hindi); then evaluate PP-OCRv5 mobile and server variants against a labelled Indian set measuring accuracy **and** seconds per photo on target hardware. Surya is excluded: it declares `openai` as a dependency and would fail the P8 CI check | SC-3 | Vision owner | Week 2 |
 
 ---
 

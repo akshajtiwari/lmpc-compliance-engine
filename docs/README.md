@@ -13,9 +13,10 @@ Legal Metrology (Packaged Commodities) Rules, 2011 — automated compliance chec
 | 4 | [`04-FLOW.md`](04-FLOW.md) | One scan end to end: what the user sees, what runs. | 5 min |
 | 5 | [`05-SYSTEM-MAP.md`](05-SYSTEM-MAP.md) | How the pieces fit together — structure, architecture and both flows. | 15 min |
 | 6 | [`06-RULEPACK.md`](06-RULEPACK.md) | The rulepack alone — what is in it, how it is made, how it stays current. | 10 min |
+| 7 | [`07-WHAT-RUNS-WHERE.md`](07-WHAT-RUNS-WHERE.md) | Phone vs server, why the split, the tech stack, and the OCR upgrade path. Plain English. | 10 min |
 
-> **New to the project?** Read `00` then `05`. Those two are enough to start work; `02` is
-> the reference you return to.
+> **New to the project?** Read `00`, then `05`, then `07`. Those three are enough to start
+> work; `02` is the reference you return to.
 
 ## Evidence
 
