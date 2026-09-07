@@ -156,6 +156,13 @@ def numeric_predicate(spec, scan: Scan, fields) -> Result:
     if not f or "amount" not in f.normalized:
         return _r(spec, Verdict.NOT_APPLICABLE, "no numeric value established")
     from .extract import LEGIBLE, ACCUSE
+    if any(t.repaired for t in f.tokens):
+        # Repair exists to LOCATE a declaration, never to READ its value. Respacing
+        # "4S.3s" into "4 S.3 s" let the parser read "4", call it rounded, and pass an
+        # unrounded price - a silent miss manufactured by our own correction.
+        return _r(spec, Verdict.INDETERMINATE,
+                  "the value was read from a repaired transcription; confirm the printed "
+                  "numeral before judging it", text=f.text)
     # Inspect the NUMERAL only. "incl. of all taxes" is full of confusable letters, but
     # they are not part of the value being judged.
     span = re.search(r"(?:rs\.?|₹|inr)\s*([^\s(]+)", f.text, re.I)

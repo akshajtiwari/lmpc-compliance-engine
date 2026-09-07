@@ -23,7 +23,7 @@ label photos ──► OCR ──► layout ──► scoring ──► normalis
 | Rule evaluations run | **2,940** |
 | **False accusations** | **0** |
 | Violations silently passed | **0** |
-| Defects found and fixed by testing | **16** |
+| Defects found and fixed by testing | **17** |
 
 The system answers confidently to roughly 10 % character error, then stops answering
 rather than guessing.

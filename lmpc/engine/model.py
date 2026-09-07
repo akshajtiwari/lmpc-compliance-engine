@@ -24,7 +24,10 @@ class Token:
     # Which raw OCR regions this token was built from. Assembled candidates share
     # provenance with their parts, which is how the margin test avoids comparing a line
     # against a rephrasing of itself.
-    src: frozenset = frozenset()      # glyph height excluding ascenders/descenders
+    src: frozenset = frozenset()
+    # True when this candidate's text was repaired (respaced or joined). Repairs help
+    # LOCATE a declaration; they must never be used to READ its value.
+    repaired: bool = False      # glyph height excluding ascenders/descenders
 
     @property
     def cx(self) -> float: return self.x + self.w / 2

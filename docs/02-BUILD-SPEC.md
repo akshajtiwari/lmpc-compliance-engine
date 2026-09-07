@@ -561,7 +561,10 @@ _NUMERIC_RUN = r"[0-9OolISB.,]{2,}"           # only runs already containing a d
 Global translation breaks the words the rule depends on: `Rs.` → `R5.`, `incl.` → `inc1.`.
 Repair is applied only inside numeric runs, then separately as separator re-insertion.
 **A match that appears only after repair yields `INDETERMINATE`** — the reading is in
-doubt, not the label. Repair can only downgrade `FAIL`; it never manufactures a `PASS`.
+doubt, not the label. Repaired candidates carry `repaired=True`, and every operator that
+reads a *value* refuses them: repair exists to LOCATE a declaration, never to READ it.
+Without that rule, respacing `4S.3s` into `4 S.3 s` let the parser read `4`, call it
+rounded, and pass an unrounded price (M.17).
 
 ---
 
@@ -1061,7 +1064,7 @@ Excluding top, bottom, can flanges, and bottle/jar shoulders and necks.
 
 ## Part M — Defect register
 
-Fifteen defects found by testing. Each produced a wrong legal conclusion from working code.
+Seventeen defects found by testing. Each produced a wrong legal conclusion from working code.
 
 | # | Defect | Found by | Fix |
 |---|---|---|---|
@@ -1081,6 +1084,7 @@ Fifteen defects found by testing. Each produced a wrong legal conclusion from wo
 | M.14 | **64 MP photos exhausted memory and never returned**; two fix attempts silently no-oped | real photographs | `MAX_EDGE` cap; every edit asserted |
 | M.15 | Width ratio measured detection-box height → **11 false accusations** at plausible values; and measured `A QUALITY PRODUCT OF` | real photographs | abstain without glyph segmentation; declarations only |
 | M.16 | Third-party image labels treated as coverage → declarations "missing" on unphotographed sides | wide real-world | `coverage_asserted` (P4) |
+| M.17 | **Our own repair manufactured a PASS**: respacing `4S.3s` → `4 S.3 s` let the parser read `4`, call it rounded, and pass an unrounded price | campaign regression | value judgements are forbidden on repaired text |
 
 **The pattern:** in four separate rounds, a check answered confidently from a measurement
 it should not have trusted. Assume a fifth exists.

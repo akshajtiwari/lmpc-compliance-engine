@@ -248,9 +248,9 @@ product photos and 48 real government notifications.
 | Rule checks run | 2,940 |
 | **Times it wrongly accused a product** | **0** |
 | Times it let a real violation through | 0 |
-| Bugs this testing found | **16** |
+| Bugs this testing found | **17** |
 
-Sixteen bugs. Every one of them was working code reaching a wrong legal conclusion, and
+Seventeen bugs. Every one of them was working code reaching a wrong legal conclusion, and
 none was visible from reading the code. Four separate times, a check answered confidently
 from a measurement it should not have trusted.
 

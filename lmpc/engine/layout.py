@@ -94,7 +94,7 @@ def candidates(tokens: list[Token]) -> list[Token]:
         r = respace(t.text)
         if r != t.text:
             out.append(Token(r, t.x, t.y, t.w, t.h, t.conf, t.panel,
-                             t.cap_height_px, t.src))
+                             t.cap_height_px, t.src, repaired=True))
     by_panel: dict[str, list[Token]] = {}
     for t in ls:
         by_panel.setdefault(t.panel, []).append(t)
@@ -105,5 +105,5 @@ def candidates(tokens: list[Token]) -> list[Token]:
                 merged = respace(f"{a.text} {b.text}")
                 out.append(Token(merged, a.x, a.y, max(a.w, b.w),
                                  b.y + b.h - a.y, min(a.conf, b.conf), a.panel,
-                                 a.cap_height_px, a.src | b.src))
+                                 a.cap_height_px, a.src | b.src, repaired=True))
     return out
