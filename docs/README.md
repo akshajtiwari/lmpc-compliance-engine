@@ -8,7 +8,7 @@ Legal Metrology (Packaged Commodities) Rules, 2011 — automated compliance chec
 |---|---|---|---|
 | 0 | [`00-TEAM-BRIEF.md`](00-TEAM-BRIEF.md) | Everyone, before writing any code. Plain English. | 8 min |
 | 1 | [`01-ARCHITECTURE.md`](01-ARCHITECTURE.md) | Anyone making design decisions. | 20 min |
-| 2 | [`02-BUILD-SPEC.md`](02-BUILD-SPEC.md) | **The implementation document.** Every threshold, schema and refusal path. | reference |
+| 2 | [`02-BUILD-SPEC.md`](02-BUILD-SPEC.md) | **The implementation document.** 25 parts + 5 appendices: architecture, law compiler, capture, OCR, extraction, rule engine, API, schema, auth, RBAC, console, mobile, infrastructure, observability, security, testing, delivery, rule catalogue, defect register. | reference |
 | 3 | [`03-ENGINEERING-PLAN.md`](03-ENGINEERING-PLAN.md) | What gets built, by whom, in what order. | 15 min |
 | 4 | [`04-FLOW.md`](04-FLOW.md) | One scan end to end: what the user sees, what runs. | 5 min |
 | 5 | [`05-SYSTEM-MAP.md`](05-SYSTEM-MAP.md) | How the pieces fit together — structure, architecture and both flows. | 15 min |
