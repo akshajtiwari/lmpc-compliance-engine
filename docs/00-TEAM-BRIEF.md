@@ -91,18 +91,32 @@ Why this matters: in court, you have to explain how you reached a conclusion. We
 point at ten lines of code and a page of the government gazette. "The model said so" is
 not an answer.
 
-### (e) Two size checks need no measuring equipment — build these first
+### (e) One size check is easy. The other one is not — we learned this the hard way
 
-Some rules are about **ratios**, not real-world millimetres:
+Two rules look like they need no measuring equipment, because they are about **ratios**
+rather than real millimetres:
 
-- **Rule 7(3):** a letter's width must be at least ⅓ of its height.
-- **Rule 8:** the empty space around the quantity ("500 g") must be at least 1× the
-  number's height above and below, and 2× on the left and right.
+| Rule | What it says | Reality |
+|---|---|---|
+| **Rule 8** | The empty space around "500 g" must be at least 1× the number's height above and below, 2× left and right | **Works.** Build it. It found real violations on Marie Gold, Sensodyne and a Navneet notebook |
+| **Rule 7(3)** | A letter must be at least ⅓ as wide as it is tall | **Does not work yet.** Do not ship it |
 
-These work on **any photo we already have**. No ruler, no reference card, no maths about
-distance. They are real violations and they are easy. Build them first.
+**Why Rule 7(3) failed.** The text reader gives us a box around a whole line of text. That
+box includes the tall part of "h", the tail of "g", and blank padding — so the "height" we
+measure is always bigger than a letter really is, so the ratio always comes out too small.
 
-Measuring actual millimetres (by putting a bank card in the photo for scale) comes later.
+On real photos it accused **11 products** of thin lettering, at believable-looking numbers
+like 0.151. The first time it broke it gave obvious nonsense (0.001) and we caught it. The
+second time it gave *plausible* wrong answers, which is far worse — nobody questions those.
+
+It now refuses to answer until we can measure individual letters. That is extra work
+nobody had planned for.
+
+**The lesson, which matters more than the rule:** we were measuring the wrong thing very
+carefully. Before you trust any measurement, ask what the rule actually names — Rule 7(3)
+names *a letter*, and we were measuring *a line*.
+
+Measuring real millimetres (bank card in the photo for scale) comes later.
 
 ### (f) "We didn't find it" only becomes "it isn't there" if we looked properly
 
