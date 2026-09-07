@@ -31,7 +31,7 @@ over-cautious until you see what they prevent.
 | J | Deployment and performance budget |
 | K | Testing |
 | L | Rule catalogue — all 21 checks and 4 gates |
-| M | Defect register — 15 defects found by testing |
+| M | Defect register — 17 defects found by testing |
 | N | Open questions |
 
 ---
