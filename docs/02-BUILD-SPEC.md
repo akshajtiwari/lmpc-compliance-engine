@@ -1097,7 +1097,8 @@ Seventeen defects found by testing. Each produced a wrong legal conclusion from 
 | M.17 | **Our own repair manufactured a PASS**: respacing `4S.3s` → `4 S.3 s` let the parser read `4`, call it rounded, and pass an unrounded price | campaign regression | value judgements are forbidden on repaired text |
 
 **The pattern:** in four separate rounds, a check answered confidently from a measurement
-it should not have trusted. Assume a fifth exists.
+it should not have trusted, and M.17 was the fifth — found by the campaign after this
+spec was first written, not by a unit test. Assume a sixth exists.
 
 ---
 

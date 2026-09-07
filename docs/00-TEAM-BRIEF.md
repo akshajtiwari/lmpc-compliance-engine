@@ -265,8 +265,8 @@ product photos and 48 real government notifications.
 | Bugs this testing found | **17** |
 
 Seventeen bugs. Every one of them was working code reaching a wrong legal conclusion, and
-none was visible from reading the code. Four separate times, a check answered confidently
+none was visible from reading the code. Five separate times, a check answered confidently
 from a measurement it should not have trusted.
 
-**Assume there is a fifth. Build every new check so it refuses to answer when its own
+**Assume there is a sixth. Build every new check so that it refuses to answer when its own
 measurement is not trustworthy.**

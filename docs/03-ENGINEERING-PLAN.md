@@ -161,7 +161,7 @@ A gate is not a status meeting. If its criteria fail, the following week's scope
 |---|---|---|---|
 | Extraction stays near 50 % | **High** | System finds little | W3 is a full workstream with a measured bar, not a side task |
 | Officers photograph the wrong panel | **High** | No findings at all | Guided capture refuses to advance; coverage assertion enforced in code |
-| A fifth measurement bug | **High** | False accusation | Every check gated on its own measurement trustworthiness; campaign in CI |
+| A sixth measurement bug | **High** | False accusation | Every check gated on its own measurement trustworthiness; campaign in CI |
 | Hindi unvalidated | Med | Half the country's labels | N.5 promoted to a Week 2 gate |
 | Repealed law reaches the rulepack | Low | Fatal to credibility | Compiler cross-checks values; build fails on drift |
 | A 2026 amendment lands mid-build | Low | Currency claim breaks | Chain walk + quarantine; an unapproved amendment in quarantine is a demo asset |
