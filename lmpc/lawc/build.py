@@ -152,7 +152,6 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
     pack = {
         "rulepack": b["rulepack"],
         "schema": b["schema"],
-        "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "currency": {
             "newest_instrument": chain["newest_on_spine"],
             "chain_links_verified": len(chain["walk"]),
@@ -160,7 +159,8 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
             "acknowledged_gaps": disclosures,
             "corpus_documents": len(compiled["documents"]),
             "documents_needing_ocr": sum(
-                1 for d in compiled["documents"] if d["kind"] != "DIGITAL"),
+                1 for d in compiled["documents"] if d["kind"] == "SCANNED_NEEDS_OCR"),
+            "unreadable_documents": compiled.get("unreadable", []),
             "chain": [{"gsr": w["gsr"], "prev": w["prev"], "prev_date": w["prev_date"]}
                       for w in chain["walk"]],
         },
@@ -176,8 +176,10 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
         raise TypeError(type(o))
 
     pack = json.loads(json.dumps(pack, default=_json))   # normalise dates to ISO strings
-    body = json.dumps(pack, sort_keys=True, separators=(",", ":")).encode()
-    pack["sha256"] = hashlib.sha256(body).hexdigest()
+    # built_at is deliberately set AFTER hashing: the same corpus must produce the same
+    # hash on any machine at any time, or reproducibility claims are meaningless.
+    pack["sha256"] = digest(pack)
+    pack["built_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     pack["version"] = "lmpc-%s-%s" % (dt.date.today().isoformat(), pack["sha256"][:8])
 
     out.mkdir(exist_ok=True)
@@ -186,8 +188,28 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
     return pack
 
 
-def load(out: Path = OUT) -> dict:
-    return json.loads((out / "current.json").read_text())
+def digest(pack: dict) -> str:
+    """Recompute the content hash. Excludes the hash, the version derived from it, and
+    the build timestamp - the same corpus must hash identically on any machine."""
+    body = {k: v for k, v in pack.items() if k not in ("sha256", "version", "built_at")}
+    return hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def verify(pack: dict) -> None:
+    """A rulepack that has been altered on disk must not be used. Every verdict cites
+    this hash, so a silent edit would forge the legal basis of past findings."""
+    if digest(pack) != pack.get("sha256"):
+        raise BuildFailed(
+            f"rulepack integrity check failed: content hashes to {digest(pack)[:16]} "
+            f"but claims {str(pack.get('sha256'))[:16]}")
+
+
+def load(out: Path = OUT, check: bool = True) -> dict:
+    pack = json.loads((out / "current.json").read_text())
+    if check:
+        verify(pack)
+    return pack
 
 
 if __name__ == "__main__":
@@ -204,6 +226,9 @@ if __name__ == "__main__":
     for d in c["acknowledged_gaps"]:
         print(f"DISCLOSED  {d['gsr']} ({d['dated']}) unobtainable — accepted by "
               f"{d['reviewer']} on {d['reviewed_on']}")
+    if c["unreadable_documents"]:
+        print(f"WARNING    {len(c['unreadable_documents'])} unreadable file(s): "
+              f"{', '.join(c['unreadable_documents'])}")
     if p["unverified_bindings"]:
         print(f"WARNING    {len(p['unverified_bindings'])} bindings not traceable to a "
               f"corpus amendment: {', '.join(p['unverified_bindings'])}")
