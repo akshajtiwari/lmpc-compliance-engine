@@ -8,8 +8,11 @@ LOCAL_DB_URL := postgresql+psycopg://lmpc:lmpc_local@127.0.0.1:54329/lmpc
 LMPC_DB_URL ?= $(LOCAL_DB_URL)
 LMPC_OFFICER_UUID ?= 00000000-0000-4000-8000-000000000002
 LMPC_JURISDICTION_UUID ?= 00000000-0000-4000-8000-000000000001
+LMPC_LOAD_BASE_URL ?= http://127.0.0.1:8000
+LMPC_LOAD_EMAIL ?= $(LMPC_BOOTSTRAP_EMAIL)
+LMPC_LOAD_PASSWORD ?= $(LMPC_BOOTSTRAP_PASSWORD)
 
-.PHONY: setup db-up db-down migrate bootstrap dev dev-lan test test-db
+.PHONY: setup db-up db-down migrate bootstrap dev dev-lan test test-db load-smoke
 
 setup:
 	python -m venv .venv
@@ -40,3 +43,9 @@ test:
 
 test-db: bootstrap
 	LMPC_TEST_DB_URL=$(LMPC_DB_URL) $(PYTHON) -m pytest tests/test_db_integration.py -q
+
+load-smoke:
+	docker run --rm --network host -v "$(CURDIR):/work" -w /work \
+		-e LMPC_LOAD_BASE_URL -e LMPC_LOAD_EMAIL -e LMPC_LOAD_PASSWORD \
+		-e LMPC_LOAD_VUS=2 -e LMPC_LOAD_RAMP=2s -e LMPC_LOAD_HOLD=15s \
+		grafana/k6:1.7.1 run stress/load/inspection.js

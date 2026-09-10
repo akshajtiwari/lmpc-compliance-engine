@@ -141,6 +141,13 @@ the Field device drill remains part of W8 acceptance.
 Load test, accessibility pass, offline drill, backup/restore, security review, pilot with a
 real enforcement unit.
 
+The k6 inspection-load harness and manually dispatched CI workflow are implemented. The
+initial CI profile uses eight concurrent managed-account flows for a 90-second hold; this
+is a transparent engineering assumption, not a departmental capacity requirement. Record
+the real officer concurrency and arrival model before treating a passing run as pilot
+capacity evidence. Accessibility, offline/restore drills, security review and the real-unit
+pilot remain open.
+
 ---
 
 ## 5. Schedule and gates

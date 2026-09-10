@@ -1,0 +1,111 @@
+name: Pilot Load Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      virtual_users:
+        description: Concurrent managed-account inspection flows
+        required: true
+        default: "8"
+        type: string
+      hold_duration:
+        description: Duration at full concurrency (k6 duration syntax)
+        required: true
+        default: "90s"
+        type: string
+
+concurrency:
+  group: pilot-load-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: lmpc
+          POSTGRES_USER: lmpc
+          POSTGRES_PASSWORD: lmpc_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lmpc -d lmpc"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      LMPC_DB_URL: postgresql+psycopg://lmpc:lmpc_local@127.0.0.1:5432/lmpc
+      LMPC_OFFICER_UUID: 00000000-0000-4000-8000-000000000002
+      LMPC_JURISDICTION_UUID: 00000000-0000-4000-8000-000000000001
+      LMPC_AUTH_MODE: local
+      LMPC_BOOTSTRAP_EMAIL: load-admin@local.invalid
+      LMPC_BOOTSTRAP_PASSWORD: Load-${{ github.run_id }}-Local-Password!
+      LMPC_BOOTSTRAP_ROLE: ADMIN
+      LMPC_COOKIE_SECURE: false
+      LMPC_ALLOW_SELF_REVIEW: true
+      LMPC_RULEPACK_PATH: ${{ github.workspace }}/rulepack/current.json
+      LMPC_JWT_KEY_PATH: /tmp/lmpc-load-${{ github.run_id }}/jwt.pem
+      LMPC_STORAGE_ROOT: /tmp/lmpc-load-${{ github.run_id }}/objects
+      LMPC_RATE_LIMIT_PER_MIN: 20000
+      LMPC_LOG_LEVEL: WARNING
+      LMPC_LOAD_BASE_URL: http://127.0.0.1:8010
+      LMPC_LOAD_EMAIL: load-admin@local.invalid
+      LMPC_LOAD_PASSWORD: Load-${{ github.run_id }}-Local-Password!
+      LMPC_LOAD_VUS: ${{ inputs.virtual_users }}
+      LMPC_LOAD_RAMP: 15s
+      LMPC_LOAD_HOLD: ${{ inputs.hold_duration }}
+      LMPC_LOAD_THINK_SECONDS: 0.25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-server.txt
+      - name: Install API dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-server.txt
+      - name: Prepare local database
+        run: |
+          python -m alembic upgrade head
+          python -m lmpc.server.db.bootstrap
+      - name: Start local API
+        run: |
+          python -m uvicorn lmpc.server.main:app --host 127.0.0.1 --port 8010 > /tmp/lmpc-load-api.log 2>&1 &
+          echo $! > /tmp/lmpc-load-api.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8010/api/v1/readyz > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/lmpc-load-api.log
+          exit 1
+      - name: Install pinned k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: "1.7.1"
+      - name: Exercise pilot inspection load
+        run: |
+          mkdir -p load-results
+          k6 run --summary-export load-results/summary.json stress/load/inspection.js \
+            2>&1 | tee load-results/output.txt
+      - name: Capture API log
+        if: always()
+        run: cp /tmp/lmpc-load-api.log load-results/api.log || true
+      - name: Publish load evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pilot-load-${{ github.run_id }}
+          path: load-results/
+          if-no-files-found: error
+          retention-days: 30

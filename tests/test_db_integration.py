@@ -77,6 +77,7 @@ def auth_app(tmp_path_factory):
         storage_root=str(tmp_path_factory.mktemp("auth-evidence")),
         allow_self_review=True))
     return app, {
+        "jurisdiction_id": str(jurisdiction_id),
         "reviewer_email": f"reviewer-{reviewer_id}@example.test",
         "reviewer_password": reviewer_password,
         "auditor_email": f"auditor-{auditor_id}@example.test",
@@ -226,7 +227,9 @@ async def test_admin_manages_account_and_one_use_mobile_enrollment(auth_app):
             "password": credentials["admin_password"]})
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
         jurisdictions = await client.get("/api/v1/admin/jurisdictions", headers=headers)
-        jurisdiction_id = jurisdictions.json()["items"][0]["id"]
+        assert credentials["jurisdiction_id"] in {
+            item["id"] for item in jurisdictions.json()["items"]}
+        jurisdiction_id = credentials["jurisdiction_id"]
         created = await client.post("/api/v1/admin/users", headers=headers, json={
             "full_name": "Mobile Field Officer", "email": f"mobile-{uuid.uuid4()}@example.test",
             "role": "FIELD_OFFICER", "jurisdiction_id": jurisdiction_id})
@@ -290,6 +293,8 @@ async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app)
             "email": credentials["reviewer_email"],
             "password": credentials["reviewer_password"]})
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        before = await client.get("/api/v1/dashboard/summary", headers=headers)
+        assert before.status_code == 200
         raw = _jpeg()
         created = await client.post(
             "/api/v1/scans", headers=headers,
@@ -315,7 +320,7 @@ async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app)
             f"/api/v1/scans?jurisdiction_id={uuid.uuid4()}", headers=headers)
         assert first.status_code == 202 and listing.status_code == dashboard.status_code == 200
         assert scan_id in {row["id"] for row in listing.json()["items"]}
-        assert dashboard.json()["total"] == 1
+        assert dashboard.json()["total"] == before.json()["total"] + 1
         assert outside.status_code == 403
 
         correction = await client.post(

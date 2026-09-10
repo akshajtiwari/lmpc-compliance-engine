@@ -2455,7 +2455,7 @@ Beyond ordinary security, because outputs may be used in enforcement:
 | Resolution | `python -m stress.resolution` | Time vs accuracy vs pixel budget | measured |
 | RBAC matrix | `pytest tests/test_rbac.py` | Every role × every protected endpoint, plus fail-closed route inventory | **100 role/endpoint cells passing** |
 | E2E | Playwright | Login → capture → review → finalise → download | **Workbench e-commerce critical path passing in Chromium; Field device drill remains** |
-| Load | k6 | Pilot-scale concurrency | **to build** |
+| Load | `make load-smoke`; `Pilot Load Test` workflow | Managed-account login → upload → verdict → detail/search/dashboard under configurable k6 concurrency | **2-VU local smoke green; pilot profile awaits measured CI run** |
 
 ### 21.2 Why labels are rendered, not photographed
 

@@ -32,6 +32,7 @@ the system, not by estimating.
 | [`evidence/VALIDATION-CAMPAIGN.md`](evidence/VALIDATION-CAMPAIGN.md) | Ingestion, compilation and comparison under attack — 5 architectural defects |
 | [`evidence/REAL-WORLD-TEST.md`](evidence/REAL-WORLD-TEST.md) | 60 real Indian food products, real OCR — 5 defects |
 | [`evidence/WIDE-REAL-WORLD-TEST.md`](evidence/WIDE-REAL-WORLD-TEST.md) | 80 more products across cosmetics, household, pet food — 3 defects, resolution budget |
+| [`evidence/LOAD-TEST.md`](evidence/LOAD-TEST.md) | Managed-account inspection load harness, thresholds and measured-run status |
 
 ## Source material
 
