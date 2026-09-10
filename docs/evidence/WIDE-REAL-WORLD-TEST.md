@@ -214,3 +214,24 @@ packet has been through the system.
 > `CUDAExecutionProvider` even with no CUDA runtime installed and falls back to CPU with a
 > warning that was being swallowed. Every figure in this report is a CPU figure — which is
 > good news: CPU is fast enough, and a GPU is optional. See M.18.
+
+> ### Correction — 2026-09-10
+>
+> The wide dataset's artifacts were missing from the repository, so its numbers above were
+> not reproducible from the repo. The dataset has been **regenerated** with the same public
+> harvester (`python -m stress.realworld wide`) and committed. The regenerated set differs
+> in composition, so the headline numbers change:
+>
+> | | As reported above | Regenerated 2026-09-10 |
+> |---|---|---|
+> | Products (wide) | 80 | **80** |
+> | Photographs (wide) | 183 | **192** (54 cosmetic, 20 general, 6 pet food) |
+> | All products / photographs | 140 / 394 | **140 / 403** |
+> | Rule evaluations | 2,940 | **2,700** |
+>
+> What is unchanged and re-confirmed by the regeneration: the safety metric — **0 FAIL
+> verdicts issued for a declaration on an unphotographed panel** — and Devanagari still
+> absent from the photographs (0/80), so the Hindi gap (M.19) remains the largest untested
+> area. The 17 FAIL verdicts the fresh run issued are findings, not reviewed conclusions;
+> the "zero false accusations" figure above rests on the reviewed runs recorded in this
+> report and in REAL-WORLD-TEST.md.
