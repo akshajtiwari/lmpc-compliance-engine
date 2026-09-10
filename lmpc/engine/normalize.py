@@ -18,7 +18,9 @@ def money(text: str, require_currency: bool = True) -> dict | None:
     m = re.search(r"(?:rs?\.?|₹|inr)\s*([0-9OolISB]+(?:[.,][0-9OolISB]{1,2})?)", text, re.I)
     if not m and not require_currency:
         m = re.search(r"([0-9OolISB]+[.,][0-9OolISB]{2})(?!\d)", text)
-    if not m:
+    if not m or not any(c.isdigit() for c in m.group(1)):
+        # The digit class forgives O/l/I/S/B, which also spell real words — "Vol"
+        # parses as zero litres unless a real digit anchors the run.
         return None
     raw = m.group(1).translate(DIGIT_FIX).replace(",", ".")
     try:
@@ -30,7 +32,7 @@ def money(text: str, require_currency: bool = True) -> dict | None:
 def quantity(text: str) -> dict | None:
     m = re.search(r"([0-9OolISB]+(?:\.[0-9OolISB]+)?)\s*(kgs?|kg|gms?|gm|g|mls?|ml|"
                   r"litres?|liters?|ltr|l|nos?|n|u)\b", text, re.I)
-    if not m:
+    if not m or not any(c.isdigit() for c in m.group(1)):
         return None
     try:
         v = float(m.group(1).translate(DIGIT_FIX))
