@@ -63,7 +63,8 @@ gates:
     params:
       when: {field: other_law_requires_same_info, eq: true}
     effect: SKIP_TYPOGRAPHY_EXCEPT
-    exceptions: [net_quantity, mrp, expiry_date, consumer_care]
+    # Check IDs this gate does NOT remove (empty: every Rule 7/8 typography check goes).
+    exceptions: []
 
 # ------------------------------------------------------------------------- the checks ---
 checks:
@@ -84,7 +85,7 @@ checks:
       No lexical anchor exists for the common or generic name; distinguishing it from a
       brand name requires human judgement.
   - {check: LMPC-R6-1-C-NET-QUANTITY, node: lmpc/r6/sr1/clc, clause: "Rule 6(1)(c)", operator: presence, field: net_quantity, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
-  - {check: LMPC-R6-1-D-MFG-DATE, node: lmpc/r6/sr1/cld, clause: "Rule 6(1)(d)", operator: presence, field: mfg_date, effective_from: 2011-04-01, not_required_when: {scan_mode: ECOMMERCE_LISTING}, citation: {gsr: "G.S.R. 202(E)", page: 8}}
+  - {check: LMPC-R6-1-D-MFG-DATE, node: lmpc/r6/sr1/cld, clause: "Rule 6(1)(d)", operator: presence, field: mfg_date, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
   - {check: LMPC-R6-1-E-MRP, node: lmpc/r6/sr1/cle, clause: "Rule 6(1)(e)", operator: presence, field: mrp, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
   - {check: LMPC-R6-1-F-CONSUMER-CARE, node: lmpc/r6/sr1/clf, clause: "Rule 6(1)(f)", operator: presence, field: consumer_care, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}
   - {check: LMPC-R6-COUNTRY-OF-ORIGIN, node: lmpc/r6/sr1/clh, clause: "Rule 6(1)", operator: presence, field: country_of_origin, only_when: {is_imported: true}, effective_from: 2011-04-01, citation: {gsr: "G.S.R. 202(E)", page: 8}}

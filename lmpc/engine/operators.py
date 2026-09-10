@@ -469,7 +469,10 @@ def date_plausible(spec, scan: Scan, fields) -> Result:
         return _r(spec, Verdict.NOT_APPLICABLE, "no date established")
     y, m = f.normalized["year"], f.normalized["month"]
     when = dt.date(y, m, 1)
-    insp = dt.date.fromisoformat(scan.captured_at)
+    # not_after is either a literal ISO date or 'inspection_date' (the default).
+    na = spec["params"].get("not_after")
+    insp = (dt.date.fromisoformat(na) if na and na != "inspection_date"
+            else dt.date.fromisoformat(scan.captured_at))
     floor = dt.date.fromisoformat(spec["params"]["not_before"])
     if when > insp:
         return _r(spec, Verdict[spec["params"]["on_violation"]],

@@ -59,13 +59,47 @@ def run_gates(pack: dict, scan: Scan) -> list[dict]:
     return fired
 
 
+def _typography_skips(pack: dict, fired: list[dict]) -> set[str]:
+    """Rule 7(5): a gate with SKIP_TYPOGRAPHY_EXCEPT removes the typography checks —
+    those bound to Rule 7 or Rule 8 nodes — except the check IDs the gate names."""
+    skip = set()
+    for g in fired:
+        if g["effect"] != "SKIP_TYPOGRAPHY_EXCEPT":
+            continue
+        keep = set(g.get("exceptions") or [])
+        skip |= {c["check"] for c in pack["checks"]
+                 if c["node"].startswith(("lmpc/r7", "lmpc/r8"))
+                 and c["check"] not in keep}
+    return skip
+
+
+def _relaxed_checks(pack: dict, scan: Scan) -> set[str]:
+    """Rule 10(1) proviso: on a package at or below the binding's capacity an identifying
+    mark suffices, so the checks a small_package_mark binding names are not required."""
+    out = set()
+    for c in pack["checks"]:
+        p = c.get("params") or {}
+        if c["operator"] != "small_package_mark" or "relaxes" not in p:
+            continue
+        cap = scan.capacity_cm3
+        if cap is not None and cap <= p["capacity_cm3_at_or_below"]:
+            out.add(p["relaxes"])
+    return out
+
+
+def _not_required(cond: dict, scan: Scan) -> bool:
+    if "scan_mode" in cond:
+        return scan.mode == cond["scan_mode"]
+    return _cond(cond, scan)
+
+
 def run(pack: dict, scan: Scan) -> dict:
     fired = run_gates(pack, scan)
     stop = next((g for g in fired if g["effect"] in
                  ("ALL_RULES_NOT_APPLICABLE", "CHAPTER_II_NOT_APPLICABLE")), None)
     excluded = set(pack["modes"].get(scan.mode, {}).get("excludes") or [])
-    skip_typo = {"LMPC-R7-2-MIN-HEIGHT", "LMPC-R7-3-WIDTH-RATIO", "LMPC-R8-CLEAR-SPACE"} \
-        if any(g["effect"] == "SKIP_TYPOGRAPHY_EXCEPT" for g in fired) else set()
+    skip_typo = _typography_skips(pack, fired)
+    relaxed = _relaxed_checks(pack, scan)
 
     if stop:
         results = [Result(check=c["check"], clause=c["clause"],
@@ -87,6 +121,16 @@ def run(pack: dict, scan: Scan) -> dict:
             results.append(Result(c["check"], c["clause"], Verdict.NOT_APPLICABLE,
                                   f"not required in {scan.mode} (Rule 6(10))",
                                   pack["modes"][scan.mode].get("citation", {})))
+            continue
+        if c["check"] in relaxed:
+            results.append(Result(c["check"], c["clause"], Verdict.NOT_APPLICABLE,
+                                  "relaxed by the small-package proviso (Rule 10(1))",
+                                  c.get("citation", {})))
+            continue
+        if "not_required_when" in c and _not_required(c["not_required_when"], scan):
+            results.append(Result(c["check"], c["clause"], Verdict.NOT_APPLICABLE,
+                                  "binding exempts this scan from this requirement",
+                                  c.get("citation", {})))
             continue
         if c["check"] in skip_typo:
             results.append(Result(c["check"], c["clause"], Verdict.NOT_APPLICABLE,
