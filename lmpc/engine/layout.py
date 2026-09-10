@@ -106,4 +106,15 @@ def candidates(tokens: list[Token]) -> list[Token]:
                 out.append(Token(merged, a.x, a.y, max(a.w, b.w),
                                  b.y + b.h - a.y, min(a.conf, b.conf), a.panel,
                                  a.cap_height_px, a.src | b.src, repaired=True))
-    return out
+    # The same sentence recognised twice (different crops of one photograph) must not
+    # stand as each other's rival: the margin rule reads them as an ambiguous call and
+    # abstains on a label that says one thing. One representative is enough; the raw
+    # regions stay in scan.tokens for the checks that count occurrences.
+    seen: set = set()
+    uniq = []
+    for t in out:
+        k = (t.text, t.panel)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(t)
+    return uniq
