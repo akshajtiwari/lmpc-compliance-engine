@@ -1,6 +1,6 @@
 # Inspection load-test evidence
 
-Status: local smoke profile passed; measured pilot CI run pending.
+Status: local smoke and eight-user engineering pilot profiles passed.
 
 ## What is exercised
 
@@ -73,3 +73,23 @@ department's observed concurrency/arrival model before pilot sign-off.
 
 A green run proves the configured single-runner local deployment met the thresholds for
 that profile. It is not evidence for multi-node, WAN, S3 or production-scale capacity.
+
+## CI engineering-pilot result — 2026-09-11
+
+[GitHub Actions run 34521270930](https://github.com/akshajtiwari/lmpc-compliance-engine/actions/runs/34521270930)
+passed on commit `607f087` using the default eight-user profile.
+
+| Result | Measured |
+|---|---:|
+| Completed inspection flows | 437 |
+| HTTP requests | 2,187 |
+| Functional checks | 3,061 / 3,061 |
+| HTTP / business-flow failures | 0 / 0 |
+| Upload p95 | 320.56 ms |
+| Upload-to-verdict p95 / p99 | 1.71 s / 1.76 s |
+| Repository p95 | 247.16 ms |
+
+All thresholds passed. The workflow retained `summary.json`, the k6 console output and the
+API log in artifact `pilot-load-34521270930` for 30 days. This closes implementation and
+measurement of the initial e-commerce load profile; the department traffic model and the
+four-panel physical-package profile remain required before capacity or SC-2 sign-off.
