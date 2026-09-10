@@ -29,7 +29,8 @@
 - `reference_ppt/PlaceX_PS1628.pdf` — SIH 2024 full deck, PS1628 (structure to emulate).
 
 ## Numbers used on slides — only from docs/evidence/ (re-verify before submitting)
-- 0 false accusations across 2,940 real rule evaluations (REAL-WORLD + WIDE reports).
+- 0 false accusations across 2,700 corrected real rule evaluations (REAL-WORLD + WIDE
+  correction note).
 - 1.6 s/panel on an ordinary laptop CPU (M.18 correction — "GPU" claims were CPU).
 - 21 checks, 4 applicability gates, 2 table versions; rulepack sha256-hashed.
 - Amendment chain: 12 verified links to G.S.R. 418(E) (29 May 2026), 1 disclosed gap.

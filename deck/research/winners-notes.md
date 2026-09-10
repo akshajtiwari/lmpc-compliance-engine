@@ -32,8 +32,8 @@ Points, diagrams and infographics preferred over paragraphs.
 4. **Novelty / uniqueness** — law is *compiled* from primary gazette text (versioned,
    hashed, dated), not hardcoded; six verdicts, not two — "could not read" ≠ "missing";
    0 false accusations by design; findings reproducible years later (temporal law).
-5. **Evidence & feasibility** — numbers from `docs/evidence/` only: 60 real products /
-   211 photos (140/394 when wide lands), 2,940 evaluations, 0 false accusations,
+5. **Evidence & feasibility** — corrected numbers from `docs/evidence/` only: 140 real
+   products / 403 photos, 2,700 evaluations, 0 false accusations,
    1.6 s/panel on CPU. Tech stack line.
 6. **Impact + roadmap + demo** — beneficiaries (Legal Metrology officers, consumers,
    MSMEs), 6-month roadmap, demo screenshot/QR.

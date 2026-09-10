@@ -72,6 +72,19 @@ token is held in an HttpOnly, SameSite cookie.
 The dormant S3-compatible adapter is optional. Install `requirements-s3.txt` only when a
 bucket is available and `LMPC_S3_BUCKET` is intentionally configured.
 
+### Windows portable preview
+
+The `Windows portable release` GitHub Actions workflow builds a ZIP containing
+`LMPC-Compliance.exe`. Extract the entire ZIP and run the EXE; it opens the app on
+`http://127.0.0.1:8000`, uses no S3 or Docker, and stores immutable images and reports
+under `%LOCALAPPDATA%\LMPC Compliance\objects`. The portable preview keeps scan metadata
+for the current server session. Use the PostgreSQL development stack above when durable,
+multi-user history is required.
+
+Every release build must pass the Python suite, a frozen-bundle OCR/PDF/DOCX self-test,
+and a real localhost readiness smoke test before the workflow publishes it. You can run
+the packaged diagnostic manually with `LMPC-Compliance.exe --self-test`.
+
 `python -m lmpc.lawc.build` refuses to produce a rulepack it cannot prove is current,
 correct and intact. That is the intended behaviour, not a failure.
 
