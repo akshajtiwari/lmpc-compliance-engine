@@ -71,5 +71,6 @@ def report_dict(row: ComplianceReport) -> dict:
         "overall_status": row.overall_status, "pdf_storage_key": row.pdf_storage_key,
         "docx_storage_key": row.docx_storage_key,
         "content_sha256": row.content_sha256, "manifest": row.manifest,
+        "reviewed_by": str(row.reviewed_by) if row.reviewed_by else None,
         "finalized_at": row.finalized_at.isoformat(),
     }

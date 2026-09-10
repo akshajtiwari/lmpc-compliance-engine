@@ -161,14 +161,16 @@ class MemoryStore:
 
     def save_report(self, scan_id: str, *, version: int, overall_status: str,
                     pdf_storage_key: str, docx_storage_key: str,
-                    content_sha256: str, manifest: dict) -> dict:
+                    content_sha256: str, manifest: dict,
+                    reviewed_by: str | None = None) -> dict:
         rec = self.get(scan_id)
         report_id = str(uuid.uuid4())
         report = {
             "id": report_id, "scan_id": scan_id, "version": version,
             "overall_status": overall_status, "pdf_storage_key": pdf_storage_key,
             "docx_storage_key": docx_storage_key, "content_sha256": content_sha256,
-            "manifest": manifest, "finalized_at": datetime.now(UTC).isoformat(),
+            "manifest": manifest, "reviewed_by": reviewed_by,
+            "finalized_at": datetime.now(UTC).isoformat(),
         }
         self._reports[report_id] = report
         rec.status = "FINALIZED"

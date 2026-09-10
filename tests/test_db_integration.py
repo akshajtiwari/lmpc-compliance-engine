@@ -14,8 +14,8 @@ from sqlalchemy import func, select
 from lmpc.engine.model import Token
 from lmpc.server.config import Settings
 from lmpc.server.db import sessionmaker_of
-from lmpc.server.db.models import (AuditLog, ExtractedDeclaration, Jurisdiction,
-                                   RuleEvaluation, User)
+from lmpc.server.db.models import (AuditLog, ComplianceReport, ExtractedDeclaration,
+                                   Jurisdiction, RuleEvaluation, User)
 from lmpc.server.main import create_app
 from lmpc.server.svc.auth import hash_password
 
@@ -252,3 +252,5 @@ async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app)
                                     uuid.UUID(report.json()["report_id"])]))))
         assert actions == {"DECLARATION_CORRECT", "EVALUATION_OVERRIDE",
                            "REPORT_FINALIZE"}
+        stored_report = session.get(ComplianceReport, uuid.UUID(report.json()["report_id"]))
+        assert str(stored_report.reviewed_by) == override.json()["evaluation"]["overridden_by"]

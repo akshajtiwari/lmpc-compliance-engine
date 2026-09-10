@@ -26,7 +26,7 @@ class ReportService:
         self.git_sha = git_sha
         self.container_digest = container_digest
 
-    def finalize(self, scan_id: str) -> dict:
+    def finalize(self, scan_id: str, *, reviewed_by: str | None = None) -> dict:
         scan = self.scans.get(scan_id)
         if not scan.latest_evaluations():
             raise ApiError("E_CONFLICT", "the scan has no completed evaluation batch")
@@ -51,7 +51,8 @@ class ReportService:
         return self.scans.save_report(
             scan_id, version=version, overall_status=scan.overall,
             pdf_storage_key=pdf_key, docx_storage_key=docx_key,
-            content_sha256=content_sha256, manifest=manifest)
+            content_sha256=content_sha256, manifest=manifest,
+            reviewed_by=reviewed_by)
 
     def download(self, report_id: str, format_: str) -> tuple[bytes, str, str]:
         report = self.scans.get_report(report_id)

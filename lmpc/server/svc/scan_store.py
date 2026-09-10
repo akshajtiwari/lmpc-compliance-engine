@@ -173,7 +173,8 @@ class DbStore:
 
     def save_report(self, scan_id: str, *, version: int, overall_status: str,
                     pdf_storage_key: str, docx_storage_key: str,
-                    content_sha256: str, manifest: dict) -> dict:
+                    content_sha256: str, manifest: dict,
+                    reviewed_by: str | None = None) -> dict:
         scan_uuid = _uuid_or_404(scan_id)
         with self.sessions() as session:
             scan = session.get(Scan, scan_uuid)
@@ -182,7 +183,8 @@ class DbStore:
             report = ComplianceReport(
                 scan_id=scan_uuid, version=version, overall_status=overall_status,
                 pdf_storage_key=pdf_storage_key, docx_storage_key=docx_storage_key,
-                content_sha256=content_sha256, manifest=manifest)
+                content_sha256=content_sha256, manifest=manifest,
+                reviewed_by=uuid.UUID(reviewed_by) if reviewed_by else None)
             session.add(report)
             scan.status = "FINALIZED"
             session.commit()
