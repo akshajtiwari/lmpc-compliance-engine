@@ -33,7 +33,7 @@ def test_healthz_and_readyz(client):
 def test_submit_scan_is_accepted(client):
     r = _post(client)
     assert r.status_code == 202
-    assert r.json()["status"] == "SUBMITTED" and r.json()["status_url"].startswith("/api/v1/scans/")
+    assert r.json()["status"] == "RECEIVED" and r.json()["status_url"].startswith("/api/v1/scans/")
 
 
 def test_repeated_client_uuid_is_not_a_duplicate(client):

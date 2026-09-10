@@ -10,6 +10,8 @@ class Settings:
     rulepack_path: str = "rulepack/current.json"
     log_level: str = "INFO"
     db_url: str = ""                      # empty until persistence is wired (Part 13)
+    officer_uuid: str = ""                # bootstrap officer until Part 14 auth lands
+    jurisdiction_uuid: str = ""
     redis_url: str = ""
     s3_endpoint: str = ""
     s3_bucket: str = ""
@@ -25,6 +27,8 @@ class Settings:
             rulepack_path=e.get("LMPC_RULEPACK_PATH", cls.rulepack_path),
             log_level=e.get("LMPC_LOG_LEVEL", cls.log_level),
             db_url=e.get("LMPC_DB_URL", ""),
+            officer_uuid=e.get("LMPC_OFFICER_UUID", ""),
+            jurisdiction_uuid=e.get("LMPC_JURISDICTION_UUID", ""),
             redis_url=e.get("LMPC_REDIS_URL", ""),
             s3_endpoint=e.get("LMPC_S3_ENDPOINT", ""),
             s3_bucket=e.get("LMPC_S3_BUCKET", ""),

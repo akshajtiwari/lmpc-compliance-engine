@@ -7,11 +7,11 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
 from ..config import Settings
-from ..svc.scan_service import ScanService
+from ..svc.scan_store import open_store
 from .errors import ApiError
 
 router = APIRouter(prefix="/scans", tags=["scans"])
-svc = ScanService()
+svc = open_store(Settings.from_env())
 _max_image_bytes = Settings.from_env().max_image_bytes
 
 
