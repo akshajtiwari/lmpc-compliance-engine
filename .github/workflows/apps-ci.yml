@@ -87,8 +87,8 @@ jobs:
       LMPC_ALLOW_SELF_REVIEW: true
       LMPC_COOKIE_SECURE: false
       LMPC_RULEPACK_PATH: ${{ github.workspace }}/rulepack/current.json
-      LMPC_JWT_KEY_PATH: ${{ runner.temp }}/lmpc-e2e/jwt.pem
-      LMPC_STORAGE_ROOT: ${{ runner.temp }}/lmpc-e2e/objects
+      LMPC_JWT_KEY_PATH: /tmp/lmpc-e2e-${{ github.run_id }}/jwt.pem
+      LMPC_STORAGE_ROOT: /tmp/lmpc-e2e-${{ github.run_id }}/objects
       LMPC_RATE_LIMIT_PER_MIN: 300
       LMPC_LOG_LEVEL: WARNING
       LMPC_E2E_EMAIL: e2e-admin@local.invalid
