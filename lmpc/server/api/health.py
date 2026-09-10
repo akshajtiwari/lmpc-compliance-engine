@@ -37,8 +37,13 @@ async def readyz(request: Request):
 
 
 @router.get("/version")
-async def version() -> dict:
-    return {"git_sha": "", **rulepack.summary()}
+async def version(request: Request) -> dict:
+    return {
+        "git_sha": request.app.state.settings.git_sha,
+        "server_fingerprint": request.app.state.auth.server_fingerprint(),
+        "public_base_url": request.app.state.settings.public_base_url,
+        **rulepack.summary(),
+    }
 
 
 @router.get("/metrics", response_class=PlainTextResponse)

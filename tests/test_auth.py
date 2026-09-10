@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from lmpc.server.db.models import User
-from lmpc.server.svc.auth import (ALL_PERMISSIONS, ROLE_PERMISSIONS, _record_failure,
-                                  hash_password)
+from lmpc.server.svc.auth import ALL_PERMISSIONS, ROLE_PERMISSIONS, _record_failure
+from lmpc.server.svc.auth_core import hash_password
 
 
 EXPECTED = {

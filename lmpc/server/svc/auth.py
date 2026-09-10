@@ -18,15 +18,14 @@ from sqlalchemy import select, text, update
 from ..api.errors import ApiError
 from ..config import Settings
 from ..db import sessionmaker_of
-from ..db.models import AuditLog, RefreshToken, User
-from .auth_core import (ALL_PERMISSIONS, ROLE_PERMISSIONS, Principal, hash_password,
-                        load_or_create_keys, password_hasher, password_matches)
+from ..db.models import AuditLog, DeviceEnrollment, RefreshToken, User
+from .auth_core import (ALL_PERMISSIONS, ROLE_PERMISSIONS, Principal,
+                        load_or_create_keys, password_hasher)
 
 ACCESS_TTL = timedelta(minutes=15)
 REFRESH_TTL = timedelta(days=30)
 LOCK_WINDOW = timedelta(minutes=15)
 LOCK_DURATION = timedelta(minutes=15)
-
 class AuthManager:
     def __init__(self, settings: Settings):
         if settings.auth_mode not in {"disabled", "local"}:
@@ -103,7 +102,6 @@ class AuthManager:
             session.add(_audit("LOGIN", user.id, ip, user_agent, None))
             session.commit()
         return self._access(principal, now), refresh, principal
-
     def refresh(self, raw_token: str | None, *, user_agent: str | None,
                 ip: str | None) -> tuple[str, str, Principal]:
         self._require_local()
@@ -140,7 +138,6 @@ class AuthManager:
             principal = _principal(user)
             session.commit()
         return self._access(principal, now), refresh, principal
-
     def logout(self, raw_token: str | None, *, user_agent: str | None,
                ip: str | None) -> None:
         self._require_local()
@@ -154,7 +151,32 @@ class AuthManager:
                 row.revoked_at = now
                 session.add(_audit("LOGOUT", row.user_id, ip, user_agent, None))
                 session.commit()
-
+    def enroll(self, raw_token: str, *, device_name: str | None,
+               user_agent: str | None, ip: str | None) -> tuple[str, str, Principal]:
+        """Exchange a one-use managed-device invitation for a normal session."""
+        self._require_local()
+        now = datetime.now(UTC)
+        with self.sessions() as session:  # type: ignore[operator]
+            row = session.scalar(select(DeviceEnrollment).where(
+                DeviceEnrollment.token_hash == _hash(raw_token)).with_for_update())
+            if row is None or row.used_at is not None or row.expires_at <= now:
+                raise ApiError("E_BAD_CREDENTIALS", "the device invitation is invalid or expired")
+            user = session.get(User, row.user_id)
+            if user is None or not user.is_active:
+                raise ApiError("E_BAD_CREDENTIALS", "the account is unavailable")
+            row.used_at = now
+            row.device_name = (device_name or "Unnamed mobile device").strip()[:200]
+            principal = _principal(user)
+            refresh, refresh_row = _new_refresh(user.id, now, user_agent, ip)
+            session.add(refresh_row)
+            session.add(_audit(
+                "DEVICE_ENROLLED", user.id, ip, user_agent,
+                {"enrollment_id": str(row.id), "device_name": row.device_name}))
+            session.commit()
+        return self._access(principal, now), refresh, principal
+    def server_fingerprint(self) -> str:
+        """Stable public identifier used to notice an unexpected server change."""
+        return hashlib.sha256(self.public_key).hexdigest() if self.public_key else ""
     def ensure_scan_scope(self, principal: Principal, scan) -> None:
         if self.disabled or principal.role == "ADMIN":
             return
@@ -166,7 +188,6 @@ class AuthManager:
         if not allowed:
             self.audit_denial(principal, "scan", scan.id)
             raise ApiError("E_FORBIDDEN", "the scan is outside your authorised scope")
-
     def ensure_jurisdiction_scope(self, principal: Principal,
                                   jurisdiction_id: str) -> None:
         if self.disabled or principal.role == "ADMIN":
@@ -221,13 +242,11 @@ class AuthManager:
             "aud": self.settings.jwt_audience, "iss": self.settings.jwt_issuer,
         }
         return jwt.encode(claims, self.private_key, algorithm="RS256")
-
     def _verify(self, encoded: str, password: str) -> bool:
         try:
             return self.hasher.verify(encoded, password)
         except (VerifyMismatchError, InvalidHashError):
             return False
-
     def _verify_dummy(self, password: str) -> None:
         self._verify(self._dummy_hash, password)
 

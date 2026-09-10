@@ -15,6 +15,7 @@ class Settings:
     auth_mode: str = "disabled"           # disabled for engine tests; local in .env.example
     bootstrap_email: str = "reviewer@local.invalid"
     bootstrap_password: str = ""
+    bootstrap_role: str = "ADMIN"
     jwt_key_path: str = ".lmpc-data/auth/jwt-private.pem"
     jwt_issuer: str = "lmpc-local"
     jwt_audience: str = "lmpc-api"
@@ -30,6 +31,7 @@ class Settings:
     rate_limit_per_min: int = 60
     git_sha: str = ""
     container_digest: str = ""
+    public_base_url: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -43,6 +45,7 @@ class Settings:
             auth_mode=e.get("LMPC_AUTH_MODE", cls.auth_mode),
             bootstrap_email=e.get("LMPC_BOOTSTRAP_EMAIL", cls.bootstrap_email),
             bootstrap_password=e.get("LMPC_BOOTSTRAP_PASSWORD", ""),
+            bootstrap_role=e.get("LMPC_BOOTSTRAP_ROLE", cls.bootstrap_role),
             jwt_key_path=e.get("LMPC_JWT_KEY_PATH", cls.jwt_key_path),
             jwt_issuer=e.get("LMPC_JWT_ISSUER", cls.jwt_issuer),
             jwt_audience=e.get("LMPC_JWT_AUDIENCE", cls.jwt_audience),
@@ -58,7 +61,8 @@ class Settings:
             rate_limit_per_min=int(e.get("LMPC_RATE_LIMIT_PER_MIN",
                                          cls.rate_limit_per_min)),
             git_sha=e.get("LMPC_GIT_SHA", ""),
-            container_digest=e.get("LMPC_CONTAINER_DIGEST", ""))
+            container_digest=e.get("LMPC_CONTAINER_DIGEST", ""),
+            public_base_url=e.get("LMPC_PUBLIC_BASE_URL", "").rstrip("/"))
 
 
 def _bool(value: str) -> bool:

@@ -182,6 +182,12 @@ class MemoryStore:
             raise ApiError("E_NOT_FOUND", f"report {report_id} not found")
         return report
 
+    def list_reports(self, scan_id: str) -> list[dict]:
+        self.get(scan_id)
+        return sorted(
+            (item for item in self._reports.values() if item["scan_id"] == scan_id),
+            key=lambda item: item["version"], reverse=True)
+
 
 def validate_metadata(*, mode: str, buyer_type: str, package_shape: str,
                       scale_reference: dict, dimensions: dict, flags: dict,

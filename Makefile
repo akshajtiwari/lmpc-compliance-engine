@@ -9,7 +9,7 @@ LMPC_DB_URL ?= $(LOCAL_DB_URL)
 LMPC_OFFICER_UUID ?= 00000000-0000-4000-8000-000000000002
 LMPC_JURISDICTION_UUID ?= 00000000-0000-4000-8000-000000000001
 
-.PHONY: setup db-up db-down migrate bootstrap dev test test-db
+.PHONY: setup db-up db-down migrate bootstrap dev dev-lan test test-db
 
 setup:
 	python -m venv .venv
@@ -29,6 +29,9 @@ bootstrap: migrate
 
 dev: bootstrap
 	$(UVICORN) lmpc.server.main:app --reload --reload-dir lmpc --host 127.0.0.1 --port 8000
+
+dev-lan: bootstrap
+	$(PYTHON) -m lmpc.server.run --lan --reload --port 8000
 
 test:
 	$(PYTHON) -m pytest -q

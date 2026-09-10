@@ -67,3 +67,23 @@ class RefreshToken(Base):
               postgresql_where=text("revoked_at IS NULL")),
         Index("idx_refresh_family", family_id),
     )
+
+
+class DeviceEnrollment(Base):
+    """One-use invitation that binds a managed account to a mobile device."""
+    __tablename__ = "device_enrollments"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"))
+    created_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    server_url: Mapped[str] = mapped_column(String(500))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    device_name: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        Index("idx_device_enrollment_user", user_id),
+        Index("idx_device_enrollment_expiry", expires_at),
+    )

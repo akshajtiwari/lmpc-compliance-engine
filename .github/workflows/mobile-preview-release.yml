@@ -1,0 +1,76 @@
+name: Android Field preview release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "SemVer tag for the installable Android preview"
+        required: true
+        default: "v0.2.0-mobile-preview"
+        type: string
+
+concurrency:
+  group: android-preview-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Validate release tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "release_tag must be SemVer-style" >&2
+            exit 1
+          fi
+      - name: Install and verify Field app
+        working-directory: apps/mobile
+        run: |
+          npm ci
+          npm run typecheck
+          npm run doctor
+      - name: Generate Android project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install --clean
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - name: Build installable preview APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Package and checksum
+        run: |
+          mkdir -p dist
+          cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk "dist/LMPC-Field-${RELEASE_TAG}-android.apk"
+          cd dist
+          sha256sum "LMPC-Field-${RELEASE_TAG}-android.apk" > "LMPC-Field-${RELEASE_TAG}-SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LMPC-Field-${{ inputs.release_tag }}-android
+          path: |
+            dist/LMPC-Field-${{ inputs.release_tag }}-android.apk
+            dist/LMPC-Field-${{ inputs.release_tag }}-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "dist/LMPC-Field-${RELEASE_TAG}-android.apk" "dist/LMPC-Field-${RELEASE_TAG}-SHA256SUMS.txt" --clobber
+          else
+            gh release create "$RELEASE_TAG" "dist/LMPC-Field-${RELEASE_TAG}-android.apk" "dist/LMPC-Field-${RELEASE_TAG}-SHA256SUMS.txt" --target "$GITHUB_SHA" --title "LMPC Field $RELEASE_TAG" --notes-file packaging/MOBILE-RELEASE-NOTES.md --prerelease
+          fi

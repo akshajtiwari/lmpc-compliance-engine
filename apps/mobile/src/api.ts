@@ -1,0 +1,95 @@
+import { CryptoDigestAlgorithm, digest } from "expo-crypto";
+import { File } from "expo-file-system";
+import type { Draft, Principal, RuleDetail, ScanResult, Session } from "./types";
+import { markInspection, saveSession } from "./storage";
+
+type AuthBody = { access_token: string; refresh_token: string; user: Principal; server_fingerprint?: string };
+type VersionBody = { server_fingerprint: string };
+type SessionChanged = (session: Session | null) => void;
+
+async function errorMessage(response: Response) {
+  try { const body = await response.json() as {error?:{message?:string}}; return body.error?.message ?? `Server returned ${response.status}`; }
+  catch { return `Server returned ${response.status}`; }
+}
+
+export function normalizeServerUrl(value: string) {
+  const trimmed = value.trim().replace(/\/$/, "");
+  const parsed = new URL(trimmed);
+  if (!/^https?:$/.test(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) throw new Error("Enter an HTTP(S) server address without a path");
+  return trimmed;
+}
+
+export async function verifyServer(serverUrl: string, expectedFingerprint?: string) {
+  const response = await fetch(`${serverUrl}/api/v1/version`);
+  if (!response.ok) throw new Error(await errorMessage(response));
+  const body = await response.json() as VersionBody;
+  if (!body.server_fingerprint) throw new Error("The server is not running managed local authentication");
+  if (expectedFingerprint && body.server_fingerprint !== expectedFingerprint) throw new Error("Server identity does not match the enrollment QR. Do not continue.");
+  return body.server_fingerprint;
+}
+
+export async function enrollFromUri(uri: string): Promise<Session> {
+  const parsed = new URL(uri);
+  if (parsed.protocol !== "lmpc:" || parsed.hostname !== "enroll") throw new Error("This is not an LMPC enrollment QR");
+  const serverUrl = normalizeServerUrl(parsed.searchParams.get("server") ?? "");
+  const fingerprint = parsed.searchParams.get("fingerprint") ?? "";
+  const token = parsed.searchParams.get("token") ?? "";
+  if (!fingerprint || token.length < 20) throw new Error("The enrollment QR is incomplete");
+  await verifyServer(serverUrl, fingerprint);
+  const response = await fetch(`${serverUrl}/api/v1/auth/enroll`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token,device_name:"LMPC Field device"})});
+  if (!response.ok) throw new Error(await errorMessage(response));
+  const body = await response.json() as AuthBody;
+  if (body.server_fingerprint !== fingerprint) throw new Error("The enrollment response came from a different server");
+  return {serverUrl,fingerprint,accessToken:body.access_token,refreshToken:body.refresh_token,user:body.user};
+}
+
+export async function passwordLogin(server: string, email: string, password: string): Promise<Session> {
+  const serverUrl=normalizeServerUrl(server); const fingerprint=await verifyServer(serverUrl);
+  const response=await fetch(`${serverUrl}/api/v1/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+  if(!response.ok)throw new Error(await errorMessage(response)); const body=await response.json() as AuthBody;
+  return {serverUrl,fingerprint,accessToken:body.access_token,refreshToken:body.refresh_token,user:body.user};
+}
+
+export class ApiClient {
+  constructor(private session: Session, private changed: SessionChanged) {}
+  async request<T>(path: string, options: RequestInit = {}, retry = true): Promise<T> {
+    const headers=new Headers(options.headers); headers.set("Authorization",`Bearer ${this.session.accessToken}`);
+    if(options.body && !(options.body instanceof FormData) && !headers.has("Content-Type"))headers.set("Content-Type","application/json");
+    let response=await fetch(`${this.session.serverUrl}/api/v1${path}`,{...options,headers});
+    if(response.status===401 && retry){await this.refresh();return this.request<T>(path,options,false);}
+    if(!response.ok)throw new Error(await errorMessage(response));
+    if(response.status===204)return undefined as T; return response.json() as Promise<T>;
+  }
+  private async refresh(){
+    await verifyServer(this.session.serverUrl,this.session.fingerprint);
+    const response=await fetch(`${this.session.serverUrl}/api/v1/auth/refresh`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:this.session.refreshToken})});
+    if(!response.ok){await saveSession(null);this.changed(null);throw new Error("Your device session expired. Ask an administrator for a new enrollment QR.");}
+    const body=await response.json() as AuthBody; this.session={...this.session,accessToken:body.access_token,refreshToken:body.refresh_token,user:body.user}; await saveSession(this.session);this.changed(this.session);
+  }
+  async upload(draft: Draft): Promise<ScanResult> {
+    await markInspection(draft.clientUuid,"UPLOADING");
+    const form=new FormData();
+    form.append("client_uuid",draft.clientUuid);form.append("captured_at",draft.capturedAt);form.append("mode","PHYSICAL_PACKAGE");form.append("category",draft.category);form.append("coverage_asserted",String(draft.coverageAsserted));form.append("buyer_type",draft.buyerType);form.append("package_shape",draft.packageShape);form.append("scale_reference",JSON.stringify({type:"NONE"}));form.append("flags",JSON.stringify({}));
+    for(const item of draft.panels){const file=new File(item.uri);const hash=await sha256(file);form.append("panels",item.panel);form.append("image_sha256",hash);form.append("images",{uri:file.uri,name:`${item.panel.toLowerCase()}.jpg`,type:"image/jpeg"} as unknown as Blob);}
+    try {
+      const created=await this.request<ScanResult>("/scans",{method:"POST",body:form});
+      const result=created.evaluations?.length ? created : await this.request<ScanResult>(`/scans/${created.scan_id}/process`,{method:"POST"});
+      await markInspection(draft.clientUuid,"COMPLETE",{scanId:result.scan_id,overall:result.overall,error:null}); return result;
+    } catch(cause){const message=cause instanceof Error?cause.message:"Upload failed";await markInspection(draft.clientUuid,"FAILED",{error:message});throw cause;}
+  }
+  rule(check: string){return this.request<RuleDetail>(`/rules/${encodeURIComponent(check)}`);}
+  scan(id:string){return this.request<ScanResult>(`/scans/${id}`);}
+  async logout() {
+    try {
+      await fetch(`${this.session.serverUrl}/api/v1/auth/logout`, {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({refresh_token: this.session.refreshToken}),
+      });
+    } finally {
+      await saveSession(null);
+      this.changed(null);
+    }
+  }
+}
+
+async function sha256(file: File) { const hashed=await digest(CryptoDigestAlgorithm.SHA256,await file.arrayBuffer()); return [...new Uint8Array(hashed)].map(byte=>byte.toString(16).padStart(2,"0")).join(""); }

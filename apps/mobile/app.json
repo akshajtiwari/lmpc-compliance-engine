@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "LMPC Field",
+    "slug": "lmpc-field",
+    "scheme": "lmpc",
+    "version": "0.2.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.gov.lmpc.field.preview",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "LMPC Field connects to your department's inspection server on the local network.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true,
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "package": "in.gov.lmpc.field.preview",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "backgroundColor": "#EAF2EC",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      ["expo-splash-screen", {"backgroundColor": "#F7F8F1", "image": "./assets/splash-icon.png", "imageWidth": 220, "resizeMode": "contain"}],
+      ["expo-camera", {"cameraPermission": "Allow LMPC Field to photograph package-label evidence.", "recordAudioAndroid": false}],
+      ["expo-image-picker", {"photosPermission": "Allow LMPC Field to import supporting package-label evidence.", "microphonePermission": false}],
+      "./plugins/with-local-http",
+      "expo-sqlite",
+      ["expo-secure-store", {"configureAndroidBackup": true, "faceIDPermission": "Allow LMPC Field to unlock this device session."}]
+    ]
+  }
+}

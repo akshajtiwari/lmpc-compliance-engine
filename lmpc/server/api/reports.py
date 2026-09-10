@@ -11,6 +11,16 @@ from .errors import ApiError
 router = APIRouter(tags=["reports"])
 
 
+@router.get("/scans/{scan_id}/reports")
+async def list_scan_reports(
+    scan_id: str, request: Request,
+    principal: Principal = Depends(require("reports:read")),
+) -> dict:
+    scan = request.app.state.scan_store.get(scan_id)
+    request.app.state.auth.ensure_scan_scope(principal, scan)
+    return {"items": request.app.state.scan_store.list_reports(scan_id)}
+
+
 @router.post("/scans/{scan_id}/report", status_code=201)
 async def finalize_report(
     scan_id: str, request: Request,

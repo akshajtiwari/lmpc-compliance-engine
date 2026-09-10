@@ -1,7 +1,7 @@
 # Native Mobile Application Plan
 
 **Decision date:** 2026-09-10  
-**Status:** Implementation-ready plan; native-mobile direction requested; implementation not started  
+**Status:** Field and Workbench vertical slice implemented; physical-device validation pending
 **Supersedes:** the PWA-as-primary-client decision in Parts 4.1 and 17 of the older
 architecture documents. The existing PWA remains a fallback and a source of tested
 capture behavior while the native client is built.
@@ -13,8 +13,7 @@ Build two clients around the existing shared FastAPI backend:
 1. **LMPC Field**, an installable React Native application for Android and iOS. It is the
    primary field-capture experience.
 2. **LMPC Workbench**, a separate desktop-oriented website for review, correction,
-   dashboards, administration, search, and report finalization. It follows after the
-   mobile critical path is complete.
+   dashboards, administration, search, account/device enrollment, and report finalization.
 
 React Native shares the application logic and most UI across Android and iOS. Camera,
 local-network permissions, build signing, and device testing remain platform-specific and
@@ -58,7 +57,7 @@ FastAPI modular monolith + OCR + deterministic rule engine
                          |
            PostgreSQL + local filesystem objects
                          |
-Desktop browser: LMPC Workbench (later)
+Desktop browser: LMPC Workbench
   review + corrections + overrides + dashboards + administration
 ```
 
@@ -72,7 +71,8 @@ a mobile release.
 - React Native with Expo and TypeScript strict mode.
 - Expo development builds from the beginning, not an Expo Go-only workflow. This leaves
   room for the native image-quality module and platform network configuration.
-- Expo Router for native Android/iOS navigation.
+- A small typed screen controller for the first capture vertical slice. Expo Router remains
+  an optional migration when deep navigation grows beyond the current four screens.
 - `expo-camera` for the first camera vertical slice, including flash/torch and barcode
   support where available.
 - A small local Expo native module backed by OpenCV for blur, glare, exposure, and
@@ -82,12 +82,12 @@ a mobile release.
 - Expo FileSystem for pending image files.
 - Expo SecureStore for the rotating refresh token; the short-lived access token remains
   in memory.
-- Generated TypeScript API types from FastAPI's OpenAPI document. API types are never
-  maintained by hand.
+- Strict TypeScript API boundaries. The first vertical slice has a compact checked-in type
+  surface; OpenAPI generation remains a pre-pilot hardening task.
 
-### Web workbench, later
+### Web workbench
 
-- A separate TypeScript web application under `apps/web`.
+- A separate Next.js TypeScript application under `apps/web`.
 - It consumes the same generated API client but has its own routes and desktop layouts.
 - The existing static PWA stays available until the new workbench reaches feature parity.
 
@@ -125,13 +125,16 @@ lmpc/                     existing Python engine and FastAPI server
 ### 6.1 First run and server connection
 
 1. Explain that LMPC Field requires a departmental/local server for analysis.
-2. Scan a pairing QR shown by the server, or enter the server address manually.
+2. Scan a one-time enrollment QR issued for the officer account in Workbench, or use
+   server/password sign-in as a development fallback.
 3. Call `/readyz` and `/version`; show server identity, rulepack version, and connection
    status before saving it.
 4. Log in. Store the refresh token in SecureStore and keep the access token only in memory.
 5. Require an explicit new login if the saved server identity changes unexpectedly.
 
-The pairing QR conveys an address and server fingerprint, not a privileged login token.
+The enrollment QR conveys the LAN origin, server-public-key fingerprint, and a random
+single-use token that expires after 15 minutes. Exchanging it creates a normal rotating
+mobile session; neither the officer password nor an administrator credential enters the phone.
 
 ### 6.2 Physical package inspection
 
@@ -208,8 +211,8 @@ Rules:
 
 1. Add an opt-in LAN launch mode (`make dev-lan` and equivalent `--lan` server flag) that
    binds to `0.0.0.0`; keep loopback as default.
-2. Print the chosen LAN URL and a pairing QR. Refuse LAN mode when authentication is
-   disabled.
+2. Advertise the chosen LAN URL, and let Workbench issue account-scoped enrollment QRs.
+   Refuse LAN mode when authentication is disabled.
 3. Add trusted-server identity/fingerprint data to the version/bootstrap response.
 4. Make the API URL configurable in the mobile preview build.
 5. Keep refresh-token-in-body support for the native client and verify rotation/reuse
@@ -370,11 +373,11 @@ remains a parallel server workstream and must reach the existing ≥90% target.
 
 ## 14. Planning references
 
-- React Native/Expo camera: https://docs.expo.dev/versions/latest/sdk/camera/
-- Persistent mobile SQLite: https://docs.expo.dev/versions/latest/sdk/sqlite/
-- Encrypted token storage: https://docs.expo.dev/versions/latest/sdk/securestore/
-- Mobile file upload/storage: https://docs.expo.dev/versions/latest/sdk/filesystem/
-- Network-state listener: https://docs.expo.dev/versions/latest/sdk/network/
+- React Native/Expo camera: https://docs.expo.dev/versions/v57.0.0/sdk/camera/
+- Persistent mobile SQLite: https://docs.expo.dev/versions/v57.0.0/sdk/sqlite/
+- Encrypted token storage: https://docs.expo.dev/versions/v57.0.0/sdk/securestore/
+- Mobile file upload/storage: https://docs.expo.dev/versions/v57.0.0/sdk/filesystem/
+- Native build properties: https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/
 - Expo development and internal builds: https://docs.expo.dev/build/introduction/
 - Android network security configuration:
   https://developer.android.com/privacy-and-security/security-config

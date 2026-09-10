@@ -125,8 +125,27 @@ async def reevaluate_scan(
     except Exception as exc:
         raise ApiError("E_INTERNAL", f"scan processing failed: {type(exc).__name__}") from exc
     return JSONResponse(_envelope(rec, created=True), status_code=202)
+@router.post("/{scan_id}/process")
+async def process_new_scan(
+    scan_id: str, request: Request,
+    principal: Principal = Depends(require("scans:create")),
+) -> JSONResponse:
+    """Run the first evaluation for a newly uploaded field inspection.
 
-
+    A field officer may process their own new evidence on a local deployment. Any later
+    evaluation remains the reviewing-officer-only ``reevaluate`` operation.
+    """
+    rec = request.app.state.scan_store.get(scan_id)
+    request.app.state.auth.ensure_scan_scope(principal, rec)
+    if rec.latest_evaluations() or rec.status not in {"RECEIVED", "FAILED"}:
+        raise ApiError("E_CONFLICT", "this scan has already entered evaluation")
+    try:
+        rec = request.app.state.pipeline.process(scan_id)
+    except ApiError:
+        raise
+    except Exception as exc:
+        raise ApiError("E_INTERNAL", f"scan processing failed: {type(exc).__name__}") from exc
+    return JSONResponse(_envelope(rec, created=True), status_code=202)
 def _envelope(rec, created: bool) -> dict:
     body = {"scan_id": rec.id, "status": rec.status,
             "client_uuid": rec.client_uuid, "officer_id": rec.officer_id,

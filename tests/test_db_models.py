@@ -12,7 +12,8 @@ def _table(name):
 
 def test_every_part13_table_exists():
     assert set(Base.metadata.tables) == {
-        "jurisdictions", "users", "refresh_tokens", "commodity_categories",
+        "jurisdictions", "users", "refresh_tokens", "device_enrollments",
+        "commodity_categories",
         "manufacturers", "products", "scans", "scan_images", "extracted_declarations",
         "rule_evaluations", "compliance_reports", "rulepacks", "amendment_ledger",
         "audit_log"}

@@ -9,9 +9,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from .api import auth, dashboard, errors, health, reports, review, rules, scans
+from .api import accounts, auth, dashboard, errors, health, reports, review, rules, scans
 from .config import Settings
 from .svc.object_store import open_object_store
+from .svc.accounts import AccountService
 from .svc.auth import AuthManager
 from .svc.dashboard import DashboardService
 from .svc.pipeline import Pipeline
@@ -92,10 +93,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.object_store = open_object_store(s)
     app.state.scan_store = open_store(s)
     app.state.auth = AuthManager(s)
+    app.state.accounts = AccountService(app.state.auth)
     app.state.review = ReviewService(app.state.scan_store, app.state.auth)
     app.state.dashboard = DashboardService(app.state.scan_store, app.state.review)
     errors.install(app)
     app.include_router(auth.router)
+    app.include_router(accounts.router)
     app.include_router(health.router)
     app.include_router(scans.router)
     app.include_router(reports.router)

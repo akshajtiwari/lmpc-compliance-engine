@@ -17,7 +17,7 @@ from lmpc.server.db import sessionmaker_of
 from lmpc.server.db.models import (AuditLog, ComplianceReport, ExtractedDeclaration,
                                    Jurisdiction, RuleEvaluation, User)
 from lmpc.server.main import create_app
-from lmpc.server.svc.auth import hash_password
+from lmpc.server.svc.auth_core import hash_password
 
 DB_URL = os.environ.get("LMPC_TEST_DB_URL", "")
 pytestmark = [pytest.mark.anyio,
@@ -48,9 +48,11 @@ def database_app(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def auth_app(tmp_path_factory):
-    jurisdiction_id, reviewer_id, auditor_id = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    jurisdiction_id, reviewer_id, auditor_id, admin_id = (
+        uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), uuid.uuid4())
     reviewer_password = "reviewer-local-password-2026"
     auditor_password = "auditor-local-password-2026"
+    admin_password = "administrator-local-password-2026"
     with sessionmaker_of(DB_URL)() as session:
         session.add(Jurisdiction(
             id=jurisdiction_id, name=f"Auth {jurisdiction_id}", state="Delhi",
@@ -62,6 +64,9 @@ def auth_app(tmp_path_factory):
             User(id=auditor_id, full_name="Integration Auditor",
                  email=f"auditor-{auditor_id}@example.test", role="AUDITOR",
                  jurisdiction_id=jurisdiction_id, password_hash=hash_password(auditor_password)),
+            User(id=admin_id, full_name="Integration Administrator",
+                 email=f"admin-{admin_id}@example.test", role="ADMIN",
+                 jurisdiction_id=jurisdiction_id, password_hash=hash_password(admin_password)),
         ])
         session.commit()
     app = create_app(Settings(
@@ -75,6 +80,8 @@ def auth_app(tmp_path_factory):
         "reviewer_password": reviewer_password,
         "auditor_email": f"auditor-{auditor_id}@example.test",
         "auditor_password": auditor_password,
+        "admin_email": f"admin-{admin_id}@example.test",
+        "admin_password": admin_password,
     }
 
 
@@ -122,6 +129,10 @@ async def test_postgres_round_trip_keeps_images_evaluations_and_reports(database
 
     report = await _request(database_app, "POST", f"/api/v1/scans/{scan_id}/report")
     assert report.status_code == 201
+    reports = await _request(
+        database_app, "GET", f"/api/v1/scans/{scan_id}/reports")
+    assert reports.status_code == 200
+    assert reports.json()["items"][0]["id"] == report.json()["report_id"]
     downloaded = await _request(
         database_app, "GET",
         f"/api/v1/reports/{report.json()['report_id']}/download?format=pdf")
@@ -152,6 +163,7 @@ async def test_local_login_rotation_and_rbac_are_enforced(auth_app):
         family = await client.post("/api/v1/auth/refresh")
         assert me.json()["role"] == "REVIEWING_OFFICER"
         assert rotated.status_code == 200
+        assert rotated.json()["refresh_token"] != first_refresh
         assert replay.status_code == family.status_code == 401
 
         auditor = await client.post("/api/v1/auth/login", json={
@@ -170,6 +182,71 @@ async def test_local_login_rotation_and_rbac_are_enforced(auth_app):
             }, files=[("images", ("front.jpg", raw, "image/jpeg"))])
         assert denied.status_code == 403
         assert denied.json()["error"]["code"] == "E_FORBIDDEN"
+
+
+async def test_admin_manages_account_and_one_use_mobile_enrollment(auth_app):
+    app, credentials = auth_app
+    async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        login = await client.post("/api/v1/auth/login", json={
+            "email": credentials["admin_email"],
+            "password": credentials["admin_password"]})
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        jurisdictions = await client.get("/api/v1/admin/jurisdictions", headers=headers)
+        jurisdiction_id = jurisdictions.json()["items"][0]["id"]
+        created = await client.post("/api/v1/admin/users", headers=headers, json={
+            "full_name": "Mobile Field Officer", "email": f"mobile-{uuid.uuid4()}@example.test",
+            "role": "FIELD_OFFICER", "jurisdiction_id": jurisdiction_id})
+        assert created.status_code == 201
+        invitation = await client.post(
+            f"/api/v1/admin/users/{created.json()['id']}/enrollments",
+            headers=headers, json={"server_url": "http://192.168.1.20:8000"})
+        body = invitation.json()
+        assert invitation.status_code == 201
+        assert body["enrollment_uri"].startswith("lmpc://enroll?")
+        assert body["server_fingerprint"] == app.state.auth.server_fingerprint()
+
+        enrolled = await client.post("/api/v1/auth/enroll", json={
+            "token": body["token"], "device_name": "Integration Android"})
+        replay = await client.post("/api/v1/auth/enroll", json={
+            "token": body["token"], "device_name": "Replay"})
+        assert enrolled.status_code == 200
+        assert enrolled.json()["user"]["role"] == "FIELD_OFFICER"
+        assert replay.status_code == 401
+
+        field_headers = {
+            "Authorization": f"Bearer {enrolled.json()['access_token']}"}
+        raw = _jpeg()
+        field_scan = await client.post(
+            "/api/v1/scans", headers=field_headers,
+            data={"client_uuid": str(uuid.uuid4()), "captured_at": "2026-09-10",
+                  "mode": "PHYSICAL_PACKAGE", "category": "FOOD",
+                  "buyer_type": "RETAIL", "coverage_asserted": "true",
+                  "panels": ["FRONT", "BACK"],
+                  "image_sha256": [hashlib.sha256(raw).hexdigest()] * 2},
+            files=[("images", ("front.jpg", raw, "image/jpeg")),
+                   ("images", ("back.jpg", raw, "image/jpeg"))])
+        assert field_scan.status_code == 202
+
+        def reader(_data, *, panel, **_kwargs):
+            return [Token("MRP Rs. 45.00 (incl. of all taxes)", 1, 2, 300, 20,
+                          conf=0.99, panel=panel)]
+
+        app.state.pipeline.reader = reader
+        scan_id = field_scan.json()["scan_id"]
+        processed = await client.post(
+            f"/api/v1/scans/{scan_id}/process", headers=field_headers)
+        repeated = await client.post(
+            f"/api/v1/scans/{scan_id}/process", headers=field_headers)
+        forbidden = await client.post(
+            f"/api/v1/scans/{scan_id}/reevaluate", headers=field_headers)
+        assert processed.status_code == 202
+        assert len(processed.json()["evaluations"]) == 21
+        assert repeated.status_code == 409
+        assert forbidden.status_code == 403
+
+        users = await client.get("/api/v1/admin/users", headers=headers)
+        assert created.json()["id"] in {item["id"] for item in users.json()["items"]}
 
 
 async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app):

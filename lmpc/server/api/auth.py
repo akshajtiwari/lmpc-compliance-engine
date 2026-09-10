@@ -73,7 +73,8 @@ async def refresh(
         payload.refresh_token if payload and payload.refresh_token else cookie_token,
         user_agent=request.headers.get("user-agent"), ip=_ip(request))
     response = JSONResponse({
-        "access_token": access, "expires_in": int(ACCESS_TTL.total_seconds()),
+        "access_token": access, "refresh_token": rotated,
+        "expires_in": int(ACCESS_TTL.total_seconds()),
         "user": principal.public(),
     })
     response.headers["Cache-Control"] = "no-store"

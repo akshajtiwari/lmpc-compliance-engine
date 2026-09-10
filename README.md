@@ -69,6 +69,27 @@ before sharing the machine or exposing the port; it is a development bootstrap a
 not a production credential. Access tokens stay in browser memory; the rotating refresh
 token is held in an HttpOnly, SameSite cookie.
 
+### Field app and Workbench
+
+For phone testing, use the opt-in LAN launcher and keep the phone and computer on the same
+private Wi-Fi or hotspot:
+
+```bash
+make dev-lan
+cd apps/web && npm ci && npm run dev -- --hostname 0.0.0.0
+```
+
+Open Workbench at `http://<computer-lan-ip>:3000`, sign in with the bootstrap administrator,
+create a field-officer account, and show its one-time enrollment QR. Install/open **LMPC
+Field** on Android, then scan that QR. The QR binds the officer account to the advertised
+server fingerprint and expires after 15 minutes. Captured evidence is queued on the phone
+when the server is unreachable and retried with the same idempotency UUID.
+
+`apps/web` contains the separate desktop Workbench; `apps/mobile` contains the Expo/React
+Native Field app. The `Android Field preview release` workflow publishes an installable,
+debug-signed APK for LAN testing. Preview builds permit local HTTP; production deployment
+requires HTTPS.
+
 The dormant S3-compatible adapter is optional. Install `requirements-s3.txt` only when a
 bucket is available and `LMPC_S3_BUCKET` is intentionally configured.
 

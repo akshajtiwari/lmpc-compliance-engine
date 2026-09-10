@@ -202,6 +202,16 @@ class DbStore:
                 raise ApiError("E_NOT_FOUND", f"report {report_id} not found")
             return report_dict(report)
 
+    def list_reports(self, scan_id: str) -> list[dict]:
+        scan_uuid = _uuid_or_404(scan_id)
+        with self.sessions() as session:
+            if session.get(Scan, scan_uuid) is None:
+                raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found")
+            rows = session.scalars(select(ComplianceReport).where(
+                ComplianceReport.scan_id == scan_uuid).order_by(
+                    ComplianceReport.version.desc())).all()
+            return [report_dict(row) for row in rows]
+
     def _rec(self, scan_id: str | None = None, client_uuid: str | None = None) -> ScanRecord:
         with self.sessions() as s:
             q = s.query(Scan)
