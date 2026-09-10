@@ -110,7 +110,7 @@ jobs:
             }
             if (-not $ready) { throw "Packaged server did not become ready" }
             $version = Invoke-RestMethod -Uri "http://127.0.0.1:8765/version" -TimeoutSec 5
-            if (-not $version.version -or -not $version.sha256) {
+            if (-not $version.version -or -not $version.rulepack_sha256) {
               throw "Packaged version endpoint did not return rulepack identity"
             }
           } finally {
