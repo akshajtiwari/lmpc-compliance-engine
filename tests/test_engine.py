@@ -87,6 +87,14 @@ def test_every_verdict_carries_a_citation(pack):
         assert r.citation, f"{r.check} produced a verdict with no legal citation"
 
 
+def test_result_carries_the_full_rulepack_digest(pack):
+    lab = make(lines=COMPLIANT_LINES, pdp_h_cm=18, pdp_w_cm=12, cap_mm=3,
+               net_quantity_g=500)
+    identity = run(pack, lab.scan)["rulepack"]
+    assert identity["sha256"] == pack["sha256"]
+    assert len(identity["sha256"]) == 64
+
+
 def test_tiny_package_relaxes_the_manufacturer_requirement(pack):
     """Rule 10(1) proviso: at <= 10 cm3 an identifying mark suffices, so the full
     name-and-address requirement the binding names as relaxed is not required."""

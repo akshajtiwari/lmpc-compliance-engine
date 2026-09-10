@@ -4,12 +4,17 @@ from __future__ import annotations
 import uuid
 from datetime import date
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..api.errors import ApiError
 from .evidence import EvidenceImage
 
 REQUIRED_PANELS = {"FRONT", "BACK"}          # Part 7.3: BACK waivable => flag false
+PANELS = REQUIRED_PANELS | {"SIDE_1", "SIDE_2", "SCALE_REF", "LISTING"}
 MODES = {"PHYSICAL_PACKAGE", "ECOMMERCE_LISTING"}
+BUYER_TYPES = {"RETAIL", "INDUSTRIAL", "INSTITUTIONAL"}
+PACKAGE_SHAPES = {"RECTANGULAR", "CYLINDRICAL", "IRREGULAR"}
+SCALE_TYPES = {"ISO_ID1_CARD", "APRILTAG_36H11", "MANUAL_DIMENSIONS", "NONE"}
 CATEGORIES = {
     "FOOD", "COSMETIC", "GENERIC", "CEMENT", "FERTILIZER", "FARM_PRODUCE",
     "TOBACCO", "DRUG_FORMULATION", "MEDICAL_DEVICE", "RESTAURANT_FAST_FOOD",
@@ -28,6 +33,20 @@ class ScanRecord:
     images: list[EvidenceImage]
     status: str = "RECEIVED"
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    overall: str | None = None
+    rulepack_version: str | None = None
+    rulepack_sha256: str | None = None
+    batch: int = 0
+    declarations: list[dict[str, Any]] = field(default_factory=list)
+    evaluations: list[dict[str, Any]] = field(default_factory=list)
+    failure_reason: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def latest_declarations(self) -> list[dict[str, Any]]:
+        return [item for item in self.declarations if item["batch"] == self.batch]
+
+    def latest_evaluations(self) -> list[dict[str, Any]]:
+        return [item for item in self.evaluations if item["batch"] == self.batch]
 
 
 def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
@@ -46,8 +65,8 @@ def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
         raise ApiError("E_VALIDATION", f"unsupported commodity category: {category}")
     if not 1 <= n_images <= 6 or n_images != len(panels):
         raise ApiError("E_VALIDATION", "1–6 images, one panel label per image")
-    if any(not panel or len(panel) > 10 for panel in panels):
-        raise ApiError("E_VALIDATION", "panel labels must contain 1–10 characters")
+    if any(panel not in PANELS for panel in panels):
+        raise ApiError("E_VALIDATION", "unsupported panel label")
     if coverage_asserted and not REQUIRED_PANELS.issubset(panels):
         raise ApiError(
             "E_COVERAGE_MISMATCH",
@@ -64,7 +83,8 @@ class MemoryStore:
 
     def create(self, *, client_uuid: str, captured_at: str, mode: str, category: str,
                coverage_asserted: bool, panels: list[str],
-               images: list[EvidenceImage]) -> tuple[ScanRecord, bool]:
+               images: list[EvidenceImage],
+               metadata: dict[str, Any] | None = None) -> tuple[ScanRecord, bool]:
         validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                  category=category, coverage_asserted=coverage_asserted, panels=panels,
                  n_images=len(images))
@@ -73,7 +93,7 @@ class MemoryStore:
             return self._by_client[client_uuid], False
         rec = ScanRecord(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                          category=category, coverage_asserted=coverage_asserted,
-                         panels=panels, images=images)
+                         panels=panels, images=images, metadata=metadata or {})
         self._by_id[rec.id] = self._by_client[client_uuid] = rec
         return rec, True
 
@@ -82,3 +102,88 @@ class MemoryStore:
         if rec is None:
             raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found")
         return rec
+
+    def start_processing(self, scan_id: str) -> ScanRecord:
+        rec = self.get(scan_id)
+        if rec.status == "FINALIZED":
+            raise ApiError("E_SCAN_FINALIZED", "a finalized scan cannot be re-evaluated")
+        rec.status = "OCR_IN_PROGRESS"
+        rec.failure_reason = None
+        return rec
+
+    def complete_evaluation(self, scan_id: str, *, declarations: list[dict],
+                            evaluations: list[dict], overall: str,
+                            rulepack_version: str, rulepack_sha256: str,
+                            max_edges: dict[str, int]) -> ScanRecord:
+        rec = self.get(scan_id)
+        rec.batch += 1
+        for item in declarations:
+            rec.declarations.append({**item, "id": str(uuid.uuid4()), "batch": rec.batch})
+        for item in evaluations:
+            rec.evaluations.append({**item, "id": str(uuid.uuid4()), "batch": rec.batch})
+        rec.overall = overall
+        rec.rulepack_version = rulepack_version
+        rec.rulepack_sha256 = rulepack_sha256
+        rec.images = [image.with_max_edge(max_edges[image.storage_key])
+                      if image.storage_key in max_edges else image for image in rec.images]
+        rec.status = "EVALUATION_COMPLETE"
+        return rec
+
+    def fail_processing(self, scan_id: str, reason: str) -> None:
+        rec = self.get(scan_id)
+        rec.status = "FAILED"
+        rec.failure_reason = reason
+
+
+def validate_metadata(*, mode: str, buyer_type: str, package_shape: str,
+                      scale_reference: dict, dimensions: dict, flags: dict,
+                      geo: dict, ecommerce: dict) -> dict[str, Any]:
+    if buyer_type not in BUYER_TYPES:
+        raise ApiError("E_VALIDATION", f"unsupported buyer_type: {buyer_type}")
+    if package_shape not in PACKAGE_SHAPES:
+        raise ApiError("E_VALIDATION", f"unsupported package_shape: {package_shape}")
+    scale_type = scale_reference.get("type", "NONE")
+    if scale_type not in SCALE_TYPES:
+        raise ApiError("E_VALIDATION", f"unsupported scale reference: {scale_type}")
+    numbers = {key: _positive_number(dimensions, key)
+               for key in ("h_cm", "w_cm", "capacity_cm3")}
+    if (numbers["h_cm"] is None) != (numbers["w_cm"] is None):
+        raise ApiError("E_VALIDATION", "dimensions require both h_cm and w_cm")
+    expected_flags = {"is_imported", "is_molded", "other_law_requires_same_info"}
+    if any(key not in expected_flags or not isinstance(value, bool)
+           for key, value in flags.items()):
+        raise ApiError("E_VALIDATION", "flags contain an unknown or non-boolean value")
+    lat, lng = geo.get("lat"), geo.get("lng")
+    numeric_geo = all(not isinstance(value, bool) and isinstance(value, (int, float))
+                      for value in (lat, lng) if value is not None)
+    if (lat is None) != (lng is None) or not numeric_geo \
+            or (lat is not None and not (-90 <= lat <= 90)) \
+            or (lng is not None and not (-180 <= lng <= 180)):
+        raise ApiError("E_VALIDATION", "geo requires a valid latitude and longitude")
+    if mode == "ECOMMERCE_LISTING" and not ecommerce.get("listing_text"):
+        raise ApiError("E_VALIDATION", "ecommerce.listing_text is required in listing mode")
+    if any(value is not None and not isinstance(value, str)
+           for value in (ecommerce.get("url"), ecommerce.get("listing_text"))):
+        raise ApiError("E_VALIDATION", "ecommerce url and listing_text must be strings")
+    return {
+        "buyer_type": buyer_type, "package_shape": package_shape,
+        "scale_reference_type": scale_type,
+        "scale_reference_data": scale_reference.get("data"),
+        "pdp_h_cm": numbers["h_cm"], "pdp_w_cm": numbers["w_cm"],
+        "capacity_cm3": numbers["capacity_cm3"],
+        "is_imported": flags.get("is_imported", False),
+        "is_molded": flags.get("is_molded", False),
+        "other_law_requires_same_info": flags.get("other_law_requires_same_info", False),
+        "geo_lat": lat, "geo_lng": lng,
+        "ecommerce_url": ecommerce.get("url"),
+        "ecommerce_text": ecommerce.get("listing_text"),
+    }
+
+
+def _positive_number(values: dict, key: str) -> float | None:
+    value = values.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        raise ApiError("E_VALIDATION", f"dimensions.{key} must be a positive number")
+    return float(value)

@@ -38,7 +38,7 @@ class ExtractedDeclaration(Base):
     score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     runner_up_margin: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     feature_weights: Mapped[dict | None] = mapped_column(JSONB)   # why this won (9.3)
-    source_token_ids: Mapped[dict | None] = mapped_column(JSONB)
+    source_token_ids: Mapped[list | None] = mapped_column(JSONB)
     is_composite: Mapped[bool] = mapped_column(Boolean, default=False)
     is_repaired: Mapped[bool] = mapped_column(Boolean, default=False)     # P9
     glyph_height_px: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))

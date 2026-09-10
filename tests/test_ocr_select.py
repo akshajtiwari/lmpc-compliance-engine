@@ -1,4 +1,9 @@
 """Selection-rule tests. The recogniser itself needs its model files; the policy does not."""
+import io
+
+from PIL import Image
+
+from lmpc.engine.ocr import prepare
 from lmpc.engine.ocr_select import _dev_fraction, pick
 
 
@@ -24,3 +29,10 @@ def test_dev_fraction_measures_devanagari_glyphs_only():
     assert _dev_fraction("अधिकतम") == 1.0
     assert _dev_fraction("MRP 45") == 0.0
     assert _dev_fraction("  ") == 0.0
+
+
+def test_object_store_bytes_follow_the_same_bounded_decode_path():
+    encoded = io.BytesIO()
+    Image.new("RGB", (200, 100), "white").save(encoded, "PNG")
+    frame = prepare(encoded.getvalue(), max_edge=50)
+    assert frame.shape == (25, 50, 3)

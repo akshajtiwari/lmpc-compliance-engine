@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import uuid
 
 import httpx
 import pytest
 from PIL import Image
 
+from lmpc.engine.model import Token
 from lmpc.server.config import Settings
 from lmpc.server.main import create_app
 
@@ -71,6 +73,24 @@ async def test_submit_scan_persists_hash_addressed_evidence(app):
     assert all(image.data == b"" for image in app.state.scan_store.get(body["scan_id"]).images)
 
 
+async def test_reevaluate_runs_the_real_rule_engine_and_returns_the_latest_batch(app):
+    submitted = (await _post(app, coverage_asserted="false", panels=["FRONT"])).json()
+
+    def reader(_data, *, panel, **_kwargs):
+        return [Token("MRP Rs. 45.00 (incl. of all taxes)", 2, 3, 300, 20,
+                      conf=0.99, panel=panel)]
+
+    app.state.pipeline.reader = reader
+    response = await _request(
+        app, "POST", f"/api/v1/scans/{submitted['scan_id']}/reevaluate")
+    assert response.status_code == 202
+    body = response.json()
+    assert body["status"] == "EVALUATION_COMPLETE"
+    assert len(body["rulepack"]["sha256"]) == 64
+    assert len(body["evaluations"]) == 21
+    assert any(item["field"] == "mrp" for item in body["declarations"])
+
+
 async def test_repeated_client_uuid_is_not_a_duplicate(app):
     same = str(uuid.uuid4())
     first, second = await _post(app, client_uuid=same), await _post(app, client_uuid=same)
@@ -114,6 +134,30 @@ async def test_pixel_cap_is_enforced(app):
     response = await _post(small_cap, image_data=_jpeg((6, 4)))
     assert response.status_code == 415
     assert "pixel cap" in response.json()["error"]["message"]
+
+
+async def test_optional_scan_metadata_is_validated_and_retained(app):
+    response = await _post(
+        app, buyer_type="INSTITUTIONAL", package_shape="CYLINDRICAL",
+        dimensions=json.dumps({"h_cm": 12.5, "w_cm": 18, "capacity_cm3": 250}),
+        flags=json.dumps({"is_imported": True}), geo=json.dumps({"lat": 28.61, "lng": 77.2}))
+    assert response.status_code == 202
+    body = response.json()
+    assert body["buyer_type"] == "INSTITUTIONAL"
+    rec = app.state.scan_store.get(body["scan_id"])
+    assert rec.metadata["pdp_h_cm"] == 12.5 and rec.metadata["is_imported"] is True
+
+
+async def test_listing_mode_requires_listing_text(app):
+    response = await _post(app, mode="ECOMMERCE_LISTING")
+    assert response.status_code == 400
+    assert "listing_text" in response.json()["error"]["message"]
+
+
+async def test_invalid_geo_is_a_validation_error_not_a_server_error(app):
+    response = await _post(app, geo=json.dumps({"lat": "north", "lng": 77.2}))
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "E_VALIDATION"
 
 
 async def test_unknown_scan_is_404(app):

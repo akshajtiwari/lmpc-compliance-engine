@@ -14,6 +14,7 @@ Two things learned from real photographs:
    field" and "can read the small print".
 """
 from __future__ import annotations
+import io
 from functools import lru_cache
 from pathlib import Path
 
@@ -78,7 +79,7 @@ def _engine():
         return R.RapidOCR()
 
 
-def prepare(path: str | Path, max_edge: int = MAX_EDGE):
+def prepare(source: str | Path | bytes, max_edge: int = MAX_EDGE):
     """Decode and downscale to `max_edge` on the long side.
 
     draft() lets the JPEG decoder downscale while decoding, which is far cheaper than
@@ -87,7 +88,8 @@ def prepare(path: str | Path, max_edge: int = MAX_EDGE):
     """
     import numpy as np
     from PIL import Image
-    im = Image.open(path)
+    stream = io.BytesIO(source) if isinstance(source, bytes) else source
+    im = Image.open(stream)
     try:
         im.draft("RGB", (max_edge, max_edge))
     except Exception:
@@ -110,7 +112,16 @@ def read(path: str | Path, panel: str = "FRONT", min_conf: float = 0.0,
     Absolute millimetre checks do not use these boxes; they need a scale reference in the
     frame, which none of these photographs has.
     """
-    frame = prepare(path, max_edge)
+    return _recognise(prepare(path, max_edge), panel, min_conf)
+
+
+def read_bytes(data: bytes, panel: str = "FRONT", min_conf: float = 0.0,
+               max_edge: int = MAX_EDGE) -> list[Token]:
+    """Recognise bytes fetched from immutable object storage without a temporary file."""
+    return _recognise(prepare(data, max_edge), panel, min_conf)
+
+
+def _recognise(frame, panel: str, min_conf: float) -> list[Token]:
     result, _ = _engine()(frame)
     toks: list[Token] = []
     for box, text, score in (result or []):

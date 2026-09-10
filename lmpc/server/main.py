@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from .api import errors, health, scans
 from .config import Settings
 from .svc.object_store import open_object_store
+from .svc.pipeline import Pipeline
 from .svc.scan_store import open_store
 
 
@@ -18,7 +19,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     errors.install(app)
     app.include_router(health.router)
     app.include_router(scans.router)
-    health.boot(s.rulepack_path)          # fail-fast before the first request
+    pack = health.boot(s.rulepack_path)   # fail-fast before the first request
+    app.state.pipeline = Pipeline(
+        app.state.scan_store, app.state.object_store, pack, s.ocr_max_edge)
     return app
 
 

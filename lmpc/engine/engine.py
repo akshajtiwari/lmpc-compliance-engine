@@ -93,7 +93,7 @@ def _not_required(cond: dict, scan: Scan) -> bool:
     return _cond(cond, scan)
 
 
-def run(pack: dict, scan: Scan) -> dict:
+def run(pack: dict, scan: Scan, fields=None) -> dict:
     fired = run_gates(pack, scan)
     stop = next((g for g in fired if g["effect"] in
                  ("ALL_RULES_NOT_APPLICABLE", "CHAPTER_II_NOT_APPLICABLE")), None)
@@ -108,7 +108,8 @@ def run(pack: dict, scan: Scan) -> dict:
                           citation=stop["citation"]) for c in pack["checks"]]
         return _summarise(pack, scan, results, fired, {})
 
-    fields = extract(scan, FIELD_KINDS)
+    if fields is None:
+        fields = extract(scan, FIELD_KINDS)
     results = []
     for c in pack["checks"]:
         if not in_force(c, scan.captured_at):
@@ -186,7 +187,7 @@ def _summarise(pack, scan, results, fired, fields) -> dict:
         "gates_fired": [g["id"] for g in fired],
         "results": results,
         "fields": {k: (v.text if v else None) for k, v in fields.items()},
-        "rulepack": {"version": pack["version"], "sha256": pack["sha256"][:16],
+        "rulepack": {"version": pack["version"], "sha256": pack["sha256"],
                      "current_to": pack["currency"]["newest_instrument"]},
         "disclosures": [d["text"] for d in pack["currency"]["acknowledged_gaps"]],
     }

@@ -16,6 +16,7 @@ from ..config import Settings
 
 class ObjectStore(Protocol):
     def put_immutable(self, key: str, data: bytes, media_type: str, sha256: str) -> None: ...
+    def read(self, key: str) -> bytes: ...
 
 
 def open_object_store(settings: Settings) -> ObjectStore:
@@ -93,6 +94,10 @@ class S3ObjectStore:
             head = self.client.head_object(Bucket=self.bucket, Key=key)
             if head.get("Metadata", {}).get("sha256") != sha256:
                 raise RuntimeError(f"immutable object collision at {key}") from exc
+
+    def read(self, key: str) -> bytes:
+        response = self.client.get_object(Bucket=self.bucket, Key=key)
+        return response["Body"].read()
 
 
 def _verify_digest(data: bytes, expected: str) -> None:

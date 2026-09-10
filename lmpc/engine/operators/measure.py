@@ -158,7 +158,7 @@ def table_lookup(spec, scan: Scan, fields) -> Result:
     ev = dict(pdp_area_cm2=round(area, 1), measured_mm=round(measured, 2),
               uncertainty_mm=round(unc, 2), required_mm=required,
               band=band["band_as_printed"], molded=scan.is_molded,
-              source=p.get("source_instrument"))
+              source=p.get("source_instrument"), law_version=ver["effective_from"])
     if abs(measured - required) <= unc:
         return r(spec, Verdict.INDETERMINATE,
                  f"measured {measured:.2f} +/- {unc:.2f} mm straddles the {required} mm "

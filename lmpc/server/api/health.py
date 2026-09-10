@@ -8,9 +8,10 @@ router = APIRouter(tags=["ops"])
 _state: dict = {}
 
 
-def boot(rulepack_path: str) -> None:
+def boot(rulepack_path: str) -> dict:
     """Fail-fast: a corrupt or absent rulepack is a start-up failure, not a 500 later."""
     _state["rulepack"] = rulepack.load(rulepack_path)
+    return _state["rulepack"]
 
 
 @router.get("/healthz")
