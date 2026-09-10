@@ -71,6 +71,62 @@ def score(tok: Token, kind: str, scan: Scan) -> tuple[float, dict]:
     return sum(f.values()), f
 
 
+PARSE = {"mrp": lambda x: normalize.money(x, require_currency=False),
+         "net_quantity": normalize.quantity,
+         "mfg_date": normalize.month_year}
+
+
+def _below_or_beside(a: Token, b: Token) -> bool:
+    """Is `b` the continuation of `a`: the value to the right on the same baseline, or
+    the line immediately beneath it? Geometry only — the pair is judged by scoring."""
+    if a.panel != b.panel:
+        return False
+    if _same_row(a, b) and 0 <= b.x - (a.x + a.w) <= 6 * a.h:
+        return True
+    overlap = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
+    return 0 <= b.y - (a.y + a.h) <= 3 * a.h and overlap >= 0.3 * min(a.w, b.w)
+
+
+def _same_row(a: Token, b: Token) -> bool:
+    return min(a.y + a.h, b.y + b.h) - max(a.y, b.y) > 0.3 * min(a.h, b.h)
+
+
+def _rescued(tok: Token, pool: list[Token], kind: str, scan: Scan) -> Field | None:
+    """Complete an anchor that printed without its value (layout.py's promise).
+
+    "Net Qty." alone is an anchor with no number; the number usually sits beside or
+    beneath it as its own region. The merged candidate is a repair: it may LOCATE the
+    declaration, but every value judgement on it abstains (P9) — repaired=True is how.
+    """
+    parse = PARSE.get(kind)
+    if parse is None:
+        return None
+    best = None
+    for c in pool:
+        if c is tok or (c.src & tok.src) or not _below_or_beside(tok, c):
+            continue
+        merged = Token(text=f"{tok.text} {c.text}", x=min(tok.x, c.x),
+                       y=min(tok.y, c.y), w=max(tok.x + tok.w, c.x + c.w) - min(tok.x, c.x),
+                       h=max(tok.y + tok.h, c.y + c.h) - min(tok.y, c.y),
+                       conf=min(tok.conf, c.conf), panel=tok.panel,
+                       cap_height_px=tok.cap_height_px, src=tok.src | c.src,
+                       repaired=True)
+        if not parse(merged.text):
+            continue
+        s, feats = score(merged, kind, scan)
+        if best is None or s > best[0][0]:
+            best = ((s, feats), merged)
+    if best is None:
+        return None
+    (s, feats), merged = best
+    fl = Field(kind=kind, text=merged.text, tokens=[merged], score=round(s, 1),
+               margin=0.0)
+    fl.normalized = parse(merged.text) or {}
+    fl.normalized["_features"] = {k: round(v, 1) for k, v in feats.items() if v}
+    fl.normalized["_rescued"] = True
+    return fl
+
+
 class Fields(dict):
     """Winning candidates, plus why the losers lost. The diagnostics are what let a
     presence check tell 'this declaration is missing' apart from 'we could not read it'."""
@@ -104,11 +160,17 @@ def extract(scan: Scan, kinds: list[str]) -> Fields:
             continue
         fl = Field(kind=kind, text=tok.text, tokens=[tok], score=round(top, 1),
                    margin=round(margin, 1))
-        parse = {"mrp": lambda x: normalize.money(x, require_currency=False),
-                 "net_quantity": normalize.quantity,
-                 "mfg_date": normalize.month_year}.get(kind, lambda _: {})
+        parse = PARSE.get(kind, lambda _: {})
         fl.normalized = parse(tok.text) or {}
         fl.normalized["_features"] = {k: round(v, 1) for k, v in feats.items() if v}
+        # An anchor without a readable value is half a declaration; look beside and
+        # beneath it for the number before giving up on the field.
+        if not fl.normalized:
+            rescued = _rescued(tok, pool, kind, scan)
+            if rescued is not None:
+                rescued.margin = fl.margin
+                out.diag[kind]["rescued_from"] = rescued.text
+                fl = rescued
         out[kind] = fl
     return out
 
