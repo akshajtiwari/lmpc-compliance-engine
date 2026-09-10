@@ -1,0 +1,18 @@
+# Tool configuration only: dependencies live in requirements*.txt (README quick start).
+# The engine is stdlib-first by design; the server adds its own file when it lands.
+[tool.ruff]
+line-length = 96
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "SIM"]
+ignore = ["E501"]          # line length is enforced by review, ruff format handles the rest
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
