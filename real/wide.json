@@ -1,0 +1,1922 @@
+[
+  {
+    "code": "8901030971839",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "vaseline deep moisturizer",
+    "brands": "hul",
+    "declared_quantity": "400ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030971839_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901030971839_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8901030971839_nutrition.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901030971839_packaging.jpg"
+      }
+    ],
+    "sha256": "4cbf1e8c85caf9c7"
+  },
+  {
+    "code": "8901088076104",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Jasmine",
+    "brands": "Parachute",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901088076104_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901088076104_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8901088076104_nutrition.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901088076104_packaging.jpg"
+      }
+    ],
+    "sha256": "28a19e83fc8f757c"
+  },
+  {
+    "code": "8906014765961",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Almond Drops",
+    "brands": "Bajaj",
+    "declared_quantity": "95 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906014765961_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906014765961_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8906014765961_nutrition.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8906014765961_packaging.jpg"
+      }
+    ],
+    "sha256": "8ca5a8d598aa7bc6"
+  },
+  {
+    "code": "8904320992408",
+    "source": "PETFOOD",
+    "category": "PETFOOD",
+    "countries": "India",
+    "name": "Red Melano",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904320992408_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904320992408_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8904320992408_nutrition.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8904320992408_packaging.jpg"
+      }
+    ],
+    "sha256": "b322de2616f36d95"
+  },
+  {
+    "code": "9102453113625",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "MUUCHSTAC Face wash",
+    "brands": "Muuchstac, Ocean",
+    "declared_quantity": "100ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/9102453113625_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/9102453113625_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/9102453113625_packaging.jpg"
+      }
+    ],
+    "sha256": "f39ca5a614f034e6"
+  },
+  {
+    "code": "8901138509231",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Lip Balm",
+    "brands": "himalaya",
+    "declared_quantity": "10g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901138509231_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901138509231_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901138509231_packaging.jpg"
+      }
+    ],
+    "sha256": "643e0a7b5cc8b6ac"
+  },
+  {
+    "code": "8901030869112",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, United States",
+    "name": "Ponds Body powders",
+    "brands": "Ponds",
+    "declared_quantity": "100g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030869112_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901030869112_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901030869112_packaging.jpg"
+      }
+    ],
+    "sha256": "a8fefab6ec4264b3"
+  },
+  {
+    "code": "89003978",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, United Kingdom",
+    "name": "Iodex",
+    "brands": "Iodex",
+    "declared_quantity": "40g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/89003978_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/89003978_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/89003978_packaging.jpg"
+      }
+    ],
+    "sha256": "df23a5a688095d5f"
+  },
+  {
+    "code": "8906005274137",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, Sri Lanka",
+    "name": "Moisturising Lotion",
+    "brands": "Cetaphil",
+    "declared_quantity": "100 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906005274137_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906005274137_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8906005274137_nutrition.jpg"
+      }
+    ],
+    "sha256": "d0e017fab4b0319a"
+  },
+  {
+    "code": "7611916153600",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "Frankrijk, India, Nederland",
+    "name": "Activerende douchegel active fresh",
+    "brands": "Weleda",
+    "declared_quantity": "200 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/7611916153600_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/7611916153600_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/7611916153600_packaging.jpg"
+      }
+    ],
+    "sha256": "1d41b60b7942a927"
+  },
+  {
+    "code": "8901396324584",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Dettol Liquid Handwash",
+    "brands": "Dettol",
+    "declared_quantity": "200 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901396324584_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901396324584_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901396324584_packaging.jpg"
+      }
+    ],
+    "sha256": "b17234953b6ddb9d"
+  },
+  {
+    "code": "8901396368205",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Dettol Icy Cool Body Wash",
+    "brands": "Dettol",
+    "declared_quantity": "250ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901396368205_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901396368205_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901396368205_packaging.jpg"
+      }
+    ],
+    "sha256": "b65d5c91feb7db1d"
+  },
+  {
+    "code": "8908016593641",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8908016593641_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8908016593641_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8908016593641_packaging.jpg"
+      }
+    ],
+    "sha256": "390767e94ba00c5a"
+  },
+  {
+    "code": "8901030766947",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Pears Pure and Gentle Bathing Bar",
+    "brands": "Hindustan Unilever Limited",
+    "declared_quantity": "100 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030766947_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901030766947_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901030766947_packaging.jpg"
+      }
+    ],
+    "sha256": "5a0f9e6cb9c0d008"
+  },
+  {
+    "code": "8901571010844",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Sensodyne Repair & Protect",
+    "brands": "Sensodyne",
+    "declared_quantity": "100g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901571010844_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901571010844_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901571010844_packaging.jpg"
+      }
+    ],
+    "sha256": "1b15f500ff9a30d5"
+  },
+  {
+    "code": "8904352003974",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Sun Shield Sandalwood",
+    "brands": "Biotique",
+    "declared_quantity": "190ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904352003974_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904352003974_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8904352003974_nutrition.jpg"
+      }
+    ],
+    "sha256": "a36c84d86d241639"
+  },
+  {
+    "code": "8901030957048",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Gluta hya dewy radicance",
+    "brands": "Vaseline",
+    "declared_quantity": "200ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030957048_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901030957048_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901030957048_packaging.jpg"
+      }
+    ],
+    "sha256": "50b3ef992381f588"
+  },
+  {
+    "code": "8904352003974",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Sun Shield Sandalwood",
+    "brands": "Biotique",
+    "declared_quantity": "190ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904352003974_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904352003974_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8904352003974_nutrition.jpg"
+      }
+    ],
+    "sha256": "a36c84d86d241639"
+  },
+  {
+    "code": "4987176191359",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India, United Arab Emirates",
+    "name": "Inhaler",
+    "brands": "Vicks",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/4987176191359_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/4987176191359_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/4987176191359_packaging.jpg"
+      }
+    ],
+    "sha256": "968d7951abbe3b1b"
+  },
+  {
+    "code": "8901396152002",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Power Plus 10x Max Clean",
+    "brands": "Harpic",
+    "declared_quantity": "200 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901396152002_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901396152002_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8901396152002_nutrition.jpg"
+      }
+    ],
+    "sha256": "710ec893e7e63bf2"
+  },
+  {
+    "code": "0841710146745",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/0841710146745_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/0841710146745_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/0841710146745_nutrition.jpg"
+      }
+    ],
+    "sha256": "e1481dc8bd721bad"
+  },
+  {
+    "code": "8906034510015",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Kanthil",
+    "brands": "Kushal",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906034510015_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906034510015_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8906034510015_nutrition.jpg"
+      }
+    ],
+    "sha256": "f486fdb3fa26df36"
+  },
+  {
+    "code": "8906034510015",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Kanthil",
+    "brands": "Kushal",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906034510015_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906034510015_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8906034510015_nutrition.jpg"
+      }
+    ],
+    "sha256": "f486fdb3fa26df36"
+  },
+  {
+    "code": "8902167000065",
+    "source": "PETFOOD",
+    "category": "PETFOOD",
+    "countries": "France, Inde",
+    "name": "Chunky chat masala - Préparation pour assaisonner les fruits, les plats salés et les salades",
+    "brands": "MDH",
+    "declared_quantity": "100 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8902167000065_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8902167000065_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8902167000065_nutrition.jpg"
+      }
+    ],
+    "sha256": "8d086bc83198e8c6"
+  },
+  {
+    "code": "8906043149145",
+    "source": "PETFOOD",
+    "category": "PETFOOD",
+    "countries": "India",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906043149145_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906043149145_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8906043149145_nutrition.jpg"
+      }
+    ],
+    "sha256": "6986134f08e8808b"
+  },
+  {
+    "code": "8853301200882",
+    "source": "PETFOOD",
+    "category": "PETFOOD",
+    "countries": "India",
+    "name": "Meat Jerky",
+    "brands": "Pedigree",
+    "declared_quantity": "80 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8853301200882_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8853301200882_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8853301200882_nutrition.jpg"
+      }
+    ],
+    "sha256": "85c0dffefa3d6423"
+  },
+  {
+    "code": "8906002481996",
+    "source": "PETFOOD",
+    "category": "PETFOOD",
+    "countries": "India",
+    "name": "pedigree",
+    "brands": "pedigree",
+    "declared_quantity": "100",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906002481996_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906002481996_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/8906002481996_nutrition.jpg"
+      }
+    ],
+    "sha256": "a5bdaea1f315dcfd"
+  },
+  {
+    "code": "11302988",
+    "source": "PETFOOD",
+    "category": "PETFOOD",
+    "countries": "India",
+    "name": "Loading…",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/11302988_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/11302988_ingredients.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/11302988_nutrition.jpg"
+      }
+    ],
+    "sha256": "0a81a3e07f85a017"
+  },
+  {
+    "code": "8904109450327",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Dant Kanti Natural Toothpaste",
+    "brands": "Patanjali",
+    "declared_quantity": "200g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904109450327_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904109450327_ingredients.jpg"
+      }
+    ],
+    "sha256": "77b1557730651b13"
+  },
+  {
+    "code": "0769915195606",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, Morocco",
+    "name": "The Ordinary AHA 30% + BHA 2% Peeling Solution",
+    "brands": "The Ordinary",
+    "declared_quantity": "30 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/0769915195606_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/0769915195606_ingredients.jpg"
+      }
+    ],
+    "sha256": "e39c3f16f1568a95"
+  },
+  {
+    "code": "3282779035576",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "Austria, India, Morocco",
+    "name": "Eau thermale",
+    "brands": "Avene",
+    "declared_quantity": "50 mL",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/3282779035576_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/3282779035576_ingredients.jpg"
+      }
+    ],
+    "sha256": "9b18616463a2e266"
+  },
+  {
+    "code": "8906005274106",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, Sri Lanka",
+    "name": "Gentle Skin Cleanser",
+    "brands": "Cetaphil",
+    "declared_quantity": "125ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906005274106_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906005274106_ingredients.jpg"
+      }
+    ],
+    "sha256": "77cdc93370e94cd2"
+  },
+  {
+    "code": "8904109400643",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Saundarya aloe vera gel",
+    "brands": "Patanjali",
+    "declared_quantity": "150ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904109400643_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904109400643_ingredients.jpg"
+      }
+    ],
+    "sha256": "a7008a6173bbbe98"
+  },
+  {
+    "code": "8901571006854",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Eno, fruit salt lemon flavour",
+    "brands": "ENO, GSK",
+    "declared_quantity": "5 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901571006854_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901571006854_ingredients.jpg"
+      }
+    ],
+    "sha256": "2eacf4b70640c5cd"
+  },
+  {
+    "code": "8901287100013",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Mysore Sandal Soap",
+    "brands": "Karnataka Soaps & Detergents Ltd.",
+    "declared_quantity": "75g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901287100013_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901287100013_ingredients.jpg"
+      }
+    ],
+    "sha256": "2e8a82829d73fd5f"
+  },
+  {
+    "code": "8901138500719",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, United Kingdom",
+    "name": "",
+    "brands": "HIMALAYA",
+    "declared_quantity": "60tab",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901138500719_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901138500719_ingredients.jpg"
+      }
+    ],
+    "sha256": "3c879ea98bd21066"
+  },
+  {
+    "code": "8901138500719",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, United Kingdom",
+    "name": "",
+    "brands": "HIMALAYA",
+    "declared_quantity": "60tab",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901138500719_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901138500719_ingredients.jpg"
+      }
+    ],
+    "sha256": "3c879ea98bd21066"
+  },
+  {
+    "code": "8901138511814",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Ponds",
+    "brands": "",
+    "declared_quantity": "1",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901138511814_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901138511814_ingredients.jpg"
+      }
+    ],
+    "sha256": "028d992f5a68e71a"
+  },
+  {
+    "code": "8906005274069",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Cetaphil Gentle Skin Cleanser",
+    "brands": "Cetaphil, Galderma",
+    "declared_quantity": "250 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906005274069_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8906005274069_ingredients.jpg"
+      }
+    ],
+    "sha256": "400ae518fda14c5d"
+  },
+  {
+    "code": "8901030875212",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030875212_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901030875212_ingredients.jpg"
+      }
+    ],
+    "sha256": "386c8b00415d6cd0"
+  },
+  {
+    "code": "8901396323372",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Dettol Liquid Handwash",
+    "brands": "Dettol",
+    "declared_quantity": "200ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901396323372_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901396323372_ingredients.jpg"
+      }
+    ],
+    "sha256": "dbc90730b4ff5853"
+  },
+  {
+    "code": "8909106025196",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India, United States",
+    "name": "",
+    "brands": "Pond's",
+    "declared_quantity": "18g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8909106025196_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8909106025196_ingredients.jpg"
+      }
+    ],
+    "sha256": "7fba725028f6671f"
+  },
+  {
+    "code": "8904463100135",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "MICRONISED CREATINE MONOHYDRATE",
+    "brands": "WELLCORE",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904463100135_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904463100135_ingredients.jpg"
+      }
+    ],
+    "sha256": "54b9765c7db0a52d"
+  },
+  {
+    "code": "8901248154116",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Boro Plus Organic Aloe Vera Gel",
+    "brands": "Boro Plus",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901248154116_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901248154116_ingredients.jpg"
+      }
+    ],
+    "sha256": "736bc65f24c1ba2d"
+  },
+  {
+    "code": "8901089010763",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "SevenSeas Original Cod-liver Oil Capsules",
+    "brands": "P&G, SevenSeas",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901089010763_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901089010763_ingredients.jpg"
+      }
+    ],
+    "sha256": "1851b74c9ee31f9c"
+  },
+  {
+    "code": "8901030916250",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Vaseline",
+    "brands": "Unilever",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030916250_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901030916250_ingredients.jpg"
+      }
+    ],
+    "sha256": "afbd2a3dffb0d132"
+  },
+  {
+    "code": "9220079597602",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "HERBAL HAIR TONIC",
+    "brands": "KESH VARDHAK PREMIUM",
+    "declared_quantity": "100 ML",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/9220079597602_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/9220079597602_nutrition.jpg"
+      }
+    ],
+    "sha256": "385600ce1c7f9bcb"
+  },
+  {
+    "code": "8901277015327",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Park Avenue Signature Collection Neo",
+    "brands": "Park Avenue, Park Avenue is sold by Godrej Consumer Products Ltd.",
+    "declared_quantity": "220ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901277015327_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901277015327_ingredients.jpg"
+      }
+    ],
+    "sha256": "e8215af0be39e753"
+  },
+  {
+    "code": "8809624507009",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Mirabelle sheet mask",
+    "brands": "",
+    "declared_quantity": "25ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8809624507009_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8809624507009_ingredients.jpg"
+      }
+    ],
+    "sha256": "faa152fa996e259d"
+  },
+  {
+    "code": "8904109498923",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Patanjali saundarya alovera gel",
+    "brands": "patanjali",
+    "declared_quantity": "150gm",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904109498923_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904109498923_ingredients.jpg"
+      }
+    ],
+    "sha256": "6ce323dca531d5ab"
+  },
+  {
+    "code": "8904417305258",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Mamaearth  Vitamin C Daily Glow Sunscreen",
+    "brands": "Mamaearth",
+    "declared_quantity": "50g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904417305258_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904417305258_ingredients.jpg"
+      }
+    ],
+    "sha256": "c0b32d490c3178a5"
+  },
+  {
+    "code": "6281006606104",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Essential Even Tone Glutathione Serum Moisturizer Lotion Flawless Glow",
+    "brands": "Vaseline",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/6281006606104_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/6281006606104_ingredients.jpg"
+      }
+    ],
+    "sha256": "1259d943e022af19"
+  },
+  {
+    "code": "6281006606104",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Essential Even Tone Glutathione Serum Moisturizer Lotion Flawless Glow",
+    "brands": "Vaseline",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/6281006606104_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/6281006606104_ingredients.jpg"
+      }
+    ],
+    "sha256": "1259d943e022af19"
+  },
+  {
+    "code": "9220079597602",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "HERBAL HAIR TONIC",
+    "brands": "KESH VARDHAK PREMIUM",
+    "declared_quantity": "100 ML",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/9220079597602_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "nutrition",
+        "path": "real/wide/9220079597602_nutrition.jpg"
+      }
+    ],
+    "sha256": "385600ce1c7f9bcb"
+  },
+  {
+    "code": "8904417305258",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Mamaearth  Vitamin C Daily Glow Sunscreen",
+    "brands": "Mamaearth",
+    "declared_quantity": "50g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904417305258_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904417305258_ingredients.jpg"
+      }
+    ],
+    "sha256": "c0b32d490c3178a5"
+  },
+  {
+    "code": "8809624507009",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Mirabelle sheet mask",
+    "brands": "",
+    "declared_quantity": "25ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8809624507009_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8809624507009_ingredients.jpg"
+      }
+    ],
+    "sha256": "faa152fa996e259d"
+  },
+  {
+    "code": "8904109498923",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Patanjali saundarya alovera gel",
+    "brands": "patanjali",
+    "declared_quantity": "150gm",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904109498923_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904109498923_ingredients.jpg"
+      }
+    ],
+    "sha256": "6ce323dca531d5ab"
+  },
+  {
+    "code": "8901277015327",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Park Avenue Signature Collection Neo",
+    "brands": "Park Avenue, Park Avenue is sold by Godrej Consumer Products Ltd.",
+    "declared_quantity": "220ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901277015327_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901277015327_ingredients.jpg"
+      }
+    ],
+    "sha256": "e8215af0be39e753"
+  },
+  {
+    "code": "8901248126373",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Boro plus body lotion",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901248126373_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901248126373_ingredients.jpg"
+      }
+    ],
+    "sha256": "c3d16ca8349dacd7"
+  },
+  {
+    "code": "8710103961574",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "",
+    "brands": "Philips",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8710103961574_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8710103961574_packaging.jpg"
+      }
+    ],
+    "sha256": "1a5b6d4a12e6b83f"
+  },
+  {
+    "code": "8901526005208",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Garnier Skin Naturals Vitamin C Face Wash",
+    "brands": "Garnier",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901526005208_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901526005208_ingredients.jpg"
+      }
+    ],
+    "sha256": "3f5588bdedd5d964"
+  },
+  {
+    "code": "8901248126373",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Boro plus body lotion",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901248126373_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901248126373_ingredients.jpg"
+      }
+    ],
+    "sha256": "c3d16ca8349dacd7"
+  },
+  {
+    "code": "8901023000034",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Cinthol Original Deodorant and Complexion Soap",
+    "brands": "Godrej Consumer Products Limited",
+    "declared_quantity": "100 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901023000034_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901023000034_ingredients.jpg"
+      }
+    ],
+    "sha256": "7004ab5b492588ef"
+  },
+  {
+    "code": "8901396350200",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "DETTOL 125ML",
+    "brands": "RECKITT",
+    "declared_quantity": "125ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901396350200_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901396350200_packaging.jpg"
+      }
+    ],
+    "sha256": "bf1a77be50232f1d"
+  },
+  {
+    "code": "8901526005208",
+    "source": "COSMETIC",
+    "category": "COSMETIC",
+    "countries": "India",
+    "name": "Garnier Skin Naturals Vitamin C Face Wash",
+    "brands": "Garnier",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901526005208_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901526005208_ingredients.jpg"
+      }
+    ],
+    "sha256": "3f5588bdedd5d964"
+  },
+  {
+    "code": "4987176191205",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Vicks Vaporub",
+    "brands": "Vicks",
+    "declared_quantity": "25 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/4987176191205_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/4987176191205_packaging.jpg"
+      }
+    ],
+    "sha256": "15627970c34af7f6"
+  },
+  {
+    "code": "8901396354604",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "DETTOL 550ML",
+    "brands": "RECKITT",
+    "declared_quantity": "550g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901396354604_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901396354604_ingredients.jpg"
+      }
+    ],
+    "sha256": "0d0ea2727e423b0e"
+  },
+  {
+    "code": "8901287100518",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Mysore Sandal Soap",
+    "brands": "Karnataka Soaps & Detergents Ltd.",
+    "declared_quantity": "450 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901287100518_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901287100518_ingredients.jpg"
+      }
+    ],
+    "sha256": "297d6748c5686ee2"
+  },
+  {
+    "code": "8901177100505",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India, Qatar",
+    "name": "Moov Pain Relief Specialist Ointment",
+    "brands": "Moov, Reckitt Benckiser",
+    "declared_quantity": "50 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901177100505_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901177100505_ingredients.jpg"
+      }
+    ],
+    "sha256": "b98f2126ea8f6cbd"
+  },
+  {
+    "code": "8901399241024",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "GENTLE HAND WASH CLASSIC",
+    "brands": "SANTOOR",
+    "declared_quantity": "200 ml",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901399241024_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8901399241024_ingredients.jpg"
+      }
+    ],
+    "sha256": "2034f10782f69094"
+  },
+  {
+    "code": "8901030535697",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Maha Bar",
+    "brands": "Henkel, Hindustan Unilever Ltd. (HUL), Vim",
+    "declared_quantity": "110g + 45g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901030535697_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901030535697_packaging.jpg"
+      }
+    ],
+    "sha256": "aaf2d98b550a1208"
+  },
+  {
+    "code": "8904327600849",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India, United States",
+    "name": "Chocolate Peanut Butter (Crunchy)",
+    "brands": "MYFITNESS",
+    "declared_quantity": "2.5kg",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904327600849_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8904327600849_packaging.jpg"
+      }
+    ],
+    "sha256": "700cf269cf73b93f"
+  },
+  {
+    "code": "8909106026346",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Surf Excel Easy Wash Blue",
+    "brands": "Hindustan Unilever Limited (HUL), Surf Excel",
+    "declared_quantity": "500g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8909106026346_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8909106026346_packaging.jpg"
+      }
+    ],
+    "sha256": "88c808a3f5f284ae"
+  },
+  {
+    "code": "8901725018634",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India, United States",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901725018634_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901725018634_packaging.jpg"
+      }
+    ],
+    "sha256": "9007528c2738f9da"
+  },
+  {
+    "code": "8904327600849",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India, United States",
+    "name": "Chocolate Peanut Butter (Crunchy)",
+    "brands": "MYFITNESS",
+    "declared_quantity": "2.5kg",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904327600849_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8904327600849_packaging.jpg"
+      }
+    ],
+    "sha256": "700cf269cf73b93f"
+  },
+  {
+    "code": "8904091129478",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "candid clotrimazole dusting powder",
+    "brands": "candid",
+    "declared_quantity": "120g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8904091129478_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8904091129478_ingredients.jpg"
+      }
+    ],
+    "sha256": "ba8eacfa1def1102"
+  },
+  {
+    "code": "8901425076804",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Camlin White Glue",
+    "brands": "Camlin",
+    "declared_quantity": "45 g",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8901425076804_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8901425076804_packaging.jpg"
+      }
+    ],
+    "sha256": "e6f8247e241efebb"
+  },
+  {
+    "code": "8902442223295",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "Navneet Long Book",
+    "brands": "Navneet",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8902442223295_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "ingredients",
+        "path": "real/wide/8902442223295_ingredients.jpg"
+      }
+    ],
+    "sha256": "2b7b0fa0d48b3632"
+  },
+  {
+    "code": "8906021123112",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906021123112_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8906021123112_packaging.jpg"
+      }
+    ],
+    "sha256": "d6d3b340ae19a73d"
+  },
+  {
+    "code": "8906021123112",
+    "source": "GENERAL",
+    "category": "GENERIC",
+    "countries": "India",
+    "name": "",
+    "brands": "",
+    "declared_quantity": "",
+    "panels": [
+      {
+        "panel": "FRONT",
+        "kind": "front",
+        "path": "real/wide/8906021123112_front.jpg"
+      },
+      {
+        "panel": "BACK",
+        "kind": "packaging",
+        "path": "real/wide/8906021123112_packaging.jpg"
+      }
+    ],
+    "sha256": "d6d3b340ae19a73d"
+  }
+]
