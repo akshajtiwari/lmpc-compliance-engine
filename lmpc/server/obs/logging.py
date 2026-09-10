@@ -13,8 +13,11 @@ trace_id: ContextVar[str] = ContextVar("trace_id", default="")
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         row = {"ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
-               "level": record.levelname, "msg": record.getMessage(),
-               "trace_id": trace_id.get() or str(uuid.uuid4())[:8]}
+               "level": record.levelname, "service": "lmpc-api",
+               "trace_id": trace_id.get() or str(uuid.uuid4())[:8],
+               "scan_id": getattr(record, "scan_id", None),
+               "user_id": getattr(record, "user_id", None),
+               "msg": record.getMessage()}
         if record.exc_info:
             row["exc"] = record.exc_info[0].__name__
         return json.dumps(row)

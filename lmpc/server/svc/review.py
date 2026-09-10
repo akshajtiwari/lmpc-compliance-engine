@@ -8,6 +8,7 @@ from lmpc.engine import normalize
 from lmpc.engine.engine import FIELD_KINDS
 
 from ..api.errors import ApiError
+from ..obs import metrics
 from .review_db import ReviewDb, overall
 
 PACKAGE_SHAPES = {"RECTANGULAR", "CYLINDRICAL", "IRREGULAR"}
@@ -126,7 +127,9 @@ class ReviewService:
         if record.status == "FINALIZED":
             raise ApiError("E_SCAN_FINALIZED", "a finalized finding cannot be overridden")
         if self.db:
-            return self.db.override(scan_id, evaluation_id, outcome, cleaned, principal)
+            row = self.db.override(scan_id, evaluation_id, outcome, cleaned, principal)
+            metrics.inc("lmpc_override_total", check=row["check"])
+            return row
         target = next((row for row in record.evaluations
                        if row["id"] == evaluation_id), None)
         if target is None:
@@ -140,6 +143,7 @@ class ReviewService:
         record.evaluations.append(row)
         if row["batch"] == record.batch:
             record.overall = overall(record.latest_evaluations())
+        metrics.inc("lmpc_override_total", check=row["check"])
         return row
 
     def _writable(self, scan_id: str, principal):

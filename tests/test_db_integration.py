@@ -249,5 +249,5 @@ async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app)
             AuditLog.entity_id.in_([uuid.UUID(correction.json()["declaration"]["id"]),
                                     uuid.UUID(override.json()["evaluation"]["id"]),
                                     uuid.UUID(report.json()["report_id"])]))))
-        assert actions == {"DECLARATION_CORRECTED", "EVALUATION_OVERRIDDEN",
-                           "REPORT_FINALIZED"}
+        assert actions == {"DECLARATION_CORRECT", "EVALUATION_OVERRIDE",
+                           "REPORT_FINALIZE"}

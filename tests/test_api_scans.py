@@ -55,10 +55,17 @@ async def _post(app, client_uuid=None, image_data=None, media_type="image/jpeg",
 
 
 async def test_healthz_and_readyz(app):
-    assert (await _request(app, "GET", "/api/v1/healthz")).json() == {"status": "ok"}
+    health = await _request(app, "GET", "/api/v1/healthz",
+                            headers={"X-Request-ID": "contract-test-123"})
+    assert health.json() == {"status": "ok"}
+    assert health.headers["x-request-id"] == "contract-test-123"
     assert (await _request(app, "GET", "/api/v1/readyz")).json() == {"status": "ok"}
     version = (await _request(app, "GET", "/api/v1/version")).json()
     assert version["rulepack_sha256"] and version["current_to"] == "G.S.R. 418(E)"
+    metrics = await _request(app, "GET", "/api/v1/metrics")
+    assert metrics.status_code == 200
+    assert "lmpc_fail_without_coverage_total 0" in metrics.text
+    assert "lmpc_chain_incomplete 1" in metrics.text
 
 
 async def test_readyz_reports_a_failed_dependency(app):
@@ -73,6 +80,17 @@ async def test_readyz_reports_a_failed_dependency(app):
         "status": "not_ready",
         "checks": {"rulepack": True, "database": True, "object_store": False},
     }
+
+
+async def test_local_api_rate_limit_has_a_structured_429(tmp_path):
+    limited = create_app(Settings(storage_root=str(tmp_path), rate_limit_per_min=2))
+    first = await _request(limited, "GET", "/api/v1/version")
+    second = await _request(limited, "GET", "/api/v1/version")
+    blocked = await _request(limited, "GET", "/api/v1/version")
+    assert first.status_code == second.status_code == 200
+    assert first.headers["x-ratelimit-limit"] == "2"
+    assert blocked.status_code == 429 and int(blocked.headers["retry-after"]) >= 1
+    assert blocked.json()["error"]["code"] == "E_RATE_LIMITED"
 
 
 async def test_submit_scan_persists_hash_addressed_evidence(app):

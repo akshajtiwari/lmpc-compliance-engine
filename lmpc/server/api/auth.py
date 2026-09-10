@@ -31,7 +31,9 @@ async def current_principal(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> Principal:
     token = credentials.credentials if credentials else None
-    return request.app.state.auth.current(token)
+    principal = request.app.state.auth.current(token)
+    request.state.principal = principal
+    return principal
 
 
 def require(permission: str) -> Callable:

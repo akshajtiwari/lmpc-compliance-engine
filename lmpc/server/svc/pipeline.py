@@ -6,6 +6,7 @@ OCR run marks the scan failed and never fabricates a compliance finding.
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -14,6 +15,7 @@ from lmpc.engine.engine import FIELD_KINDS, run, run_gates
 from lmpc.engine.extract import extract
 from lmpc.engine.model import Field, Scan, Token
 
+from ..obs import metrics
 from .object_store import ObjectStore
 from .scan_service import ScanRecord
 
@@ -33,27 +35,36 @@ class Pipeline:
         self.corrections = corrections or (lambda _scan_id: [])
 
     def process(self, scan_id: str) -> ScanRecord:
+        started = time.perf_counter()
         rec = self.scans.start_processing(scan_id)
         try:
             scan = _engine_scan(rec, [])
             stop_effects = {"ALL_RULES_NOT_APPLICABLE", "CHAPTER_II_NOT_APPLICABLE"}
             if any(gate["effect"] in stop_effects for gate in run_gates(self.rulepack, scan)):
                 result = run(self.rulepack, scan)
-                return self.scans.complete_evaluation(
+                saved = self.scans.complete_evaluation(
                     scan_id, declarations=[], evaluations=_evaluations(result, self.rulepack),
                     overall=result["overall"], rulepack_version=self.rulepack["version"],
                     rulepack_sha256=self.rulepack["sha256"], max_edges={})
+                _record_metrics(saved)
+                return saved
             tokens = _listing_tokens(rec)
+            ocr_started = time.perf_counter()
             for image in rec.images:
                 data = self.objects.read(image.storage_key)
                 tokens.extend(self.reader(
                     data, panel=image.panel_label, min_conf=0.0, max_edge=self.max_edge))
+            metrics.observe_stage("ocr", time.perf_counter() - ocr_started)
             scan = _engine_scan(rec, tokens)
+            extraction_started = time.perf_counter()
             fields = extract(scan, FIELD_KINDS)
             corrected = {item["field"]: item for item in self.corrections(scan_id)}
             _apply_corrections(fields, corrected)
+            metrics.observe_stage("extraction", time.perf_counter() - extraction_started)
+            evaluation_started = time.perf_counter()
             result = run(self.rulepack, scan, fields)
-            return self.scans.complete_evaluation(
+            metrics.observe_stage("evaluation", time.perf_counter() - evaluation_started)
+            saved = self.scans.complete_evaluation(
                 scan_id, declarations=_declarations(fields, corrected),
                 evaluations=_evaluations(result, self.rulepack), overall=result["overall"],
                 rulepack_version=self.rulepack["version"],
@@ -61,9 +72,13 @@ class Pipeline:
                 max_edges={image.storage_key: min(
                     max(image.width_px, image.height_px), self.max_edge)
                     for image in rec.images})
+            _record_metrics(saved)
+            return saved
         except Exception as exc:
             self.scans.fail_processing(scan_id, f"{type(exc).__name__}: {exc}")
             raise
+        finally:
+            metrics.observe_stage("total", time.perf_counter() - started)
 
 
 def _engine_scan(rec: ScanRecord, tokens: list[Token]) -> Scan:
@@ -161,3 +176,10 @@ def _evaluations(result: dict, pack: dict) -> list[dict[str, Any]]:
             "field": spec.get("field") or params.get("field"),
         })
     return out
+
+
+def _record_metrics(record: ScanRecord) -> None:
+    for field in record.latest_declarations():
+        metrics.inc("lmpc_field_extracted_total", field=field["field"])
+    for result in record.latest_evaluations():
+        metrics.inc_verdict(result["outcome"], record.coverage_asserted, result["check"])

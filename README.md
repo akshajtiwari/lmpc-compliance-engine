@@ -58,8 +58,10 @@ outbox in IndexedDB, so an interrupted or offline upload can be retried with the
 client UUID. The local API also exposes jurisdiction-scoped scan search, append-only
 declaration corrections, evaluation-batch history and reasoned verdict overrides. A
 correction is reused by later deterministic evaluation batches; the OCR original is never
-deleted. Run the PostgreSQL round-trip with `make test-db`; run all deterministic suites
-with `make test`; stop PostgreSQL with `make db-down` (the named volume keeps its data).
+deleted. `/metrics` exposes local Prometheus counters, including the zero-tolerance
+FAIL-without-coverage guard; API responses carry correlation IDs and rate-limit headers.
+Run the PostgreSQL round-trip with `make test-db`; run all deterministic suites with
+`make test`; stop PostgreSQL with `make db-down` (the named volume keeps its data).
 
 The example environment enables the local-password path with
 `reviewer@local.invalid` and the password shown in `.env.example`. Change that password

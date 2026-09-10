@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse, Response
 from ..svc.evidence import validate_image
 from ..svc.scan_service import validate, validate_metadata
 from ..svc.auth import Principal
+from ..obs import metrics
 from .auth import require
 from .errors import ApiError
 
@@ -66,6 +67,12 @@ async def create_scan(
         coverage_asserted=coverage_asserted, panels=panels, images=evidence,
         metadata=metadata, officer_id=principal.id,
         jurisdiction_id=principal.jurisdiction_id)
+    if created:
+        metrics.inc("lmpc_scan_submitted_total")
+        request.app.state.auth.audit_action(
+            principal, "scan", rec.id, "SCAN_CREATE",
+            {"client_uuid": rec.client_uuid, "category": rec.category,
+             "mode": rec.mode})
     # A repeated client_uuid is 200 with the existing scan — never a duplicate.
     return JSONResponse(_envelope(rec, created), status_code=202 if created else 200)
 

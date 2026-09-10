@@ -105,7 +105,7 @@ class ReviewDb:
             session.flush()
             row.source_token_ids = [f"correction:{row.id}"]
             session.add(_audit(principal.id, "declaration", row.id,
-                               "DECLARATION_CORRECTED",
+                               "DECLARATION_CORRECT",
                                {"field": field, "original_id": (str(original.id)
                                 if original else None), "text": text}))
             session.commit()
@@ -178,7 +178,7 @@ class ReviewDb:
                         RuleEvaluation.id)).all()
                 scan.overall = overall([evaluation_dict(item) for item in rows])
             session.add(_audit(principal.id, "rule_evaluation", row.id,
-                               "EVALUATION_OVERRIDDEN", {
+                               "EVALUATION_OVERRIDE", {
                                    "original_id": str(root_id), "from": target.outcome,
                                    "to": outcome, "reason": reason}))
             session.commit()

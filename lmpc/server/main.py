@@ -1,10 +1,13 @@
 """Application factory. Start-up refuses to serve when the rulepack cannot be proven
 intact — a service that cannot vouch for its law must not issue findings."""
 from __future__ import annotations
+import time
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from .api import auth, dashboard, errors, health, reports, review, scans
 from .config import Settings
@@ -15,11 +18,58 @@ from .svc.pipeline import Pipeline
 from .svc.reporting import ReportService
 from .svc.review import ReviewService
 from .svc.scan_store import open_store
+from .svc.rate_limit import RateLimiter
+from .obs.logging import setup as setup_logging, trace_id
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     s = settings or Settings.from_env()
     app = FastAPI(title="LMPC Compliance API", version="1.0.0", root_path="/api/v1")
+    log = setup_logging(s.log_level)
+    limiter = RateLimiter(s.rate_limit_per_min)
+
+    @app.middleware("http")
+    async def local_rate_limit(request, call_next):
+        path = request.url.path
+        exempt = path.endswith(("/healthz", "/readyz", "/metrics"))
+        if "/api/v1/" in path and not exempt:
+            client = request.client.host if request.client else "unknown"
+            allowed, remaining, retry_after = limiter.take(client)
+            if not allowed:
+                return JSONResponse(
+                    {"error": {"code": "E_RATE_LIMITED",
+                               "message": "request rate limit exceeded", "details": []}},
+                    status_code=429, headers={"Retry-After": str(retry_after)})
+            response = await call_next(request)
+            response.headers["X-RateLimit-Limit"] = str(limiter.limit)
+            response.headers["X-RateLimit-Remaining"] = str(remaining)
+            return response
+        return await call_next(request)
+
+    @app.middleware("http")
+    async def request_observability(request, call_next):
+        incoming = request.headers.get("x-request-id", "")
+        request_id = (incoming if 8 <= len(incoming) <= 64
+                      and all(char.isalnum() or char in "-_" for char in incoming)
+                      else str(uuid.uuid4()))
+        context = trace_id.set(request_id)
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request_id
+            principal = getattr(request.state, "principal", None)
+            parts = request.url.path.split("/")
+            scan_id = parts[parts.index("scans") + 1] if "scans" in parts \
+                and len(parts) > parts.index("scans") + 1 else None
+            log.info(
+                f"request.complete {request.method} {request.url.path} "
+                f"status={response.status_code} duration_ms="
+                f"{(time.perf_counter() - started) * 1000:.1f}",
+                extra={"scan_id": scan_id,
+                       "user_id": principal.id if principal else None})
+            return response
+        finally:
+            trace_id.reset(context)
 
     @app.middleware("http")
     async def browser_security_headers(request, call_next):

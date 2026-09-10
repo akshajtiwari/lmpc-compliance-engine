@@ -152,3 +152,7 @@ async def test_dashboard_summarises_effective_scoped_findings(app):
     assert violations.json() and violations.json()[0]["count"] >= 1
     assert quality.json()["declarations_extracted"] >= 1
     assert quality.json()["false_accusation_guard_breaches"] == 0
+    metrics = await _request(app, "GET", "/api/v1/metrics")
+    assert "lmpc_scan_submitted_total" in metrics.text
+    assert 'lmpc_verdict_total{check="' in metrics.text
+    assert 'lmpc_pipeline_duration_seconds_count{stage="total"}' in metrics.text
