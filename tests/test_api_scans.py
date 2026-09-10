@@ -68,6 +68,15 @@ async def test_healthz_and_readyz(app):
     assert "lmpc_chain_incomplete 1" in metrics.text
 
 
+async def test_rule_explainer_is_available_for_every_review_card(app):
+    detail = await _request(app, "GET", "/api/v1/rules/LMPC-R6-1-E-MRP")
+    assert detail.status_code == 200
+    assert detail.json()["clause"] == "Rule 6(1)(e)"
+    assert "maximum retail price" in detail.json()["requirement"].lower()
+    missing = await _request(app, "GET", "/api/v1/rules/unknown")
+    assert missing.status_code == 404
+
+
 async def test_readyz_reports_a_failed_dependency(app):
     original = app.state.object_store.ready
     app.state.object_store.ready = lambda: False

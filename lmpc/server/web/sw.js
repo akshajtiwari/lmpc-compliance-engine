@@ -1,4 +1,4 @@
-const CACHE = "lmpc-field-v4";
+const CACHE = "lmpc-field-v5";
 const SHELL = ["/", "/app.css", "/app.js", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", event => {

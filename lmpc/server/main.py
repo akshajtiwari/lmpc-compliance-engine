@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from .api import auth, dashboard, errors, health, reports, review, scans
+from .api import auth, dashboard, errors, health, reports, review, rules, scans
 from .config import Settings
 from .svc.object_store import open_object_store
 from .svc.auth import AuthManager
@@ -101,6 +101,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(reports.router)
     app.include_router(review.router)
     app.include_router(dashboard.router)
+    app.include_router(rules.router)
     pack = health.boot(s.rulepack_path)   # fail-fast before the first request
     app.state.pipeline = Pipeline(
         app.state.scan_store, app.state.object_store, pack, s.ocr_max_edge,

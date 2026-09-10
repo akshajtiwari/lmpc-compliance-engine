@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, Response
 
 from ..svc.evidence import validate_image
 from ..svc.scan_service import validate, validate_metadata
+from ..svc.rule_help import decision_explanation
 from ..svc.auth import Principal
 from ..obs import metrics
 from .auth import require
@@ -140,6 +141,7 @@ def _envelope(rec, created: bool) -> dict:
                            "w_cm": rec.metadata.get("pdp_w_cm"),
                            "capacity_cm3": rec.metadata.get("capacity_cm3")},
             "overall": rec.overall,
+            "decision_explanation": decision_explanation(rec),
             "rulepack": ({"version": rec.rulepack_version,
                           "sha256": rec.rulepack_sha256}
                          if rec.rulepack_version else None),

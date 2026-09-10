@@ -122,10 +122,11 @@
           </label>
           <label>Buyer type
             <select name="buyer_type">
-              <option value="RETAIL">Retail</option>
-              <option value="INDUSTRIAL">Industrial</option>
-              <option value="INSTITUTIONAL">Institutional</option>
+              <option value="RETAIL">Retail consumer — run package checks</option>
+              <option value="INDUSTRIAL">Industrial buyer — normally out of scope</option>
+              <option value="INSTITUTIONAL">Institutional buyer — normally out of scope</option>
             </select>
+            <small>Choose Retail for products sold to individual consumers.</small>
           </label>
           <label>Package shape
             <select name="package_shape">
@@ -220,6 +221,7 @@
       <div class="review-layout">
         <div class="panel-review" id="panelReview"></div>
         <aside class="submit-card">
+          <div class="scope-preview" id="scopePreview" hidden></div>
           <div class="coverage-status" id="coverageStatus"></div>
           <dl id="reviewMetadata"></dl>
           <button class="button primary full" id="submitScanButton" type="button">Submit and evaluate</button>
@@ -275,7 +277,7 @@
       <form class="repository-filters" id="repositoryFilters">
         <label>Search<input id="repositoryQuery" type="search" placeholder="Client UUID, brand or manufacturer"></label>
         <label>Status<select id="repositoryStatus"><option value="">All statuses</option><option value="RECEIVED">Received</option><option value="EVALUATION_COMPLETE">Evaluation complete</option><option value="UNDER_REVIEW">Under review</option><option value="FINALIZED">Finalised</option><option value="FAILED">Failed</option></select></label>
-        <label>Overall<select id="repositoryOverall"><option value="">All outcomes</option><option value="NON_COMPLIANT">Non-compliant</option><option value="COMPLIANT">Compliant</option><option value="REVIEW_REQUIRED">Review required</option><option value="INCOMPLETE_EVIDENCE">Incomplete evidence</option><option value="SYSTEM_ERROR">System error</option></select></label>
+        <label>Overall<select id="repositoryOverall"><option value="">All outcomes</option><option value="NON_COMPLIANT">Non-compliant</option><option value="COMPLIANT">Compliant</option><option value="REVIEW_REQUIRED">Review required</option><option value="INCOMPLETE_EVIDENCE">Incomplete evidence</option><option value="OUT_OF_SCOPE">Out of scope</option><option value="SYSTEM_ERROR">System error</option></select></label>
         <button class="button primary" type="submit">Search records</button>
       </form>
       <p class="repository-note" id="repositoryNote" role="status"></p>
@@ -303,6 +305,25 @@
       <p class="dialog-note">The OCR original remains available. Reviewers with re-evaluation permission will immediately run a new batch.</p>
       <div class="dialog-actions"><button class="button secondary" data-close-dialog="correctionDialog" type="button">Cancel</button><button class="button primary" type="submit">Save correction</button></div>
     </form>
+  </dialog>
+
+  <dialog class="review-dialog" id="ruleInfoDialog" aria-labelledby="ruleInfoTitle">
+    <article class="rule-info">
+      <div class="rule-info-head">
+        <div><p class="eyebrow">RULE EXPLAINER</p><h2 id="ruleInfoTitle">Rule information</h2></div>
+        <button class="dialog-close" data-close-dialog="ruleInfoDialog" type="button" aria-label="Close rule information">×</button>
+      </div>
+      <p class="rule-info-clause" id="ruleInfoClause"></p>
+      <section class="result-specific"><strong id="ruleInfoOutcome"></strong><span id="ruleInfoReason"></span></section>
+      <dl class="rule-info-grid">
+        <div><dt>What the rule requires</dt><dd id="ruleInfoRequirement"></dd></div>
+        <div><dt>How the engine decides</dt><dd id="ruleInfoMethod"></dd></div>
+        <div><dt>Evidence needed</dt><dd id="ruleInfoEvidence"></dd></div>
+        <div><dt>Authority</dt><dd id="ruleInfoAuthority"></dd></div>
+      </dl>
+      <ul class="rule-limits" id="ruleInfoLimits"></ul>
+      <p class="dialog-note" id="ruleInfoNotice"></p>
+    </article>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

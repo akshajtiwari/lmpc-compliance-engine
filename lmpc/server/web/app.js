@@ -604,6 +604,10 @@ function renderReview() {
     renderCapture();
   }));
   const asserted = coverageAsserted();
+  const nonRetail = draft.buyer_type !== "RETAIL";
+  $("#scopePreview").hidden = !nonRetail;
+  $("#scopePreview").innerHTML = nonRetail ?
+    `<strong>Likely out of scope before OCR</strong><span>Buyer type is ${esc(titleCase(draft.buyer_type))}. Industrial and institutional packages are not evaluated as consumer-retail packages. Choose Retail in Details if this product is sold to individual consumers.</span>` : "";
   $("#coverageStatus").className = `coverage-status ${asserted ? "" : "warn"}`;
   $("#coverageStatus").innerHTML = asserted ?
     "<strong>✓ Full required coverage confirmed</strong><span>The server may distinguish a proven absence from unreadable evidence.</span>" :
@@ -749,7 +753,9 @@ function renderResult(result) {
   const counts = resultCounts(result.evaluations || []);
   $("#rulepackChip").textContent = result.rulepack ? `${result.rulepack.version} · sha256 ${result.rulepack.sha256}` : "Rulepack unavailable";
   const statusText = titleCase(result.overall || result.status);
-  $("#resultSummary").innerHTML = `<section class="result-summary"><div><p class="eyebrow">EVALUATION COMPLETE</p><h1 id="resultTitle">${esc(statusText)}</h1><p>${result.evaluations?.length || 0} legal checks · captured ${esc(result.captured_at)} · coverage ${result.coverage_asserted ? "asserted" : "not asserted"}</p></div><div class="count-grid">${["FAIL", "REVIEW_REQUIRED", "INDETERMINATE", "PASS", "NOT_APPLICABLE", "SYSTEM_ERROR"].map(key => `<span>${esc(OUTCOMES[key][1])}<strong>${counts[key] || 0}</strong></span>`).join("")}</div></section>`;
+  const decision = result.decision_explanation;
+  const decisionCard = decision ? `<section class="decision-explanation" data-overall="${esc(result.overall)}"><div><strong>${esc(decision.heading)}</strong><span>${esc(decision.summary)}</span></div><p><b>What happened:</b> ${decision.ocr_ran ? "OCR ran and the rule engine evaluated the extracted evidence." : "Processing stopped before OCR; the uploaded image was not the cause."}</p><p><b>Next:</b> ${esc(decision.next_step)}</p></section>` : "";
+  $("#resultSummary").innerHTML = `<section class="result-summary"><div><p class="eyebrow">EVALUATION COMPLETE</p><h1 id="resultTitle">${esc(statusText)}</h1><p>${result.evaluations?.length || 0} legal checks · captured ${esc(result.captured_at)} · coverage ${result.coverage_asserted ? "asserted" : "not asserted"}</p></div><div class="count-grid">${["FAIL", "REVIEW_REQUIRED", "INDETERMINATE", "PASS", "NOT_APPLICABLE", "SYSTEM_ERROR"].map(key => `<span>${esc(OUTCOMES[key][1])}<strong>${counts[key] || 0}</strong></span>`).join("")}</div></section>${decisionCard}`;
   $("#evidenceTabs").innerHTML = (result.images || []).map(image => `<button type="button" data-panel="${esc(image.panel)}" class="${image.panel === selectedEvidence ? "active" : ""}">${esc(titleCase(image.panel))}</button>`).join("");
   $$('[data-panel]').forEach(button => button.addEventListener("click", () => selectEvidence(result, button.dataset.panel)));
   selectEvidence(result, selectedEvidence);
@@ -796,13 +802,43 @@ function renderVerdicts(evaluations) {
     const authority = [citation.gsr, citation.dated, citation.page ? `p. ${citation.page}` : ""].filter(Boolean).join(" · ");
     const provenance = item.is_override ? `<p class="override-provenance">Officer override · ${esc(item.override_reason)}</p>` : "";
     const action = hasPermission("evaluations:override") && currentResult?.status !== "FINALIZED" ? `<button class="review-action" data-override="${esc(item.id)}" type="button">Override verdict</button>` : "";
-    return `<details class="verdict-card" data-outcome="${esc(item.outcome)}"><summary><span class="verdict-icon" aria-hidden="true">${icon}</span><span><strong>${esc(item.clause || item.check)}</strong><small>${esc(item.reason)}</small></span><b class="verdict-outcome">${esc(label)}</b></summary><div class="verdict-detail"><dl><div><dt>Check</dt><dd>${esc(item.check)}</dd></div><div><dt>Authority</dt><dd>${esc(authority || "Citation attached in rulepack")}</dd></div><div><dt>Law version</dt><dd>${esc(item.law_version || "Current on capture date")}</dd></div><div><dt>Evidence</dt><dd><code>${esc(JSON.stringify(item.evidence || {}))}</code></dd></div></dl>${provenance}${action}</div></details>`;
+    return `<details class="verdict-card" data-outcome="${esc(item.outcome)}"><summary><span class="verdict-icon" aria-hidden="true">${icon}</span><span><strong>${esc(item.clause || item.check)}</strong><small>${esc(item.reason)}</small></span><b class="verdict-outcome">${esc(label)}</b><button class="info-button" data-rule-info="${esc(item.check)}" type="button" aria-label="Explain ${esc(item.clause || item.check)}">ⓘ Rule info</button></summary><div class="verdict-detail"><dl><div><dt>Check</dt><dd>${esc(item.check)}</dd></div><div><dt>Authority</dt><dd>${esc(authority || "Citation attached in rulepack")}</dd></div><div><dt>Law version</dt><dd>${esc(item.law_version || "Current on capture date")}</dd></div><div><dt>Evidence</dt><dd><code>${esc(JSON.stringify(item.evidence || {}))}</code></dd></div></dl>${provenance}${action}</div></details>`;
   }).join("") || '<div class="empty-state"><strong>No results in this group</strong><span>Choose another verdict filter.</span></div>';
+  $$('[data-rule-info]').forEach(button => button.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    const item = currentResult.evaluations.find(row => row.check === button.dataset.ruleInfo);
+    if (item) openRuleInfo(item);
+  }));
   $$('[data-override]').forEach(button => button.addEventListener("click", event => {
     event.preventDefault();
     const item = currentResult.evaluations.find(row => row.id === button.dataset.override);
     if (item) openOverride(item);
   }));
+}
+
+async function openRuleInfo(item) {
+  try {
+    const guide = await request(`/rules/${encodeURIComponent(item.check)}`);
+    const citation = guide.authority || {};
+    const authority = [citation.gsr, citation.dated, citation.page ? `p. ${citation.page}` : ""]
+      .filter(Boolean).join(" · ");
+    $("#ruleInfoTitle").textContent = guide.title;
+    $("#ruleInfoClause").textContent = `${guide.clause} · ${guide.check}`;
+    $("#ruleInfoOutcome").textContent = `${OUTCOMES[item.outcome]?.[1] || titleCase(item.outcome)} — what happened here`;
+    $("#ruleInfoReason").textContent = item.reason;
+    $("#ruleInfoRequirement").textContent = guide.requirement;
+    $("#ruleInfoMethod").textContent = guide.method;
+    $("#ruleInfoEvidence").textContent = guide.evidence_needed;
+    $("#ruleInfoAuthority").textContent = authority || "Citation attached in the approved rulepack";
+    $("#ruleInfoLimits").innerHTML = (guide.important_limits || [])
+      .map(limit => `<li>${esc(limit)}</li>`).join("");
+    $("#ruleInfoLimits").hidden = !(guide.important_limits || []).length;
+    $("#ruleInfoNotice").textContent = guide.non_normative_notice;
+    $("#ruleInfoDialog").showModal();
+  } catch (error) {
+    toast(`Rule information unavailable: ${error.message}`);
+  }
 }
 
 function renderDeclarations(declarations) {

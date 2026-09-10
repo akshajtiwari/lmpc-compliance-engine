@@ -47,3 +47,5 @@ def test_workbench_uses_server_scoped_repository_and_review_endpoints():
     assert "/evaluations/${encodeURIComponent" in script
     assert "/declarations/${encodeURIComponent" in script
     assert 'id="overrideDialog"' in page and 'id="correctionDialog"' in page
+    assert 'data-rule-info=' in script and 'request(`/rules/${encodeURIComponent' in script
+    assert 'id="ruleInfoDialog"' in page and 'id="scopePreview"' in page
