@@ -2,9 +2,9 @@
   "dataset": "wide",
   "products": 80,
   "found": {
-    "mrp": 10,
-    "net_quantity": 18,
+    "mrp": 8,
     "country_of_origin": 11,
+    "net_quantity": 14,
     "mfg_date": 13,
     "manufacturer_block": 11,
     "consumer_care": 8,
@@ -12,10 +12,10 @@
     "unit_sale_price": 3
   },
   "outcomes": {
-    "INDETERMINATE": 619,
-    "NOT_APPLICABLE": 926,
-    "PASS": 117,
-    "FAIL": 17,
+    "INDETERMINATE": 615,
+    "NOT_APPLICABLE": 939,
+    "PASS": 111,
+    "FAIL": 14,
     "REVIEW_REQUIRED": 1
   },
   "qty_hit": 9,
@@ -32,9 +32,9 @@
       "PASS": 4
     },
     "LMPC-R6-1-C-NET-QUANTITY": {
-      "INDETERMINATE": 58,
-      "PASS": 17,
-      "NOT_APPLICABLE": 5
+      "INDETERMINATE": 62,
+      "NOT_APPLICABLE": 5,
+      "PASS": 13
     },
     "LMPC-R6-1-D-MFG-DATE": {
       "INDETERMINATE": 63,
@@ -42,8 +42,8 @@
       "PASS": 12
     },
     "LMPC-R6-1-E-MRP": {
-      "INDETERMINATE": 65,
-      "PASS": 10,
+      "INDETERMINATE": 67,
+      "PASS": 8,
       "NOT_APPLICABLE": 5
     },
     "LMPC-R6-1-F-CONSUMER-CARE": {
@@ -56,19 +56,18 @@
       "PASS": 1
     },
     "LMPC-R6-1-E-MRP-FORM": {
-      "NOT_APPLICABLE": 70,
-      "INDETERMINATE": 6,
-      "FAIL": 4
+      "NOT_APPLICABLE": 72,
+      "INDETERMINATE": 3,
+      "FAIL": 5
     },
     "LMPC-R6-1-E-MRP-ROUNDING": {
-      "NOT_APPLICABLE": 74,
-      "INDETERMINATE": 6
+      "NOT_APPLICABLE": 77,
+      "INDETERMINATE": 3
     },
     "LMPC-R6-1-C-QTY-FORM": {
-      "NOT_APPLICABLE": 63,
-      "FAIL": 1,
+      "NOT_APPLICABLE": 67,
       "PASS": 12,
-      "INDETERMINATE": 4
+      "INDETERMINATE": 1
     },
     "LMPC-R6-1-D-DATE-FORM": {
       "NOT_APPLICABLE": 68,
@@ -91,9 +90,9 @@
       "NOT_APPLICABLE": 5
     },
     "LMPC-R8-CLEAR-SPACE": {
-      "NOT_APPLICABLE": 63,
-      "FAIL": 6,
-      "INDETERMINATE": 9,
+      "NOT_APPLICABLE": 67,
+      "INDETERMINATE": 8,
+      "FAIL": 3,
       "PASS": 2
     },
     "LMPC-R7-2-MIN-HEIGHT": {
