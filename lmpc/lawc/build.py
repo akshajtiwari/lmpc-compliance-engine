@@ -28,11 +28,16 @@ class BuildFailed(Exception):
     """A rulepack that cannot be proven current or correct must not be produced."""
 
 
-def ensure_corpus() -> None:
-    if not any(CORPUS.glob("*.pdf")):
-        script = Path(__file__).with_name("fetch.sh")
-        print(f"corpus empty — fetching via {script.name}", file=sys.stderr)
-        subprocess.run(["bash", str(script), str(CORPUS)], check=True, cwd=ROOT)
+def ensure_corpus(corpus: Path = CORPUS) -> None:
+    if any(corpus.glob("*.pdf")):
+        return
+    # An explicitly supplied corpus is a test/user input. Never replace it with a
+    # network download from the default corpus directory behind the caller's back.
+    if corpus.resolve() != CORPUS.resolve():
+        raise BuildFailed(f"gazette corpus is empty: {corpus}")
+    script = Path(__file__).with_name("fetch.sh")
+    print(f"corpus empty — fetching via {script.name}", file=sys.stderr)
+    subprocess.run(["bash", str(script), str(CORPUS)], check=True, cwd=ROOT)
 
 
 def governing_table(compiled: dict, node: str) -> tuple[dict, dict]:
@@ -88,7 +93,7 @@ def check_table_against_review(extracted: dict, confirmed: list[dict], node: str
 
 
 def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
-    ensure_corpus()
+    ensure_corpus(corpus)
     compiled = parse.main(corpus)
     chain = compiled["chain"]
     b = yaml.safe_load(BINDINGS.read_text())

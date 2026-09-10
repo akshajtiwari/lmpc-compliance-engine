@@ -52,7 +52,7 @@ def test_corrupt_pdf_does_not_crash_the_build(tmp_path):
 
 
 def test_empty_corpus_fails_loudly(tmp_path):
-    with pytest.raises(Exception):
+    with pytest.raises(B.BuildFailed, match="gazette corpus is empty"):
         B.build(corpus=tmp_path, out=tmp_path / "rp")
 
 
@@ -109,6 +109,7 @@ def test_parser_generalises_to_an_unseen_rule_family():
 
 # --------------------------------------------------------- the build must refuse ---
 
+@needs_corpus
 def test_build_refuses_an_unacknowledged_chain_hole(monkeypatch, tmp_path):
     real = parse.main
 
@@ -125,6 +126,7 @@ def test_build_refuses_an_unacknowledged_chain_hole(monkeypatch, tmp_path):
         B.build(out=tmp_path)
 
 
+@needs_corpus
 def test_build_refuses_a_disclosure_that_covers_a_bound_node(monkeypatch, tmp_path):
     """A gap may be disclosed only if it demonstrably touches nothing we check."""
     gaps = {"gaps": [{"gsr": "G.S.R. 910(E)", "dated": "2022-12-29",
@@ -138,6 +140,7 @@ def test_build_refuses_a_disclosure_that_covers_a_bound_node(monkeypatch, tmp_pa
         B.build(out=tmp_path)
 
 
+@needs_corpus
 def test_build_refuses_a_gap_with_no_named_reviewer(monkeypatch, tmp_path):
     gaps = {"gaps": [{"gsr": "G.S.R. 910(E)", "dated": "2022-12-29",
                       "referenced_by": "G.S.R. 60(E)", "decision": "ACCEPT_WITH_DISCLOSURE",
@@ -151,6 +154,7 @@ def test_build_refuses_a_gap_with_no_named_reviewer(monkeypatch, tmp_path):
 
 # ------------------------------------------------- reproducibility and integrity ---
 
+@needs_corpus
 def test_same_corpus_produces_the_same_hash(tmp_path):
     a = B.build(out=tmp_path / "a")
     b = B.build(out=tmp_path / "b")
@@ -159,6 +163,7 @@ def test_same_corpus_produces_the_same_hash(tmp_path):
         {k: v for k, v in a.items() if k == "sha256"})
 
 
+@needs_corpus
 def test_a_tampered_rulepack_is_rejected(tmp_path):
     B.build(out=tmp_path)
     p = tmp_path / "current.json"
@@ -169,6 +174,7 @@ def test_a_tampered_rulepack_is_rejected(tmp_path):
         B.load(tmp_path)
 
 
+@needs_corpus
 def test_tampering_with_a_threshold_is_rejected(tmp_path):
     B.build(out=tmp_path)
     p = tmp_path / "current.json"
