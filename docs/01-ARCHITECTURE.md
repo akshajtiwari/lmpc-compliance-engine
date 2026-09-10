@@ -6,7 +6,7 @@
 ---
 
 > **Status, 2026-09-07.** This architecture has been built and validated against live
-> data: 48 gazette instruments across 3 rule families, 140 real product photographs, 2,940
+> data: 48 gazette instruments across 3 rule families, 403 real product photographs, 2,700
 > rule evaluations. It survived — with 16 corrections, five of them architectural. The
 > implementation-level document is [`02-BUILD-SPEC.md`](02-BUILD-SPEC.md); the corrections
 > are catalogued in its Part M. Where this document and the spec disagree, **the spec is

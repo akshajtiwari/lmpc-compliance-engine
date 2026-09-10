@@ -24,7 +24,7 @@ proposal; it is a report on a partly-built system.
 | Reports, repository, auth | **Not built** |
 | Tests | 74 unit/integration · 22 scenarios (28 expectations) · 24 campaign checks · 140 real products |
 
-**Validated behaviour:** 0 false accusations in 2,940 real rule evaluations; 0 violations
+**Validated behaviour:** 0 false accusations in 2,700 real rule evaluations; 0 violations
 silently passed; 0 % false-FAIL rate on compliant labels across 0–40 % simulated character
 error.
 

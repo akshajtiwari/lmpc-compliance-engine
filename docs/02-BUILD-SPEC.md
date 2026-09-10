@@ -32,8 +32,8 @@ measured is marked `[ESTIMATE]`.
 | Source | Scale |
 |---|---|
 | Live gazette corpus | 48 instruments, 3 rule families, 2011–2026 |
-| Real product photographs | 140 products, 394 images, 4 categories |
-| Rule evaluations executed | 2,940 |
+| Real product photographs | 140 products, 403 images, 4 categories |
+| Rule evaluations executed | 2,700 |
 | Synthetic labels | rendered at 300 DPI with exact known glyph geometry |
 | Hardware | Ordinary laptop CPU. **Every timing here is a CPU figure** — an RTX 3050 was present but `onnxruntime` never actually used it (M.18) |
 
@@ -136,7 +136,7 @@ version, same verdicts.
 | SC-1 | Guided capture ≤ 90 s on a mid-range Android browser | 20 timed trials | Not built |
 | SC-2 | Verdict within 15 s p95 of upload completion | Server metric | On track (6.6 s measured pipeline) |
 | SC-3 | ≥ 90 % of mandatory declarations identified on correctly captured packages | Labelled eval set | **~50 % — gap** |
-| SC-4 | **Zero** `FAIL` without `coverage_asserted` | Alert metric | **0 / 2,940** |
+| SC-4 | **Zero** `FAIL` without `coverage_asserted` | Alert metric | **0 / 2,700** |
 | SC-5 | Every verdict cites clause, gazette page, rulepack hash | Automated assertion | Passing |
 | SC-6 | An 18-month-old report reproduces byte-identically | Manifest replay | Design complete |
 | SC-7 | Operates with the government source unreachable | Offline drill | Passing |
@@ -2451,7 +2451,7 @@ Beyond ordinary security, because outputs may be used in enforcement:
 | Unit + integration | `pytest -q` | Rulepack integrity, operators, temporal logic, adversarial fail-tests, spec/code and cross-document consistency | **74 passing** |
 | Synthetic stress | `python -m stress.run` | 22 scenarios / 28 expectations, noise sweep, sensitivity sweep | passing |
 | Validation campaign | `python -m stress.campaign` | 24 checks across ingestion, compilation, comparison | **24/24** |
-| Real world | `python -m stress.realworld food\|wide` | 140 real products, 394 photographs | passing |
+| Real world | `python -m stress.realworld food\|wide` | 140 real products, 403 photographs | passing |
 | Resolution | `python -m stress.resolution` | Time vs accuracy vs pixel budget | measured |
 | RBAC matrix | `pytest tests/test_rbac.py` | Every role × every endpoint | **to build** |
 | E2E | Playwright | Login → capture → review → finalise → download | **to build** |
@@ -2473,7 +2473,7 @@ Both are mandatory. Neither is sufficient.
 | Scenario expectations | all met | 28/28 across 22 scenarios |
 | False accusations on compliant labels | ≤ 2 % | **0 %** at 0–40 % character error |
 | Violations silently passed | 0 | **0** |
-| `FAIL` without asserted coverage | 0 | **0** in 2,940 real evaluations |
+| `FAIL` without asserted coverage | 0 | **0** in 2,700 real evaluations |
 | Campaign checks | all pass | 24/24 |
 | Every verdict carries clause + citation + reason | 100 % | 100 % |
 | Glyph height error (when segmentation lands) | ≤ 0.15 mm | not yet built |
@@ -2484,7 +2484,7 @@ Both are mandatory. Neither is sufficient.
 | Set | Size | Purpose |
 |---|---|---|
 | Synthetic | generated per run | Exact ground truth for measurement checks |
-| Gold (real) | 140 products, 394 images | Extraction accuracy, false-accusation guard |
+| Gold (real) | 140 products, 403 images | Extraction accuracy, false-accusation guard |
 | Adversarial | 24 fail-tests | The system must refuse, not guess |
 | Corpora | 48 gazette instruments, 3 families | Compiler generalisation and collisions |
 

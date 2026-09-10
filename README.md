@@ -18,9 +18,9 @@ label photos ──► OCR ──► layout ──► scoring ──► normalis
 | | |
 |---|---|
 | Real products tested | **140** — food, cosmetics, household, pet food |
-| Real photographs | **394** |
+| Real photographs | **403** |
 | Real gazette instruments compiled | **48** across 3 rule families |
-| Rule evaluations run | **2,940** |
+| Rule evaluations run | **2,700** |
 | **False accusations** | **0** |
 | Violations silently passed | **0** |
 | Defects found and fixed by testing | **20** |

@@ -259,7 +259,7 @@ product photos and 48 real government notifications.
 | | |
 |---|---|
 | Real products tested | 140 (food, cosmetics, household, pet food) |
-| Rule checks run | 2,940 |
+| Rule checks run | 2,700 |
 | **Times it wrongly accused a product** | **0** |
 | Times it let a real violation through | 0 |
 | Bugs this testing found | **20** |
