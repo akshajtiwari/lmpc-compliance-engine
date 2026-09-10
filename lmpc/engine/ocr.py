@@ -18,6 +18,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .model import Token
+from . import ocr_select
 
 CAP_RATIO = 0.62      # rough cap-height fraction of a text-line box; a bias, not a fact
 MAX_EDGE = 1800       # long edge in pixels handed to the recogniser
@@ -109,7 +110,8 @@ def read(path: str | Path, panel: str = "FRONT", min_conf: float = 0.0,
     Absolute millimetre checks do not use these boxes; they need a scale reference in the
     frame, which none of these photographs has.
     """
-    result, _ = _engine()(prepare(path, max_edge))
+    frame = prepare(path, max_edge)
+    result, _ = _engine()(frame)
     toks: list[Token] = []
     for box, text, score in (result or []):
         score = float(score)          # RapidOCR returns confidence as a string
@@ -121,6 +123,12 @@ def read(path: str | Path, panel: str = "FRONT", min_conf: float = 0.0,
             continue
         toks.append(Token(text=text.strip(), x=x, y=y, w=w, h=h,
                           conf=score, panel=panel, cap_height_px=h * CAP_RATIO))
+    # M.19: the bundled recogniser cannot emit Devanagari, so every region also gets
+    # read by the Devanagari specialist when it is fetched; the higher-quality
+    # reading wins per region (Part 8.1).
+    if ocr_select.available() and toks:
+        ocr_select.rewrite(frame[:, :, ::-1], toks)      # crops expect BGR
+        toks = [t for t in toks if t.text.strip() and t.conf >= min_conf]
     return toks
 
 
