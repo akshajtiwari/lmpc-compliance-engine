@@ -2454,7 +2454,7 @@ Beyond ordinary security, because outputs may be used in enforcement:
 | Real world | `python -m stress.realworld food\|wide` | 140 real products, 403 photographs | passing |
 | Resolution | `python -m stress.resolution` | Time vs accuracy vs pixel budget | measured |
 | RBAC matrix | `pytest tests/test_rbac.py` | Every role × every protected endpoint, plus fail-closed route inventory | **100 role/endpoint cells passing** |
-| E2E | Playwright | Login → capture → review → finalise → download | **to build** |
+| E2E | Playwright | Login → capture → review → finalise → download | **Workbench e-commerce critical path passing in Chromium; Field device drill remains** |
 | Load | k6 | Pilot-scale concurrency | **to build** |
 
 ### 21.2 Why labels are rendered, not photographed

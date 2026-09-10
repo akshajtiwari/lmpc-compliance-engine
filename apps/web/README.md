@@ -15,3 +15,16 @@ non-guided package photographs or an e-commerce listing. Listing inspections req
 visible product-page declaration text and one to six screenshots; an optional HTTP(S)
 source URL is retained with the immutable evidence. Use the separate LMPC Field Android
 app when guided capture and a complete physical-package coverage assertion are required.
+
+Run the critical browser path against the local PostgreSQL/API stack with:
+
+```bash
+export LMPC_E2E_EMAIL=reviewer@local.invalid
+export LMPC_E2E_PASSWORD='the password configured in the repository .env file'
+npx playwright install chromium
+npm run test:e2e
+```
+
+The Playwright runner bootstraps the local database, starts an isolated API on port 8010
+and Workbench on port 3010, then exercises sign-in, listing inspection, rule explanation,
+report finalisation and PDF download.
