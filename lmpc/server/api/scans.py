@@ -3,11 +3,13 @@
 Every image is validated, hash-verified and persisted before processing is accepted."""
 from __future__ import annotations
 import json
-from fastapi import APIRouter, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 
 from ..svc.evidence import validate_image
 from ..svc.scan_service import validate, validate_metadata
+from ..svc.auth import Principal
+from .auth import require
 from .errors import ApiError
 
 router = APIRouter(prefix="/scans", tags=["scans"])
@@ -31,6 +33,7 @@ async def create_scan(
     panels: list[str] = Form(...),
     images: list[UploadFile] = File(...),
     image_sha256: list[str] = Form(...),
+    principal: Principal = Depends(require("scans:create")),
 ) -> JSONResponse:
     validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
              category=category, coverage_asserted=coverage_asserted, panels=panels,
@@ -61,19 +64,29 @@ async def create_scan(
     rec, created = svc.create(
         client_uuid=client_uuid, captured_at=captured_at, mode=mode, category=category,
         coverage_asserted=coverage_asserted, panels=panels, images=evidence,
-        metadata=metadata)
+        metadata=metadata, officer_id=principal.id,
+        jurisdiction_id=principal.jurisdiction_id)
     # A repeated client_uuid is 200 with the existing scan — never a duplicate.
     return JSONResponse(_envelope(rec, created), status_code=202 if created else 200)
 
 
 @router.get("/{scan_id}")
-async def get_scan(scan_id: str, request: Request) -> dict:
-    return _envelope(request.app.state.scan_store.get(scan_id), created=True)
+async def get_scan(
+    scan_id: str, request: Request,
+    principal: Principal = Depends(require("scans:read")),
+) -> dict:
+    rec = request.app.state.scan_store.get(scan_id)
+    request.app.state.auth.ensure_scan_scope(principal, rec)
+    return _envelope(rec, created=True)
 
 
 @router.get("/{scan_id}/images/{panel}")
-async def get_scan_image(scan_id: str, panel: str, request: Request) -> Response:
+async def get_scan_image(
+    scan_id: str, panel: str, request: Request,
+    principal: Principal = Depends(require("scans:read")),
+) -> Response:
     rec = request.app.state.scan_store.get(scan_id)
+    request.app.state.auth.ensure_scan_scope(principal, rec)
     image = next((item for item in rec.images if item.panel_label == panel), None)
     if image is None:
         raise ApiError("E_NOT_FOUND", f"panel {panel} not found on scan {scan_id}")
@@ -86,12 +99,17 @@ async def get_scan_image(scan_id: str, panel: str, request: Request) -> Response
 
 
 @router.post("/{scan_id}/reevaluate")
-async def reevaluate_scan(scan_id: str, request: Request) -> JSONResponse:
+async def reevaluate_scan(
+    scan_id: str, request: Request,
+    principal: Principal = Depends(require("scans:reevaluate")),
+) -> JSONResponse:
     """Run one append-only evaluation batch.
 
     Production workers call the same Pipeline object from the queue; this direct path
     keeps the modular-monolith development deployment functional without Redis.
     """
+    rec = request.app.state.scan_store.get(scan_id)
+    request.app.state.auth.ensure_scan_scope(principal, rec)
     try:
         rec = request.app.state.pipeline.process(scan_id)
     except ApiError:

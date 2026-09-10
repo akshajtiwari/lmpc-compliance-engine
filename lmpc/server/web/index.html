@@ -19,12 +19,36 @@
     </button>
     <div class="header-actions">
       <span class="network" id="networkState" role="status"><i></i><span>Checking</span></span>
+      <button class="user-button" id="userButton" type="button" hidden><span id="userInitial">L</span><span><strong id="userName">Local user</strong><small id="userRole">Officer</small></span></button>
+      <button class="text-button" id="logoutButton" type="button" hidden>Sign out</button>
       <button class="icon-button" id="languageButton" type="button" aria-label="Change language">हिं</button>
     </div>
   </header>
 
   <main id="main" tabindex="-1">
-    <section class="view active" id="homeView" aria-labelledby="homeTitle">
+    <section class="view active" id="loginView" aria-labelledby="loginTitle">
+      <div class="login-layout">
+        <div class="login-story">
+          <p class="eyebrow">AUTHORISED ACCESS</p>
+          <h1 id="loginTitle">Sign in to the local compliance workstation.</h1>
+          <p>Your role and jurisdiction are enforced by the API. The browser keeps the short-lived access token only in memory.</p>
+          <div class="login-principle"><span>01</span><p><strong>Evidence stays local</strong>Photographs and reports remain on this machine unless object storage is deliberately configured.</p></div>
+          <div class="login-principle"><span>02</span><p><strong>Actions stay attributable</strong>Login, denials, report finalisation and review actions enter the audit trail.</p></div>
+        </div>
+        <form class="login-card" id="loginForm">
+          <span class="login-seal" aria-hidden="true">माप</span>
+          <h2>Officer sign in</h2>
+          <p>Use the bootstrap account from your local <code>.env</code> file.</p>
+          <label>Email address<input id="emailInput" name="email" type="email" autocomplete="username" value="reviewer@local.invalid" required></label>
+          <label>Password<input id="passwordInput" name="password" type="password" autocomplete="current-password" minlength="12" required></label>
+          <div class="login-error" id="loginError" role="alert" hidden></div>
+          <button class="button primary full" id="loginButton" type="submit">Sign in securely</button>
+          <small>Five failed attempts lock this account for 15 minutes.</small>
+        </form>
+      </div>
+    </section>
+
+    <section class="view" id="homeView" aria-labelledby="homeTitle">
       <div class="hero">
         <p class="eyebrow">LEGAL METROLOGY • FIELD TOOL</p>
         <h1 id="homeTitle">Inspect every declaration.<br><span>Keep every finding traceable.</span></h1>

@@ -12,6 +12,14 @@ class Settings:
     db_url: str = ""                      # empty until persistence is wired (Part 13)
     officer_uuid: str = ""                # bootstrap officer until Part 14 auth lands
     jurisdiction_uuid: str = ""
+    auth_mode: str = "disabled"           # disabled for engine tests; local in .env.example
+    bootstrap_email: str = "reviewer@local.invalid"
+    bootstrap_password: str = ""
+    jwt_key_path: str = ".lmpc-data/auth/jwt-private.pem"
+    jwt_issuer: str = "lmpc-local"
+    jwt_audience: str = "lmpc-api"
+    cookie_secure: bool = False
+    allow_self_review: bool = False
     redis_url: str = ""
     s3_endpoint: str = ""
     s3_bucket: str = ""
@@ -32,6 +40,14 @@ class Settings:
             db_url=e.get("LMPC_DB_URL", ""),
             officer_uuid=e.get("LMPC_OFFICER_UUID", ""),
             jurisdiction_uuid=e.get("LMPC_JURISDICTION_UUID", ""),
+            auth_mode=e.get("LMPC_AUTH_MODE", cls.auth_mode),
+            bootstrap_email=e.get("LMPC_BOOTSTRAP_EMAIL", cls.bootstrap_email),
+            bootstrap_password=e.get("LMPC_BOOTSTRAP_PASSWORD", ""),
+            jwt_key_path=e.get("LMPC_JWT_KEY_PATH", cls.jwt_key_path),
+            jwt_issuer=e.get("LMPC_JWT_ISSUER", cls.jwt_issuer),
+            jwt_audience=e.get("LMPC_JWT_AUDIENCE", cls.jwt_audience),
+            cookie_secure=_bool(e.get("LMPC_COOKIE_SECURE", "false")),
+            allow_self_review=_bool(e.get("LMPC_ALLOW_SELF_REVIEW", "false")),
             redis_url=e.get("LMPC_REDIS_URL", ""),
             s3_endpoint=e.get("LMPC_S3_ENDPOINT", ""),
             s3_bucket=e.get("LMPC_S3_BUCKET", ""),
@@ -43,3 +59,12 @@ class Settings:
                                          cls.rate_limit_per_min)),
             git_sha=e.get("LMPC_GIT_SHA", ""),
             container_digest=e.get("LMPC_CONTAINER_DIGEST", ""))
+
+
+def _bool(value: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"invalid boolean setting: {value}")

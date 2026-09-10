@@ -35,6 +35,14 @@ def test_email_is_case_insensitive_and_mfa_secret_is_modelled():
     assert str(users.columns["email"].type) == "CITEXT"
     assert users.columns["email"].unique is True
     assert "mfa_secret_enc" in users.columns
+    assert {"failed_login_count", "failed_login_window_at", "locked_until"} <= {
+        column.name for column in users.columns}
+
+
+def test_refresh_tokens_are_grouped_for_reuse_revocation():
+    tokens = _table("refresh_tokens")
+    assert "family_id" in tokens.columns
+    assert any(index.name == "idx_refresh_family" for index in tokens.indexes)
 
 
 def test_product_dedup_is_a_stored_generated_column():

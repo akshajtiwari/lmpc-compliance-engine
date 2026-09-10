@@ -20,8 +20,8 @@ proposal; it is a report on a partly-built system.
 | Rule engine | **Working.** 6 verdict states, temporal selection, 12 operators |
 | Extraction | **Weak.** MRP found on ~50 % of packets where it is legible |
 | Capture app | **Local MVP working.** Guided panels, measurable quality gates, offline outbox and retry-safe sync |
-| Web console | **Not built** |
-| Reports, repository, auth | **Reports + PostgreSQL repository working; auth not built** |
+| Web console | **Partial.** Capture, evidence, explanations and report export work; search/admin views remain |
+| Reports, repository, auth | **Working locally.** PostgreSQL, reports, Argon2id/RS256 sessions and route RBAC; OIDC/MFA remain |
 | Tests | 74 unit/integration · 22 scenarios (28 expectations) · 24 campaign checks · 140 real products |
 
 **Validated behaviour:** 0 false accusations in 2,700 real rule evaluations; 0 violations

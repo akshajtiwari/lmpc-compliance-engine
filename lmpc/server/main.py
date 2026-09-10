@@ -6,9 +6,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .api import errors, health, reports, scans
+from .api import auth, errors, health, reports, scans
 from .config import Settings
 from .svc.object_store import open_object_store
+from .svc.auth import AuthManager
 from .svc.pipeline import Pipeline
 from .svc.reporting import ReportService
 from .svc.scan_store import open_store
@@ -35,7 +36,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = s
     app.state.object_store = open_object_store(s)
     app.state.scan_store = open_store(s)
+    app.state.auth = AuthManager(s)
     errors.install(app)
+    app.include_router(auth.router)
     app.include_router(health.router)
     app.include_router(scans.router)
     app.include_router(reports.router)

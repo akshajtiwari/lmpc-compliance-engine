@@ -44,6 +44,9 @@ let liveTimer = null;
 let analysingLive = false;
 let selectedOutcome = "ALL";
 let selectedEvidence = "";
+let accessToken = null;
+let currentUser = null;
+let evidenceObjectUrl = null;
 
 function freshDraft() {
   return {
@@ -143,11 +146,16 @@ function toast(message) {
   toast.timer = setTimeout(() => node.classList.remove("show"), 3500);
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(`${API}${path}`, options);
+async function request(path, options = {}, retry = true) {
+  const headers = new Headers(options.headers || {});
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  const response = await fetch(`${API}${path}`, {...options, headers});
   const type = response.headers.get("content-type") || "";
   const body = type.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
+    if (response.status === 401 && retry && accessToken && !path.startsWith("/auth/")) {
+      if (await refreshAccess()) return request(path, options, false);
+    }
     const message = body?.error?.message || body || `Request failed (${response.status})`;
     const error = new Error(message);
     error.code = body?.error?.code;
@@ -155,6 +163,92 @@ async function request(path, options = {}) {
     throw error;
   }
   return body;
+}
+
+async function requestBlob(path, retry = true) {
+  const headers = accessToken ? {Authorization: `Bearer ${accessToken}`} : {};
+  const response = await fetch(`${API}${path}`, {headers});
+  if (response.status === 401 && retry && accessToken && await refreshAccess()) {
+    return requestBlob(path, false);
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error?.message || `Download failed (${response.status})`);
+  }
+  return response.blob();
+}
+
+function applyUser(user, token = accessToken) {
+  currentUser = user;
+  accessToken = token;
+  const visible = Boolean(user && !user.email?.startsWith("disabled-auth@"));
+  $("#userButton").hidden = !visible;
+  $("#logoutButton").hidden = !visible;
+  if (user) {
+    $("#userInitial").textContent = (user.full_name || "L").slice(0, 1).toUpperCase();
+    $("#userName").textContent = user.full_name;
+    $("#userRole").textContent = titleCase(user.role);
+  }
+}
+
+async function refreshAccess() {
+  try {
+    const response = await fetch(`${API}/auth/refresh`, {method: "POST"});
+    if (!response.ok) return false;
+    const body = await response.json();
+    applyUser(body.user, body.access_token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function restoreSession() {
+  try {
+    const user = await request("/auth/me", {}, false);
+    applyUser(user, null);
+    showView("homeView");
+    return true;
+  } catch (error) {
+    if (error.status === 401 && await refreshAccess()) {
+      showView("homeView");
+      return true;
+    }
+    applyUser(null, null);
+    showView("loginView");
+    return false;
+  }
+}
+
+async function signIn(event) {
+  event.preventDefault();
+  const button = $("#loginButton");
+  const errorBox = $("#loginError");
+  button.disabled = true;
+  button.textContent = "Verifying…";
+  errorBox.hidden = true;
+  try {
+    const body = await request("/auth/login", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({email: $("#emailInput").value, password: $("#passwordInput").value}),
+    }, false);
+    $("#passwordInput").value = "";
+    applyUser(body.user, body.access_token);
+    showView("homeView");
+    drainOutbox();
+  } catch (error) {
+    errorBox.textContent = error.message;
+    errorBox.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Sign in securely";
+  }
+}
+
+async function signOut() {
+  try { await request("/auth/logout", {method: "POST"}, false); } catch {}
+  applyUser(null, null);
+  showView("loginView");
 }
 
 async function checkService() {
@@ -198,6 +292,7 @@ async function refreshQueueCount() {
 }
 
 function beginScan() {
+  if (!currentUser) { showView("loginView"); return; }
   releasePreviews();
   draft = freshDraft();
   panelIndex = 0;
@@ -574,7 +669,7 @@ function coverageFor(value) {
 }
 
 async function drainOutbox() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine || !currentUser) return;
   const entries = (await dbAll("outbox")).sort((a, b) => a.queued_at - b.queued_at);
   for (const entry of entries) {
     if (entry.next_attempt_at > Date.now()) continue;
@@ -640,11 +735,22 @@ function renderResult(result) {
   showView("resultView");
 }
 
-function selectEvidence(result, panel) {
+async function selectEvidence(result, panel) {
   selectedEvidence = panel;
   $$('[data-panel]').forEach(button => button.classList.toggle("active", button.dataset.panel === panel));
   const image = (result.images || []).find(item => item.panel === panel);
-  $("#evidenceImage").src = image?.url || "";
+  if (evidenceObjectUrl) URL.revokeObjectURL(evidenceObjectUrl);
+  evidenceObjectUrl = null;
+  if (image?.url) {
+    try {
+      evidenceObjectUrl = URL.createObjectURL(await requestBlob(
+        image.url.startsWith(API) ? image.url.slice(API.length) : image.url));
+      $("#evidenceImage").src = evidenceObjectUrl;
+    } catch (error) {
+      $("#evidenceImage").removeAttribute("src");
+      toast(error.message);
+    }
+  } else $("#evidenceImage").removeAttribute("src");
   $("#evidenceImage").alt = image ? `${titleCase(panel)} evidence` : "No evidence image";
 }
 
@@ -670,7 +776,23 @@ function renderDeclarations(declarations) {
 
 function renderDownloads(reportId) {
   $("#downloadGroup").hidden = false;
-  $("#downloadGroup").innerHTML = `<a class="button secondary" href="${API}/reports/${encodeURIComponent(reportId)}/download?format=pdf">PDF</a><a class="button secondary" href="${API}/reports/${encodeURIComponent(reportId)}/download?format=docx">DOCX</a>`;
+  $("#downloadGroup").innerHTML = `<button class="button secondary" data-download="pdf" type="button">PDF</button><button class="button secondary" data-download="docx" type="button">DOCX</button>`;
+  $$('[data-download]').forEach(button => button.addEventListener("click", () =>
+    downloadReport(reportId, button.dataset.download)));
+}
+
+async function downloadReport(reportId, format) {
+  try {
+    const blob = await requestBlob(`/reports/${encodeURIComponent(reportId)}/download?format=${format}`);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `lmpc-report.${format}`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    toast(error.message);
+  }
 }
 
 async function finalizeReport() {
@@ -712,6 +834,8 @@ async function renderHistory() {
 }
 
 function bindEvents() {
+  $("#loginForm").addEventListener("submit", signIn);
+  $("#logoutButton").addEventListener("click", signOut);
   $("#homeButton").addEventListener("click", () => showView("homeView"));
   $("#resultHome").addEventListener("click", () => showView("homeView"));
   $("#newScanButton").addEventListener("click", beginScan);
@@ -776,7 +900,8 @@ async function boot() {
   await refreshQueueCount();
   if ("serviceWorker" in navigator) await navigator.serviceWorker.register("/sw.js").catch(() => {});
   setInterval(drainOutbox, 5 * 60 * 1000);
-  if (navigator.onLine) drainOutbox();
+  const signedIn = await restoreSession();
+  if (signedIn && navigator.onLine) drainOutbox();
 }
 
 boot().catch(error => toast(`Offline storage could not start: ${error.message}`));

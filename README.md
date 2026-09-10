@@ -59,6 +59,12 @@ client UUID. Run the PostgreSQL round-trip with `make test-db`; run all determin
 suites with `make test`; stop PostgreSQL with `make db-down` (the named volume keeps its
 data).
 
+The example environment enables the local-password path with
+`reviewer@local.invalid` and the password shown in `.env.example`. Change that password
+before sharing the machine or exposing the port; it is a development bootstrap account,
+not a production credential. Access tokens stay in browser memory; the rotating refresh
+token is held in an HttpOnly, SameSite cookie.
+
 The dormant S3-compatible adapter is optional. Install `requirements-s3.txt` only when a
 bucket is available and `LMPC_S3_BUCKET` is intentionally configured.
 

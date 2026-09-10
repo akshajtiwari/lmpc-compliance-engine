@@ -28,7 +28,7 @@ bootstrap: migrate
 	$(PYTHON) -m lmpc.server.db.bootstrap
 
 dev: bootstrap
-	$(UVICORN) lmpc.server.main:app --reload --host 127.0.0.1 --port 8000
+	$(UVICORN) lmpc.server.main:app --reload --reload-dir lmpc --host 127.0.0.1 --port 8000
 
 test:
 	$(PYTHON) -m pytest -q
