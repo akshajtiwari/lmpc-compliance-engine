@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Fetch the live PCR corpus and compile it. Requires: curl, poppler (pdftotext), python3.
+# Fetch the live PCR corpus. Compilation is a separate step: python -m lmpc.lawc.build
+# (it calls this script itself when corpus/ is empty). Requires curl only.
 set -euo pipefail
 DIR="${1:-corpus}"; mkdir -p "$DIR"; B=https://consumeraffairs.gov.in/public/upload/files
 # NOTE: the site's TLS certificate is expired -> -k. Links on the page say http://
@@ -29,17 +30,4 @@ done <<'LIST'
 2026-coo2.pdf 2026.4.27%20PCR%202nd%20COO%20from%201.7.2027_1777348487.pdf
 2026-3rd.pdf PCR_3rd_29May2026_1780376045.pdf
 LIST
-python3 lawc.py "$DIR" > compiled.json
-python3 bind.py compiled.json 2017-8xii.pdf > rulepack-diff.json
-python3 - <<'PY'
-import json
-d=json.load(open('compiled.json')); c=d['chain']
-print(f"documents        : {len(d['documents'])}")
-print(f"needs OCR        : {sum(1 for x in d['documents'] if x['kind']!='DIGITAL')}")
-print(f"newest instrument: {c['newest_on_spine']}")
-print(f"chain links      : {len(c['walk'])}")
-print(f"chain complete   : {c['complete']}")
-for m in c['missing_documents']:
-    print(f"  MISSING        : {m['gsr']} dated {m['dated']} (referenced by {m['referenced_by']})")
-print(f"patch operations : {sum(len(x['ops']) for x in d['documents'])}")
-PY
+echo "corpus in $DIR — now compile it: python -m lmpc.lawc.build"
