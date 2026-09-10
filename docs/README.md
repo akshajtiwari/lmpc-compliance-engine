@@ -14,9 +14,11 @@ Legal Metrology (Packaged Commodities) Rules, 2011 — automated compliance chec
 | 5 | [`05-SYSTEM-MAP.md`](05-SYSTEM-MAP.md) | How the pieces fit together — structure, architecture and both flows. | 15 min |
 | 6 | [`06-RULEPACK.md`](06-RULEPACK.md) | The rulepack alone — what is in it, how it is made, how it stays current. | 10 min |
 | 7 | [`07-WHAT-RUNS-WHERE.md`](07-WHAT-RUNS-WHERE.md) | Phone vs server, why the split, the tech stack, and the OCR upgrade path. Plain English. | 10 min |
+| 8 | [`08-MOBILE-APP-PLAN.md`](08-MOBILE-APP-PLAN.md) | **Current client decision.** Native Android/iOS field app, local-server connectivity, offline sync, CI gates, and the later web workbench. | 15 min |
 
-> **New to the project?** Read `00`, then `05`, then `07`. Those three are enough to start
-> work; `02` is the reference you return to.
+> **New to the project?** Read `00`, then `05`, then `08`. Those three are enough to start
+> work; `02` is the reference you return to. Where older documents call the PWA the
+> primary client, `08` contains the current native-mobile decision.
 
 ## Evidence
 
