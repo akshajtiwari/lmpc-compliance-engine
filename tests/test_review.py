@@ -56,8 +56,8 @@ async def test_search_correction_history_override_and_finalization_are_coherent(
     scan_id = created.json()["scan_id"]
 
     def reader(_data, *, panel, **_kwargs):
-        return [Token("MRP Rs. 45.00 (incl. of all taxes)", 2, 3, 300, 20,
-                      conf=0.99, panel=panel)]
+        return ([Token("MRP Rs. 45.00 (incl. of all taxes)", 2, 3, 300, 20,
+                       conf=0.99, panel=panel)] if panel == "FRONT" else [])
 
     app.state.pipeline.reader = reader
     first = await _request(app, "POST", f"/api/v1/scans/{scan_id}/reevaluate")
@@ -130,3 +130,25 @@ async def test_patch_rejects_partial_dimensions_and_unknown_fields(app):
                              json={"not_a_field": True})
     assert partial.status_code == 400
     assert unknown.status_code == 422
+
+
+async def test_dashboard_summarises_effective_scoped_findings(app):
+    scan_id = (await _create(app, str(uuid.uuid4()))).json()["scan_id"]
+
+    def reader(_data, *, panel, **_kwargs):
+        return ([Token("MRP Rs. 45.00 (incl. of all taxes)", 2, 3, 300, 20,
+                       conf=0.99, panel=panel)] if panel == "FRONT" else [])
+
+    app.state.pipeline.reader = reader
+    evaluated = await _request(app, "POST", f"/api/v1/scans/{scan_id}/reevaluate")
+    assert evaluated.status_code == 202
+    summary = await _request(app, "GET", "/api/v1/dashboard/summary")
+    violations = await _request(app, "GET", "/api/v1/dashboard/violations-by-type")
+    quality = await _request(app, "GET", "/api/v1/dashboard/quality")
+    assert summary.json()["total"] == 1
+    assert summary.json()["pending_reviews"] == 1
+    assert summary.json()["non_compliant"] == 1
+    assert summary.json()["violation_rate"] == 1.0
+    assert violations.json() and violations.json()[0]["count"] >= 1
+    assert quality.json()["declarations_extracted"] >= 1
+    assert quality.json()["false_accusation_guard_breaches"] == 0

@@ -36,3 +36,13 @@ def test_client_contains_no_rule_ids_or_legal_thresholds():
     assert "LMPC-R" not in script
     assert "min_mm" not in script
     assert "rulepack/current" not in script
+
+
+def test_workbench_uses_server_scoped_repository_and_review_endpoints():
+    script = (WEB / "app.js").read_text()
+    page = (WEB / "index.html").read_text()
+    assert 'request("/dashboard/summary"' in script
+    assert 'request(`/scans?${params}`' in script
+    assert "/evaluations/${encodeURIComponent" in script
+    assert "/declarations/${encodeURIComponent" in script
+    assert 'id="overrideDialog"' in page and 'id="correctionDialog"' in page

@@ -23,12 +23,12 @@ class ReviewDb:
         statement = select(Scan, Product.brand_name, Manufacturer.name).outerjoin(
             Product, Product.id == Scan.product_id).outerjoin(
                 Manufacturer, Manufacturer.id == Product.manufacturer_id)
-        statement = self._scope(statement, principal)
+        statement = self.scope_scans(statement, principal)
         statement = self._filters(statement, filters)
         count = select(func.count(Scan.id)).outerjoin(
             Product, Product.id == Scan.product_id).outerjoin(
                 Manufacturer, Manufacturer.id == Product.manufacturer_id)
-        count = self._filters(self._scope(count, principal), filters)
+        count = self._filters(self.scope_scans(count, principal), filters)
         order = {
             "newest": Scan.captured_at.desc(), "oldest": Scan.captured_at.asc(),
             "status": Scan.status.asc(), "overall": Scan.overall.asc(),
@@ -185,7 +185,7 @@ class ReviewDb:
             session.refresh(row)
             return evaluation_dict(row)
 
-    def _scope(self, statement, principal):
+    def scope_scans(self, statement, principal):
         if principal.disabled_auth or principal.role == "ADMIN":
             return statement
         if principal.role == "FIELD_OFFICER":

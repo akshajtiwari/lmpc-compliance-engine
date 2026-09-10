@@ -47,6 +47,7 @@ let selectedEvidence = "";
 let accessToken = null;
 let currentUser = null;
 let evidenceObjectUrl = null;
+let currentResult = null;
 
 function freshDraft() {
   return {
@@ -136,7 +137,10 @@ function showView(id) {
   $$(".view").forEach(view => view.classList.toggle("active", view.id === id));
   window.scrollTo({top: 0, behavior: "auto"});
   $(`#${id}`)?.focus?.();
+  if (id === "homeView" && currentUser) loadDashboard();
 }
+
+const hasPermission = permission => Boolean(currentUser?.permissions?.includes(permission));
 
 function toast(message) {
   const node = $("#toast");
@@ -263,6 +267,33 @@ async function checkService() {
     dot.className = "bad";
     $("#serviceStatus").textContent = navigator.onLine ? "Local service unavailable" : "You are offline";
     $("#serviceDetail").textContent = navigator.onLine ? "Start it with make dev" : "Captures can still be queued on this device";
+  }
+}
+
+async function loadDashboard() {
+  if (!hasPermission("dashboard:read") || !navigator.onLine) {
+    $("#dashboardStrip").hidden = true;
+    return;
+  }
+  try {
+    const [summary, violations, quality] = await Promise.all([
+      request("/dashboard/summary", {cache: "no-store"}),
+      request("/dashboard/violations-by-type?limit=1", {cache: "no-store"}),
+      request("/dashboard/quality", {cache: "no-store"}),
+    ]);
+    $("#metricTotal").textContent = summary.total.toLocaleString();
+    $("#metricPeriod").textContent = `${summary.last_30_days.toLocaleString()} in the last 30 days`;
+    $("#metricPending").textContent = summary.pending_reviews.toLocaleString();
+    $("#metricViolation").textContent = `${(summary.violation_rate * 100).toFixed(1)}%`;
+    $("#metricNonCompliant").textContent = `${summary.non_compliant.toLocaleString()} non-compliant`;
+    $("#metricGuard").textContent = quality.false_accusation_guard_breaches === 0 ? "✓ Clear" : `${quality.false_accusation_guard_breaches} breach`;
+    $("#dashboardScope").textContent = currentUser.role === "ADMIN" ? "All jurisdictions" : "Your authorised jurisdiction";
+    $("#topViolation").textContent = violations.length ?
+      `${violations[0].clause} · ${violations[0].count.toLocaleString()} finding${violations[0].count === 1 ? "" : "s"}` :
+      "No violations recorded in this scope.";
+    $("#dashboardStrip").hidden = false;
+  } catch {
+    $("#dashboardStrip").hidden = true;
   }
 }
 
@@ -712,6 +743,7 @@ function resultCounts(evaluations) {
 }
 
 function renderResult(result) {
+  currentResult = result;
   selectedOutcome = "ALL";
   selectedEvidence = result.images?.[0]?.panel || "";
   const counts = resultCounts(result.evaluations || []);
@@ -730,7 +762,7 @@ function renderResult(result) {
   renderVerdicts(result.evaluations || []);
   renderDeclarations(result.declarations || []);
   $("#downloadGroup").hidden = !draft.report;
-  $("#finalizeButton").hidden = Boolean(draft.report);
+  $("#finalizeButton").hidden = Boolean(draft.report) || result.status === "FINALIZED" || !hasPermission("reports:create");
   if (draft.report) renderDownloads(draft.report.report_id);
   showView("resultView");
 }
@@ -762,16 +794,94 @@ function renderVerdicts(evaluations) {
     const [icon, label] = OUTCOMES[item.outcome] || ["?", item.outcome];
     const citation = item.citation || {};
     const authority = [citation.gsr, citation.dated, citation.page ? `p. ${citation.page}` : ""].filter(Boolean).join(" · ");
-    return `<details class="verdict-card" data-outcome="${esc(item.outcome)}"><summary><span class="verdict-icon" aria-hidden="true">${icon}</span><span><strong>${esc(item.clause || item.check)}</strong><small>${esc(item.reason)}</small></span><b class="verdict-outcome">${esc(label)}</b></summary><div class="verdict-detail"><dl><div><dt>Check</dt><dd>${esc(item.check)}</dd></div><div><dt>Authority</dt><dd>${esc(authority || "Citation attached in rulepack")}</dd></div><div><dt>Law version</dt><dd>${esc(item.law_version || "Current on capture date")}</dd></div><div><dt>Evidence</dt><dd><code>${esc(JSON.stringify(item.evidence || {}))}</code></dd></div></dl></div></details>`;
+    const provenance = item.is_override ? `<p class="override-provenance">Officer override · ${esc(item.override_reason)}</p>` : "";
+    const action = hasPermission("evaluations:override") && currentResult?.status !== "FINALIZED" ? `<button class="review-action" data-override="${esc(item.id)}" type="button">Override verdict</button>` : "";
+    return `<details class="verdict-card" data-outcome="${esc(item.outcome)}"><summary><span class="verdict-icon" aria-hidden="true">${icon}</span><span><strong>${esc(item.clause || item.check)}</strong><small>${esc(item.reason)}</small></span><b class="verdict-outcome">${esc(label)}</b></summary><div class="verdict-detail"><dl><div><dt>Check</dt><dd>${esc(item.check)}</dd></div><div><dt>Authority</dt><dd>${esc(authority || "Citation attached in rulepack")}</dd></div><div><dt>Law version</dt><dd>${esc(item.law_version || "Current on capture date")}</dd></div><div><dt>Evidence</dt><dd><code>${esc(JSON.stringify(item.evidence || {}))}</code></dd></div></dl>${provenance}${action}</div></details>`;
   }).join("") || '<div class="empty-state"><strong>No results in this group</strong><span>Choose another verdict filter.</span></div>';
+  $$('[data-override]').forEach(button => button.addEventListener("click", event => {
+    event.preventDefault();
+    const item = currentResult.evaluations.find(row => row.id === button.dataset.override);
+    if (item) openOverride(item);
+  }));
 }
 
 function renderDeclarations(declarations) {
   $("#declarationList").innerHTML = declarations.map(item => {
     const weights = Object.entries(item.feature_weights || {});
     const max = Math.max(1, ...weights.map(([, value]) => Number(value)));
-    return `<article class="declaration"><div class="declaration-head"><span>${esc(item.field)}</span><b>score ${Number(item.score || 0).toFixed(1)} · margin ${Number(item.margin || 0).toFixed(1)}</b></div><q>${esc(item.text)}</q><div class="score-bars">${weights.map(([name, value]) => `<div class="score-bar"><span>${esc(name)}</span><i><b style="width:${Math.max(0, Number(value) / max * 100)}%"></b></i><strong>${Number(value).toFixed(1)}</strong></div>`).join("")}</div></article>`;
+    const action = hasPermission("declarations:correct") && currentResult?.status !== "FINALIZED" ? `<button class="review-action" data-correct="${esc(item.field)}" type="button">Correct extraction</button>` : "";
+    return `<article class="declaration"><div class="declaration-head"><span>${esc(item.field)}${item.corrected_by ? " · officer corrected" : ""}</span><b>score ${Number(item.score || 0).toFixed(1)} · margin ${Number(item.margin || 0).toFixed(1)}</b></div><q>${esc(item.text)}</q><div class="score-bars">${weights.map(([name, value]) => `<div class="score-bar"><span>${esc(name)}</span><i><b style="width:${Math.max(0, Number(value) / max * 100)}%"></b></i><strong>${Number(value).toFixed(1)}</strong></div>`).join("")}</div>${action}</article>`;
   }).join("") || '<div class="empty-state"><strong>No declaration was identified confidently</strong><span>The rules will abstain where evidence is insufficient.</span></div>';
+  $$('[data-correct]').forEach(button => button.addEventListener("click", () => {
+    const item = currentResult.declarations.find(row => row.field === button.dataset.correct);
+    if (item) openCorrection(item);
+  }));
+}
+
+function openOverride(item) {
+  $("#overrideEvaluationId").value = item.id;
+  $("#overrideOutcome").value = item.outcome === "SYSTEM_ERROR" ? "INDETERMINATE" : item.outcome;
+  $("#overrideReason").value = "";
+  $("#overrideContext").textContent = `${item.clause} · Current: ${OUTCOMES[item.outcome]?.[1] || titleCase(item.outcome)}`;
+  $("#overrideDialog").showModal();
+}
+
+function openCorrection(item) {
+  $("#correctionField").value = item.field;
+  $("#correctionText").value = item.text || "";
+  $("#correctionContext").textContent = `${titleCase(item.field)} · OCR score ${Number(item.score || 0).toFixed(1)}`;
+  $("#correctionDialog").showModal();
+}
+
+async function refreshCurrentResult() {
+  const result = await request(`/scans/${currentResult.scan_id}`, {cache: "no-store"});
+  draft.server_result = result;
+  const local = await dbGet("scans", draft.client_uuid);
+  if (local) await persistDraft(draft);
+  renderResult(result);
+  loadDashboard();
+}
+
+async function submitOverride(event) {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('[type="submit"]');
+  button.disabled = true;
+  try {
+    await request(`/scans/${currentResult.scan_id}/evaluations/${encodeURIComponent($("#overrideEvaluationId").value)}/override`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({outcome: $("#overrideOutcome").value, reason: $("#overrideReason").value}),
+    });
+    $("#overrideDialog").close();
+    await refreshCurrentResult();
+    toast("Override recorded without replacing the engine verdict.");
+  } catch (error) { toast(error.message); }
+  finally { button.disabled = false; }
+}
+
+async function submitCorrection(event) {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('[type="submit"]');
+  button.disabled = true;
+  try {
+    await request(`/scans/${currentResult.scan_id}/declarations/${encodeURIComponent($("#correctionField").value)}`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text: $("#correctionText").value}),
+    });
+    if (hasPermission("scans:reevaluate")) {
+      const result = await request(`/scans/${currentResult.scan_id}/reevaluate`, {method: "POST"});
+      draft.server_result = result;
+      const local = await dbGet("scans", draft.client_uuid);
+      if (local) await persistDraft(draft);
+      $("#correctionDialog").close();
+      renderResult(result);
+      toast("Correction saved and a new evaluation batch was retained.");
+    } else {
+      $("#correctionDialog").close();
+      await refreshCurrentResult();
+      toast("Correction saved; a reviewer must run the next evaluation batch.");
+    }
+  } catch (error) { toast(error.message); }
+  finally { button.disabled = false; }
 }
 
 function renderDownloads(reportId) {
@@ -803,9 +913,13 @@ async function finalizeReport() {
   try {
     const report = await request(`/scans/${draft.server_result.scan_id}/report`, {method: "POST"});
     draft.report = report;
-    await persistDraft();
+    if (await dbGet("scans", draft.client_uuid)) await persistDraft();
+    currentResult.status = "FINALIZED";
     button.hidden = true;
     renderDownloads(report.report_id);
+    renderVerdicts(currentResult.evaluations || []);
+    renderDeclarations(currentResult.declarations || []);
+    loadDashboard();
     toast(`Report version ${report.version} finalised.`);
   } catch (error) {
     button.disabled = false;
@@ -814,9 +928,48 @@ async function finalizeReport() {
   }
 }
 
-async function renderHistory() {
-  const rows = (await dbAll("scans")).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-  $("#historyList").innerHTML = rows.length ? rows.map(row => `<article class="history-item"><span class="history-icon">${esc(row.category.slice(0, 2))}</span><div><strong>${esc(titleCase(row.category))} · ${esc(row.captured_at)}</strong><small>${esc(titleCase(row.mode))} · ${esc(row.client_uuid.slice(0, 13))}…${row.failure_reason ? ` · ${esc(row.failure_reason)}` : ""}</small></div><span class="status-pill">${esc(row.status)}</span><button class="button secondary" data-open="${esc(row.client_uuid)}" type="button">${row.server_result ? "Open result" : row.status === "FAILED" || row.status === "QUEUED" ? "Retry sync" : "Resume"}</button></article>`).join("") : '<div class="empty-state"><strong>No inspections saved yet</strong><span>New captures will appear here, even while offline.</span></div>';
+async function renderHistory(event) {
+  event?.preventDefault?.();
+  showView("historyView");
+  $("#repositoryNote").textContent = "Loading authorised server records…";
+  const query = $("#repositoryQuery").value.trim();
+  const status = $("#repositoryStatus").value;
+  const overall = $("#repositoryOverall").value;
+  const params = new URLSearchParams({page_size: "100"});
+  if (query) params.set("q", query);
+  if (status) params.set("status", status);
+  if (overall) params.set("overall", overall);
+  let serverRows = [], serverError = "";
+  if (navigator.onLine && hasPermission("scans:read")) {
+    try { serverRows = (await request(`/scans?${params}`, {cache: "no-store"})).items; }
+    catch (error) { serverError = error.message; }
+  }
+  const serverClients = new Set(serverRows.map(row => row.client_uuid));
+  const allLocal = await dbAll("scans");
+  const localRows = allLocal.filter(row => {
+    if (serverClients.has(row.client_uuid)) return false;
+    const state = row.server_result?.status || row.status;
+    const result = row.server_result?.overall || "";
+    const haystack = `${row.client_uuid} ${row.category} ${row.mode}`.toLowerCase();
+    return (!query || haystack.includes(query.toLowerCase())) && (!status || state === status)
+      && (!overall || result === overall);
+  }).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  const serverCards = serverRows.map(row => `<article class="history-item"><span class="history-icon">${esc(row.category.slice(0, 2))}</span><div><strong>${esc(titleCase(row.category))} · ${esc(row.captured_at)}</strong><small>Server record · ${esc(titleCase(row.mode))} · ${esc(row.client_uuid.slice(0, 13))}…${row.overall ? ` · ${esc(titleCase(row.overall))}` : ""}</small></div><span class="status-pill">${esc(titleCase(row.status))}</span><button class="button secondary" data-server-open="${esc(row.id)}" type="button">Review case</button></article>`);
+  const localCards = localRows.map(row => `<article class="history-item"><span class="history-icon">${esc(row.category.slice(0, 2))}</span><div><strong>${esc(titleCase(row.category))} · ${esc(row.captured_at)}</strong><small>On this device · ${esc(titleCase(row.mode))} · ${esc(row.client_uuid.slice(0, 13))}…${row.failure_reason ? ` · ${esc(row.failure_reason)}` : ""}</small></div><span class="status-pill">${esc(row.status)}</span><button class="button secondary" data-open="${esc(row.client_uuid)}" type="button">${row.server_result ? "Open result" : row.status === "FAILED" || row.status === "QUEUED" ? "Retry sync" : "Resume"}</button></article>`);
+  const cards = [...serverCards, ...localCards];
+  $("#historyList").innerHTML = cards.length ? cards.join("") : '<div class="empty-state"><strong>No matching inspections</strong><span>Change the filters, or start a new inspection.</span></div>';
+  $("#repositoryNote").textContent = serverError ? `Server unavailable: ${serverError}. Showing device records.` : `${serverRows.length} server record${serverRows.length === 1 ? "" : "s"} · ${localRows.length} unsynced device record${localRows.length === 1 ? "" : "s"}`;
+  $$('[data-server-open]').forEach(button => button.addEventListener("click", async () => {
+    try {
+      const result = await request(`/scans/${button.dataset.serverOpen}`, {cache: "no-store"});
+      releasePreviews();
+      draft = freshDraft();
+      Object.assign(draft, {client_uuid: result.client_uuid, captured_at: result.captured_at,
+        mode: result.mode, category: result.category, status: result.status,
+        server_result: result, server_only: true});
+      renderResult(result);
+    } catch (error) { toast(error.message); }
+  }));
   $$('[data-open]').forEach(button => button.addEventListener("click", async () => {
     releasePreviews();
     draft = await hydrateDraft(await dbGet("scans", button.dataset.open));
@@ -830,7 +983,6 @@ async function renderHistory() {
       renderCapture();
     }
   }));
-  showView("historyView");
 }
 
 function bindEvents() {
@@ -840,6 +992,7 @@ function bindEvents() {
   $("#resultHome").addEventListener("click", () => showView("homeView"));
   $("#newScanButton").addEventListener("click", beginScan);
   $("#historyButton").addEventListener("click", renderHistory);
+  $("#repositoryFilters").addEventListener("submit", renderHistory);
   $$('[data-back="home"]').forEach(button => button.addEventListener("click", () => showView("homeView")));
   $("#modeInput").addEventListener("change", event => { $("#listingFields").hidden = event.target.value !== "ECOMMERCE_LISTING"; });
   $("#setupForm").addEventListener("submit", async event => {
@@ -884,6 +1037,10 @@ function bindEvents() {
   $("#submitScanButton").addEventListener("click", () => submitCurrent(false));
   $("#saveOfflineButton").addEventListener("click", () => submitCurrent(true));
   $("#finalizeButton").addEventListener("click", finalizeReport);
+  $("#overrideForm").addEventListener("submit", submitOverride);
+  $("#correctionForm").addEventListener("submit", submitCorrection);
+  $$('[data-close-dialog]').forEach(button => button.addEventListener("click", () =>
+    $(`#${button.dataset.closeDialog}`).close()));
   $("#languageButton").addEventListener("click", () => toast("Hindi interface catalogue is being prepared; legal findings remain exactly as issued by the rulepack."));
   window.addEventListener("online", () => { updateNetwork(); drainOutbox(); });
   window.addEventListener("offline", updateNetwork);

@@ -121,12 +121,17 @@ async def reevaluate_scan(
 
 def _envelope(rec, created: bool) -> dict:
     body = {"scan_id": rec.id, "status": rec.status,
+            "client_uuid": rec.client_uuid, "officer_id": rec.officer_id,
+            "jurisdiction_id": rec.jurisdiction_id,
             "status_url": f"/api/v1/scans/{rec.id}",
             "coverage_asserted": rec.coverage_asserted,
             "panels_captured": rec.panels,
             "captured_at": rec.captured_at, "mode": rec.mode, "category": rec.category,
             "buyer_type": rec.metadata.get("buyer_type", "RETAIL"),
             "package_shape": rec.metadata.get("package_shape", "RECTANGULAR"),
+            "dimensions": {"h_cm": rec.metadata.get("pdp_h_cm"),
+                           "w_cm": rec.metadata.get("pdp_w_cm"),
+                           "capacity_cm3": rec.metadata.get("capacity_cm3")},
             "overall": rec.overall,
             "rulepack": ({"version": rec.rulepack_version,
                           "sha256": rec.rulepack_sha256}

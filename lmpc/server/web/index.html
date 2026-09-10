@@ -53,11 +53,21 @@
         <p class="eyebrow">LEGAL METROLOGY • FIELD TOOL</p>
         <h1 id="homeTitle">Inspect every declaration.<br><span>Keep every finding traceable.</span></h1>
         <p class="hero-copy">Capture each package panel with immediate quality checks. Work stays on this device when offline and syncs to your local compliance server when connected.</p>
-        <div class="hero-actions">
+      <div class="hero-actions">
           <button class="button primary" id="newScanButton" type="button">Start inspection <span aria-hidden="true">→</span></button>
-          <button class="button secondary" id="historyButton" type="button">View saved inspections</button>
+          <button class="button secondary" id="historyButton" type="button">Open inspection repository</button>
         </div>
       </div>
+      <section class="operations" id="dashboardStrip" aria-labelledby="operationsTitle" hidden>
+        <div class="operations-head"><div><p class="eyebrow">AUTHORISED SCOPE</p><h2 id="operationsTitle">Enforcement overview</h2></div><span id="dashboardScope">Live local data</span></div>
+        <div class="metric-grid">
+          <article><span>Total inspections</span><strong id="metricTotal">—</strong><small id="metricPeriod">in your scope</small></article>
+          <article><span>Pending review</span><strong id="metricPending">—</strong><small>completed, not finalised</small></article>
+          <article><span>Violation rate</span><strong id="metricViolation">—</strong><small id="metricNonCompliant">across evaluated scans</small></article>
+          <article><span>Safety guard</span><strong id="metricGuard">—</strong><small>FAILs issued without coverage</small></article>
+        </div>
+        <div class="violation-snapshot"><strong>Most frequent violation</strong><span id="topViolation">No violations recorded in this scope.</span></div>
+      </section>
       <div class="home-grid">
         <article class="status-card">
           <div class="status-card-head"><span>Local service</span><i id="serviceDot"></i></div>
@@ -258,13 +268,42 @@
     <section class="view" id="historyView" aria-labelledby="historyTitle">
       <div class="section-heading history-heading">
         <button class="back-button" data-back="home" type="button">← Home</button>
-        <p class="eyebrow">ON THIS DEVICE</p>
-        <h1 id="historyTitle">Saved inspections</h1>
-        <p>Drafts and queued captures stay available offline. Synced records open their latest local result.</p>
+        <p class="eyebrow">INSPECTION REPOSITORY</p>
+        <h1 id="historyTitle">Find and review inspections</h1>
+        <p>Server records are restricted to your role and jurisdiction. Unsynced captures from this device remain visible while offline.</p>
       </div>
+      <form class="repository-filters" id="repositoryFilters">
+        <label>Search<input id="repositoryQuery" type="search" placeholder="Client UUID, brand or manufacturer"></label>
+        <label>Status<select id="repositoryStatus"><option value="">All statuses</option><option value="RECEIVED">Received</option><option value="EVALUATION_COMPLETE">Evaluation complete</option><option value="UNDER_REVIEW">Under review</option><option value="FINALIZED">Finalised</option><option value="FAILED">Failed</option></select></label>
+        <label>Overall<select id="repositoryOverall"><option value="">All outcomes</option><option value="NON_COMPLIANT">Non-compliant</option><option value="COMPLIANT">Compliant</option><option value="REVIEW_REQUIRED">Review required</option><option value="INCOMPLETE_EVIDENCE">Incomplete evidence</option><option value="SYSTEM_ERROR">System error</option></select></label>
+        <button class="button primary" type="submit">Search records</button>
+      </form>
+      <p class="repository-note" id="repositoryNote" role="status"></p>
       <div class="history-list" id="historyList"></div>
     </section>
   </main>
+
+  <dialog class="review-dialog" id="overrideDialog" aria-labelledby="overrideTitle">
+    <form id="overrideForm">
+      <p class="eyebrow">APPEND-ONLY REVIEW</p><h2 id="overrideTitle">Override verdict</h2>
+      <p id="overrideContext"></p>
+      <input id="overrideEvaluationId" type="hidden">
+      <label>New outcome<select id="overrideOutcome" required><option value="PASS">Compliant</option><option value="FAIL">Violation</option><option value="INDETERMINATE">Cannot determine</option><option value="REVIEW_REQUIRED">Needs review</option><option value="NOT_APPLICABLE">Not applicable</option></select></label>
+      <label>Reason <small>minimum 10 characters</small><textarea id="overrideReason" rows="4" minlength="10" required></textarea></label>
+      <p class="dialog-note">The engine verdict remains in history. This creates a new attributed row.</p>
+      <div class="dialog-actions"><button class="button secondary" data-close-dialog="overrideDialog" type="button">Cancel</button><button class="button primary" type="submit">Record override</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="review-dialog" id="correctionDialog" aria-labelledby="correctionTitle">
+    <form id="correctionForm">
+      <p class="eyebrow">EXTRACTION CORRECTION</p><h2 id="correctionTitle">Correct declaration</h2>
+      <p id="correctionContext"></p><input id="correctionField" type="hidden">
+      <label>Declaration text<textarea id="correctionText" rows="5" required></textarea></label>
+      <p class="dialog-note">The OCR original remains available. Reviewers with re-evaluation permission will immediately run a new batch.</p>
+      <div class="dialog-actions"><button class="button secondary" data-close-dialog="correctionDialog" type="button">Cancel</button><button class="button primary" type="submit">Save correction</button></div>
+    </form>
+  </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="/app.js"></script>

@@ -199,10 +199,12 @@ async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app)
             f"/api/v1/scans/{scan_id}/reevaluate", headers=headers)
         listing = await client.get(
             "/api/v1/scans?category=FOOD&page_size=100", headers=headers)
+        dashboard = await client.get("/api/v1/dashboard/summary", headers=headers)
         outside = await client.get(
             f"/api/v1/scans?jurisdiction_id={uuid.uuid4()}", headers=headers)
-        assert first.status_code == 202 and listing.status_code == 200
+        assert first.status_code == 202 and listing.status_code == dashboard.status_code == 200
         assert scan_id in {row["id"] for row in listing.json()["items"]}
+        assert dashboard.json()["total"] == 1
         assert outside.status_code == 403
 
         correction = await client.post(
@@ -226,9 +228,11 @@ async def test_postgres_review_rows_are_scoped_append_only_and_audited(auth_app)
                   "reason": "Declaration was verified against the physical label"})
         history = await client.get(
             f"/api/v1/scans/{scan_id}/evaluations?batch=2", headers=headers)
+        quality = await client.get("/api/v1/dashboard/quality", headers=headers)
         assert override.status_code == 200 and history.status_code == 200
         assert len(history.json()["evaluations"]) == 22
         assert len(history.json()["effective"]) == 21
+        assert quality.json()["false_accusation_guard_breaches"] == 0
         report = await client.post(f"/api/v1/scans/{scan_id}/report", headers=headers)
         assert report.status_code == 201
 
