@@ -2448,7 +2448,7 @@ Beyond ordinary security, because outputs may be used in enforcement:
 
 | Suite | Command | Scope | Current |
 |---|---|---|---|
-| Unit + integration | `pytest -q` | Rulepack integrity, operators, temporal logic, adversarial fail-tests, spec/code and cross-document consistency | **74 passing** |
+| Unit + integration | `pytest -q` | Rulepack integrity, operators, temporal logic, adversarial fail-tests, spec/code and cross-document consistency | **171 collected; PostgreSQL cases run with `LMPC_TEST_DB_URL`** |
 | Synthetic stress | `python -m stress.run` | 22 scenarios / 28 expectations, noise sweep, sensitivity sweep | passing |
 | Validation campaign | `python -m stress.campaign` | 24 checks across ingestion, compilation, comparison | **24/24** |
 | Real world | `python -m stress.realworld food\|wide` | 140 real products, 403 photographs | passing |

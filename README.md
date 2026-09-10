@@ -85,6 +85,11 @@ Field** on Android, then scan that QR. The QR binds the officer account to the a
 server fingerprint and expires after 15 minutes. Captured evidence is queued on the phone
 when the server is unreachable and retried with the same idempotency UUID.
 
+Workbench also provides **Inspections → New inspection** for non-guided physical evidence
+and e-commerce product listings. The listing path retains pasted shopper-visible text, an
+optional HTTP(S) source URL, and up to six hash-verified screenshots; it never asserts
+physical-package coverage.
+
 `apps/web` contains the separate desktop Workbench; `apps/mobile` contains the Expo/React
 Native Field app. The `Android Field preview release` workflow publishes an installable,
 debug-signed APK for LAN testing. Preview builds permit local HTTP; production deployment

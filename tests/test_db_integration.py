@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import os
 import uuid
 
@@ -137,6 +138,38 @@ async def test_postgres_round_trip_keeps_images_evaluations_and_reports(database
         database_app, "GET",
         f"/api/v1/reports/{report.json()['report_id']}/download?format=pdf")
     assert downloaded.content.startswith(b"%PDF-")
+
+
+async def test_postgres_round_trip_keeps_ecommerce_listing_evidence(database_app):
+    raw = _jpeg()
+    digest = hashlib.sha256(raw).hexdigest()
+    listing_text = "MRP Rs. 45.00 (incl. of all taxes)\nNet Qty 500 g"
+    created = await _request(
+        database_app, "POST", "/api/v1/scans",
+        data={
+            "client_uuid": str(uuid.uuid4()), "captured_at": "2026-09-10",
+            "mode": "ECOMMERCE_LISTING", "category": "FOOD",
+            "coverage_asserted": "false", "panels": ["LISTING", "LISTING_2"],
+            "image_sha256": [digest, digest],
+            "ecommerce": json.dumps({
+                "url": "https://shop.example.test/products/45",
+                "listing_text": listing_text,
+            }),
+        },
+        files=[("images", ("listing-1.jpg", raw, "image/jpeg")),
+               ("images", ("listing-2.jpg", raw, "image/jpeg"))])
+    assert created.status_code == 202
+
+    scan_id = created.json()["scan_id"]
+    fetched = await _request(database_app, "GET", f"/api/v1/scans/{scan_id}")
+    assert fetched.status_code == 200
+    assert fetched.json()["mode"] == "ECOMMERCE_LISTING"
+    assert fetched.json()["coverage_asserted"] is False
+    assert fetched.json()["ecommerce"] == {
+        "url": "https://shop.example.test/products/45",
+        "listing_text": listing_text,
+    }
+    assert fetched.json()["panels_captured"] == ["LISTING", "LISTING_2"]
 
 
 async def test_local_login_rotation_and_rbac_are_enforced(auth_app):

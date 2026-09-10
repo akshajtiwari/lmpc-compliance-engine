@@ -15,7 +15,10 @@ def test_enrollment_server_url_is_reduced_to_an_origin(value, expected):
     assert _server_url(value) == expected
 
 
-@pytest.mark.parametrize("value", ["", "ftp://192.168.1.20", "http:///missing-host"])
+@pytest.mark.parametrize("value", [
+    "", "ftp://192.168.1.20", "http:///missing-host",
+    "http://user@192.168.1.20", "http://:password@192.168.1.20",
+])
 def test_invalid_enrollment_server_url_is_refused(value):
     with pytest.raises(ApiError):
         _server_url(value)

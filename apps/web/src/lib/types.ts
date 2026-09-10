@@ -57,6 +57,10 @@ export type Scan = {
   jurisdiction_id: string;
   buyer_type: string;
   package_shape: string;
+  ecommerce: {
+    url: string | null;
+    listing_text: string | null;
+  } | null;
   panels_captured: string[];
   decision_explanation: {
     heading: string;

@@ -29,6 +29,7 @@ export default function ScanDetailPage() {
     for (const item of scan?.evaluations ?? []) map.set(item.check,item);
     return [...map.values()];
   }, [scan]);
+  const sourceUrl = safeHttpUrl(scan?.ecommerce?.url ?? null);
 
   async function action(work: () => Promise<unknown>) {
     setBusy(true); setError("");
@@ -56,6 +57,11 @@ export default function ScanDetailPage() {
     {(reportId || reports[0]) && <div className="card" style={{marginBottom:18,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><strong>Final report {reports[0]?.version ? `v${reports[0].version}` : "ready"}</strong><span className="muted small mono">{reportId || reports[0]?.id}</span><button className="button secondary small" onClick={()=>saveFile("pdf")}>Download PDF</button><button className="button secondary small" onClick={()=>saveFile("docx")}>Download editable DOCX</button></div>}
     <div className="grid two-col">
       <div className="grid">
+        {scan?.ecommerce && <section className="card"><h2>Listing source</h2>
+          {sourceUrl && <p><a className="source-link" href={sourceUrl}
+            target="_blank" rel="noreferrer">Open captured product page ↗</a></p>}
+          <pre className="listing-text">{scan.ecommerce.listing_text}</pre>
+        </section>}
         <section className="card"><h2>Evidence</h2><div className="evidence-grid">{scan?.images.map((item)=><EvidenceImage key={item.panel} panel={item.panel} path={item.url.replace("/api/v1","")} download={download} />)}</div>{scan && !scan.images.length && <div className="empty">No evidence images.</div>}</section>
         <section className="card"><h2>Extracted declarations</h2><p className="muted small">Corrections are append-only and require a fresh rule evaluation.</p>{scan?.declarations.map((item)=><DeclarationEditor key={item.id} declaration={item} disabled={busy || scan.status === "FINALIZED"} save={(text)=>action(()=>api(`/scans/${id}/declarations/${item.field}`,{method:"POST",body:JSON.stringify({text})}))} />)}{scan && !scan.declarations.length && <div className="empty">No declarations were established from this evidence.</div>}</section>
       </div>
@@ -64,6 +70,17 @@ export default function ScanDetailPage() {
     {rule && <RuleDrawer rule={rule} close={()=>setRule(null)} />}
     {override && <OverrideDrawer evaluation={override} close={()=>setOverride(null)} save={(outcome,reason)=>action(async()=>{await api(`/scans/${id}/evaluations/${override.id}/override`,{method:"POST",body:JSON.stringify({outcome,reason})});setOverride(null);})} />}
   </AppShell>;
+}
+
+function safeHttpUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+    return isHttp && !parsed.username && !parsed.password ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function EvidenceImage({panel,path,download}:{panel:string;path:string;download:(path:string)=>Promise<Blob>}) {

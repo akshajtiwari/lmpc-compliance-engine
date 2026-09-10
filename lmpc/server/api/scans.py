@@ -3,11 +3,12 @@
 Every image is validated, hash-verified and persisted before processing is accepted."""
 from __future__ import annotations
 import json
+import mimetypes
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 
 from ..svc.evidence import validate_image
-from ..svc.scan_service import validate, validate_metadata
+from ..svc.scan_service import validate, validate_metadata, validate_panel_mode
 from ..svc.rule_help import decision_explanation
 from ..svc.auth import Principal
 from ..obs import metrics
@@ -46,6 +47,8 @@ async def create_scan(
         dimensions=_json_object(dimensions, "dimensions"),
         flags=_json_object(flags, "flags"), geo=_json_object(geo, "geo"),
         ecommerce=_json_object(ecommerce, "ecommerce"))
+    validate_panel_mode(
+        mode=mode, coverage_asserted=coverage_asserted, panels=panels)
     if len(image_sha256) != len(images):
         raise ApiError("E_VALIDATION", "one image_sha256 is required per image")
     settings = request.app.state.settings
@@ -99,7 +102,8 @@ async def get_scan_image(
     if image is None:
         raise ApiError("E_NOT_FOUND", f"panel {panel} not found on scan {scan_id}")
     body = request.app.state.object_store.read(image.storage_key)
-    media_type = image.media_type or _media_type(image.storage_key)
+    media_type = (image.media_type or mimetypes.guess_type(image.storage_key)[0]
+                  or "application/octet-stream")
     return Response(
         body, media_type=media_type,
         headers={"Cache-Control": "private, max-age=31536000, immutable",
@@ -156,6 +160,10 @@ def _envelope(rec, created: bool) -> dict:
             "captured_at": rec.captured_at, "mode": rec.mode, "category": rec.category,
             "buyer_type": rec.metadata.get("buyer_type", "RETAIL"),
             "package_shape": rec.metadata.get("package_shape", "RECTANGULAR"),
+            "ecommerce": ({
+                "url": rec.metadata.get("ecommerce_url"),
+                "listing_text": rec.metadata.get("ecommerce_text"),
+            } if rec.mode == "ECOMMERCE_LISTING" else None),
             "dimensions": {"h_cm": rec.metadata.get("pdp_h_cm"),
                            "w_cm": rec.metadata.get("pdp_w_cm"),
                            "capacity_cm3": rec.metadata.get("capacity_cm3")},
@@ -188,11 +196,3 @@ def _json_object(raw: str | None, field: str) -> dict:
     if not isinstance(value, dict):
         raise ApiError("E_VALIDATION", f"{field} must be a JSON object")
     return value
-
-
-def _media_type(storage_key: str) -> str:
-    if storage_key.endswith(".png"):
-        return "image/png"
-    if storage_key.endswith(".heic"):
-        return "image/heic"
-    return "image/jpeg"

@@ -215,6 +215,60 @@ async def test_listing_mode_requires_listing_text(app):
     assert "listing_text" in response.json()["error"]["message"]
 
 
+async def test_listing_mode_processes_pasted_text_and_keeps_screenshots_distinct(app):
+    response = await _post(
+        app, mode="ECOMMERCE_LISTING", coverage_asserted="false",
+        panels=["LISTING", "LISTING_2"],
+        ecommerce=json.dumps({
+            "url": "https://shop.example.test/product/45",
+            "listing_text": "MRP Rs. 45.00 (incl. of all taxes)\nNet Qty 500 g",
+        }))
+    assert response.status_code == 202
+    body = response.json()
+    assert body["ecommerce"]["url"] == "https://shop.example.test/product/45"
+    assert body["coverage_asserted"] is False
+
+    original = app.state.pipeline.reader
+    app.state.pipeline.reader = lambda *_args, **_kwargs: []
+    try:
+        processed = await _request(
+            app, "POST", f"/api/v1/scans/{body['scan_id']}/process")
+    finally:
+        app.state.pipeline.reader = original
+    assert processed.status_code == 202
+    findings = {item["check"]: item["outcome"]
+                for item in processed.json()["evaluations"]}
+    assert findings["LMPC-R6-1-E-MRP"] == "PASS"
+    assert findings["LMPC-R6-1-D-MFG-DATE"] == "NOT_APPLICABLE"
+
+
+@pytest.mark.parametrize("values", [
+    {"mode": "ECOMMERCE_LISTING", "coverage_asserted": "true",
+     "panels": ["LISTING"],
+     "ecommerce": json.dumps({"listing_text": "MRP Rs. 45"})},
+    {"mode": "PHYSICAL_PACKAGE", "coverage_asserted": "false",
+     "panels": ["LISTING"]},
+])
+async def test_scan_mode_rejects_the_other_modes_evidence_labels(app, values):
+    response = await _post(app, **values)
+    assert response.status_code in {400, 409}
+
+
+@pytest.mark.parametrize("url", [
+    "javascript:alert(1)",
+    "https://user:secret@shop.example.test/product",
+    "https://:secret@shop.example.test/product",
+    "shop.example.test/product",
+])
+async def test_listing_mode_rejects_unsafe_source_urls(app, url):
+    response = await _post(
+        app, mode="ECOMMERCE_LISTING", coverage_asserted="false",
+        panels=["LISTING"],
+        ecommerce=json.dumps({"url": url, "listing_text": "MRP Rs. 45"}))
+    assert response.status_code == 400
+    assert "HTTP(S)" in response.json()["error"]["message"]
+
+
 async def test_invalid_geo_is_a_validation_error_not_a_server_error(app):
     response = await _post(app, geo=json.dumps({"lat": "north", "lng": 77.2}))
     assert response.status_code == 400

@@ -5,12 +5,15 @@ import uuid
 from datetime import UTC, date, datetime
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit
 
 from ..api.errors import ApiError
 from .evidence import EvidenceImage
 
 REQUIRED_PANELS = {"FRONT", "BACK"}          # Part 7.3: BACK waivable => flag false
-PANELS = REQUIRED_PANELS | {"SIDE_1", "SIDE_2", "SCALE_REF", "LISTING"}
+PHYSICAL_PANELS = REQUIRED_PANELS | {"SIDE_1", "SIDE_2", "SCALE_REF"}
+ECOMMERCE_PANELS = {"LISTING"} | {f"LISTING_{number}" for number in range(2, 7)}
+PANELS = PHYSICAL_PANELS | ECOMMERCE_PANELS
 MODES = {"PHYSICAL_PACKAGE", "ECOMMERCE_LISTING"}
 BUYER_TYPES = {"RETAIL", "INDUSTRIAL", "INSTITUTIONAL"}
 PACKAGE_SHAPES = {"RECTANGULAR", "CYLINDRICAL", "IRREGULAR"}
@@ -84,6 +87,25 @@ def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
             "E_COVERAGE_MISMATCH",
             "coverage_asserted=true but required panels were not captured: "
             + ", ".join(sorted(REQUIRED_PANELS - set(panels))))
+
+
+def validate_panel_mode(*, mode: str, coverage_asserted: bool,
+                        panels: list[str]) -> None:
+    """Keep package photographs and third-party listing screenshots distinct."""
+    supplied = set(panels)
+    if mode == "ECOMMERCE_LISTING":
+        if coverage_asserted:
+            raise ApiError(
+                "E_COVERAGE_MISMATCH",
+                "e-commerce screenshots cannot assert physical-package coverage")
+        if not supplied.issubset(ECOMMERCE_PANELS):
+            raise ApiError(
+                "E_VALIDATION",
+                "e-commerce evidence must use LISTING screenshot panel labels")
+    elif not supplied.issubset(PHYSICAL_PANELS):
+        raise ApiError(
+            "E_VALIDATION",
+            "physical-package evidence cannot use LISTING screenshot panel labels")
 
 
 class MemoryStore:
@@ -214,11 +236,22 @@ def validate_metadata(*, mode: str, buyer_type: str, package_shape: str,
             or (lat is not None and not (-90 <= lat <= 90)) \
             or (lng is not None and not (-180 <= lng <= 180)):
         raise ApiError("E_VALIDATION", "geo requires a valid latitude and longitude")
-    if mode == "ECOMMERCE_LISTING" and not ecommerce.get("listing_text"):
+    listing_text = ecommerce.get("listing_text")
+    listing_url = ecommerce.get("url")
+    if mode == "ECOMMERCE_LISTING" and not (
+            isinstance(listing_text, str) and listing_text.strip()):
         raise ApiError("E_VALIDATION", "ecommerce.listing_text is required in listing mode")
     if any(value is not None and not isinstance(value, str)
-           for value in (ecommerce.get("url"), ecommerce.get("listing_text"))):
+           for value in (listing_url, listing_text)):
         raise ApiError("E_VALIDATION", "ecommerce url and listing_text must be strings")
+    if isinstance(listing_text, str) and len(listing_text) > 50_000:
+        raise ApiError("E_VALIDATION", "ecommerce.listing_text exceeds 50000 characters")
+    if isinstance(listing_url, str) and listing_url:
+        parsed_url = urlsplit(listing_url.strip())
+        if (len(listing_url) > 2048 or parsed_url.scheme not in {"http", "https"}
+                or not parsed_url.hostname or parsed_url.username is not None
+                or parsed_url.password is not None):
+            raise ApiError("E_VALIDATION", "ecommerce.url must be an HTTP(S) URL")
     return {
         "buyer_type": buyer_type, "package_shape": package_shape,
         "scale_reference_type": scale_type,
@@ -229,8 +262,8 @@ def validate_metadata(*, mode: str, buyer_type: str, package_shape: str,
         "is_molded": flags.get("is_molded", False),
         "other_law_requires_same_info": flags.get("other_law_requires_same_info", False),
         "geo_lat": lat, "geo_lng": lng,
-        "ecommerce_url": ecommerce.get("url"),
-        "ecommerce_text": ecommerce.get("listing_text"),
+        "ecommerce_url": listing_url.strip() if isinstance(listing_url, str) else None,
+        "ecommerce_text": listing_text.strip() if isinstance(listing_text, str) else None,
     }
 
 

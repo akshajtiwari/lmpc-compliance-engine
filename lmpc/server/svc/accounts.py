@@ -183,7 +183,8 @@ def _server_url(value: str) -> str:
     if not value:
         raise ApiError("E_VALIDATION", "a LAN server URL is required for enrollment")
     parsed = urlsplit(value.strip())
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username:
+    if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+            or parsed.username is not None or parsed.password is not None):
         raise ApiError("E_VALIDATION", "server_url must be an HTTP(S) origin")
     if parsed.query or parsed.fragment:
         raise ApiError("E_VALIDATION", "server_url must not contain a query or fragment")
