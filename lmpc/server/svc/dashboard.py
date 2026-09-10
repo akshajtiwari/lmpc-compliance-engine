@@ -57,9 +57,14 @@ class DashboardService:
 
     def geo(self, principal) -> list[dict]:
         rows = self._scans(principal)
-        return [{"lat": float(row.geo_lat), "lng": float(row.geo_lng),
-                 "overall": row.overall, "count": 1}
-                for row in rows if row.geo_lat is not None and row.geo_lng is not None]
+        points = []
+        for row in rows:
+            latitude = _value(row, "geo_lat")
+            longitude = _value(row, "geo_lng")
+            if latitude is not None and longitude is not None:
+                points.append({"lat": float(latitude), "lng": float(longitude),
+                               "overall": row.overall, "count": 1})
+        return points
 
     def quality(self, principal) -> dict:
         scans = self._scans(principal)
@@ -138,3 +143,8 @@ class DashboardService:
 def _captured(row) -> date:
     value = row.captured_at
     return value if isinstance(value, date) else date.fromisoformat(value)
+
+
+def _value(row, name: str):
+    """Read a column on ORM rows or the equivalent metadata on memory rows."""
+    return getattr(row, name) if hasattr(row, name) else row.metadata.get(name)

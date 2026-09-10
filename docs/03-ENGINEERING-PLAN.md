@@ -22,7 +22,7 @@ proposal; it is a report on a partly-built system.
 | Capture app | **Native vertical slice working.** Guided panels, durable offline outbox, account enrollment and retry-safe sync; measured on-device quality gates remain |
 | Web console | **Partial.** Evidence, scoped server search, dashboard summary, corrections, overrides, report export, account administration and physical/e-commerce upload work; rulepack administration remains |
 | Reports, repository, auth | **Working locally.** PostgreSQL, searchable/scoped history, append-only correction/override, reports, Argon2id/RS256 sessions and route RBAC; OIDC/MFA remain |
-| Tests | 171 collected unit/integration · 22 scenarios (28 expectations) · 24 campaign checks · 140 real products |
+| Tests | 176 collected unit/integration · 100 role/endpoint RBAC cells · 22 scenarios (28 expectations) · 24 campaign checks · 140 real products |
 
 **Validated behaviour:** 0 false accusations in 2,700 real rule evaluations; 0 violations
 silently passed; 0 % false-FAIL rate on compliant labels across 0–40 % simulated character
@@ -128,7 +128,8 @@ diffable; PDF and DOCX carry identical findings and the rulepack hash.
 Evidence overlay viewer, `ScoreExplainer`, override with reason, RBAC, jurisdiction
 filtering, amendment quarantine queue, aggregate views.
 **Done when:** the RBAC matrix (every role × every endpoint) returns correct 200/403 and no
-endpoint relies on UI hiding.
+endpoint relies on UI hiding. The active API matrix is now executable and fail-closed;
+rulepack administration and its legal-reviewer/MFA approval path remain.
 
 ### W7 — E-commerce variant *(vertical slice implemented)*
 Listing text paste, gallery screenshots, Rule 6(10) subset.

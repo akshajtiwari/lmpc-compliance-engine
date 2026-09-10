@@ -39,6 +39,7 @@ jobs:
           tests/test_api_scans.py
           tests/test_pipeline.py
           tests/test_mobile_server.py
+          tests/test_rbac.py
           tests/test_db_models.py
           tests/test_import_graph.py
 

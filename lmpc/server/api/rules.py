@@ -10,7 +10,7 @@ from ..svc.rule_help import rule_detail
 from .auth import require
 
 router = APIRouter(prefix="/rules", tags=["rules"])
-RuleReader = Annotated[Principal, Depends(require("scans:read"))]
+RuleReader = Annotated[Principal, Depends(require("rules:read"))]
 
 
 @router.get("/{check_code}")

@@ -46,6 +46,7 @@ def require(permission: str) -> Callable:
             raise ApiError("E_FORBIDDEN", f"permission required: {permission}")
         return principal
 
+    allowed.required_permission = permission  # type: ignore[attr-defined]
     return allowed
 
 
