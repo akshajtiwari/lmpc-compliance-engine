@@ -14,17 +14,17 @@ def boot(rulepack_path: str) -> None:
 
 
 @router.get("/healthz")
-def healthz() -> dict:
+async def healthz() -> dict:
     return {"status": "ok"}
 
 
 @router.get("/readyz")
-def readyz() -> dict:
+async def readyz() -> dict:
     pack = _state.get("rulepack")
     ready = pack is not None and rulepack.intact(pack)
     return {"status": "ok" if ready else "E_RULEPACK_INTEGRITY"}
 
 
 @router.get("/version")
-def version() -> dict:
+async def version() -> dict:
     return {"git_sha": "", **rulepack.summary()}

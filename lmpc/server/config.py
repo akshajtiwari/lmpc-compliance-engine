@@ -15,6 +15,7 @@ class Settings:
     redis_url: str = ""
     s3_endpoint: str = ""
     s3_bucket: str = ""
+    storage_root: str = ".lmpc-data/objects"  # durable local fallback for development
     max_image_bytes: int = 20_971_520     # Appendix B
     max_image_pixels: int = 100_000_000
     ocr_max_edge: int = 1800
@@ -32,6 +33,7 @@ class Settings:
             redis_url=e.get("LMPC_REDIS_URL", ""),
             s3_endpoint=e.get("LMPC_S3_ENDPOINT", ""),
             s3_bucket=e.get("LMPC_S3_BUCKET", ""),
+            storage_root=e.get("LMPC_STORAGE_ROOT", cls.storage_root),
             max_image_bytes=int(e.get("LMPC_MAX_IMAGE_BYTES", cls.max_image_bytes)),
             max_image_pixels=int(e.get("LMPC_MAX_IMAGE_PIXELS", cls.max_image_pixels)),
             ocr_max_edge=int(e.get("LMPC_OCR_MAX_EDGE", cls.ocr_max_edge)),

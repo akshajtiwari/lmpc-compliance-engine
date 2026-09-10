@@ -8,11 +8,13 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm.exc import NoResultFound
 
 from ..api.errors import ApiError
 from ..config import Settings
 from ..db import sessionmaker_of
-from ..db.models import Scan
+from ..db.models import Scan, ScanImage
+from .evidence import EvidenceImage
 from .scan_service import MemoryStore, ScanRecord, validate
 
 Fields = dict  # the create() keyword contract shared by both stores
@@ -32,8 +34,10 @@ class DbStore:
 
     def create(self, *, client_uuid: str, captured_at: str, mode: str, category: str,
                coverage_asserted: bool, panels: list[str],
-               image_names: list[str]) -> tuple[ScanRecord, bool]:
-        validate(coverage_asserted, panels, len(image_names))
+               images: list[EvidenceImage]) -> tuple[ScanRecord, bool]:
+        validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                 category=category, coverage_asserted=coverage_asserted, panels=panels,
+                 n_images=len(images))
         with self.sessions() as s:
             row = s.execute(
                 insert(Scan)
@@ -43,15 +47,21 @@ class DbStore:
                         jurisdiction_id=self.jurisdiction_id)
                 .on_conflict_do_nothing(index_elements=[Scan.client_uuid])
                 .returning(Scan.id)).first()
-            s.commit()
             if row is None:                       # the race lost: return the winner
+                s.commit()
                 return self._rec(client_uuid=client_uuid), False
+            s.add_all(ScanImage(
+                scan_id=row[0], panel_label=image.panel_label,
+                storage_key=image.storage_key, sha256=image.sha256,
+                width_px=image.width_px, height_px=image.height_px,
+                upload_status="UPLOADED") for image in images)
+            s.commit()
             return self._rec(scan_id=str(row[0])), True
 
     def get(self, scan_id: str) -> ScanRecord:
         try:
-            return self._rec(scan_id=scan_id)
-        except Exception:
+            return self._rec(scan_id=str(uuid.UUID(scan_id)))
+        except (ValueError, NoResultFound):
             raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found") from None
 
     def _rec(self, scan_id: str | None = None, client_uuid: str | None = None) -> ScanRecord:
@@ -60,9 +70,14 @@ class DbStore:
             q = q.filter(Scan.id == scan_id) if scan_id else q.filter(
                 Scan.client_uuid == uuid.UUID(client_uuid))
             row = q.one()
+            images = [EvidenceImage(
+                filename="", media_type="", data=b"", sha256=image.sha256,
+                width_px=image.width_px or 0, height_px=image.height_px or 0,
+                storage_key=image.storage_key, panel_label=image.panel_label)
+                for image in s.query(ScanImage).filter(ScanImage.scan_id == row.id).all()]
             return ScanRecord(
                 client_uuid=str(row.client_uuid), captured_at=str(row.captured_at),
                 mode=row.mode, category=row.category_code,
                 coverage_asserted=row.coverage_asserted,
-                panels=list(row.panels_captured), image_names=[],
+                panels=list(row.panels_captured), images=images,
                 status=row.status, id=str(row.id))

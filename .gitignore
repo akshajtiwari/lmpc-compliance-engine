@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.lmpc-data/
 *.egg-info/
 out/
 models/*

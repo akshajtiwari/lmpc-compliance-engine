@@ -1,60 +1,122 @@
-"""API contract tests (Part 12.3) and the start-up refusal semantics."""
+"""API contract tests (Part 12.3), evidence integrity and start-up refusal."""
+from __future__ import annotations
+
+import hashlib
 import io
 import uuid
-import pytest
-from fastapi.testclient import TestClient
 
+import httpx
+import pytest
+from PIL import Image
+
+from lmpc.server.config import Settings
 from lmpc.server.main import create_app
+
+pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture(scope="module")
-def client():
-    return TestClient(create_app())
+def anyio_backend():
+    return "asyncio"
 
 
-def _post(client, client_uuid=None, **over):
-    body = dict(
-        client_uuid=client_uuid or str(uuid.uuid4()),
-        captured_at="2026-09-07", mode="PHYSICAL_PACKAGE", category="FOOD",
-        coverage_asserted="true", panels=["FRONT", "BACK"],
-    )
+@pytest.fixture(scope="module")
+def app(tmp_path_factory):
+    root = tmp_path_factory.mktemp("evidence")
+    return create_app(Settings(storage_root=str(root)))
+
+
+def _jpeg(size=(12, 8)) -> bytes:
+    out = io.BytesIO()
+    Image.new("RGB", size, "white").save(out, "JPEG")
+    return out.getvalue()
+
+
+async def _request(app, method: str, path: str, **kwargs):
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        return await client.request(method, path, **kwargs)
+
+
+async def _post(app, client_uuid=None, image_data=None, media_type="image/jpeg", **over):
+    panels = over.pop("panels", ["FRONT", "BACK"])
+    data = image_data or _jpeg()
+    body = {
+        "client_uuid": client_uuid or str(uuid.uuid4()),
+        "captured_at": "2026-09-07", "mode": "PHYSICAL_PACKAGE", "category": "FOOD",
+        "coverage_asserted": "true", "panels": panels,
+        "image_sha256": [hashlib.sha256(data).hexdigest()] * len(panels),
+    }
     body.update(over)
-    files = [("images", (n, io.BytesIO(b"jpeg"), "image/jpeg")) for n in body["panels"]]
-    return client.post("/api/v1/scans", data=body, files=files)
+    files = [("images", (f"{panel}.jpg", data, media_type)) for panel in panels]
+    return await _request(app, "POST", "/api/v1/scans", data=body, files=files)
 
 
-def test_healthz_and_readyz(client):
-    assert client.get("/api/v1/healthz").json() == {"status": "ok"}
-    assert client.get("/api/v1/readyz").json() == {"status": "ok"}
-    v = client.get("/api/v1/version").json()
-    assert v["rulepack_sha256"] and v["current_to"] == "G.S.R. 418(E)"
+async def test_healthz_and_readyz(app):
+    assert (await _request(app, "GET", "/api/v1/healthz")).json() == {"status": "ok"}
+    assert (await _request(app, "GET", "/api/v1/readyz")).json() == {"status": "ok"}
+    version = (await _request(app, "GET", "/api/v1/version")).json()
+    assert version["rulepack_sha256"] and version["current_to"] == "G.S.R. 418(E)"
 
 
-def test_submit_scan_is_accepted(client):
-    r = _post(client)
-    assert r.status_code == 202
-    assert r.json()["status"] == "RECEIVED" and r.json()["status_url"].startswith("/api/v1/scans/")
+async def test_submit_scan_persists_hash_addressed_evidence(app):
+    response = await _post(app)
+    assert response.status_code == 202
+    body = response.json()
+    assert body["status"] == "RECEIVED"
+    assert body["status_url"].startswith("/api/v1/scans/")
+    assert [(image["width"], image["height"]) for image in body["images"]] == [(12, 8)] * 2
+    for image in body["images"]:
+        assert app.state.object_store.read(image["storage_key"]) == _jpeg()
+    assert all(image.data == b"" for image in app.state.scan_store.get(body["scan_id"]).images)
 
 
-def test_repeated_client_uuid_is_not_a_duplicate(client):
+async def test_repeated_client_uuid_is_not_a_duplicate(app):
     same = str(uuid.uuid4())
-    a, b = _post(client, client_uuid=same), _post(client, client_uuid=same)
-    assert a.status_code == 202 and b.status_code == 200
-    assert a.json()["scan_id"] == b.json()["scan_id"]
-    assert b.json()["duplicate_ignored"] is True
+    first, second = await _post(app, client_uuid=same), await _post(app, client_uuid=same)
+    assert first.status_code == 202 and second.status_code == 200
+    assert first.json()["scan_id"] == second.json()["scan_id"]
+    assert second.json()["duplicate_ignored"] is True
 
 
-def test_coverage_asserted_without_the_back_panel_is_rejected(client):
-    r = _post(client, coverage_asserted="true", panels=["FRONT"])
-    assert r.status_code == 409
-    assert r.json()["error"]["code"] == "E_COVERAGE_MISMATCH"
+async def test_coverage_asserted_without_the_back_panel_is_rejected(app):
+    response = await _post(app, coverage_asserted="true", panels=["FRONT"])
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "E_COVERAGE_MISMATCH"
 
 
-def test_coverage_false_needs_no_back_panel(client):
-    r = _post(client, coverage_asserted="false", panels=["FRONT"])
-    assert r.status_code == 202
+async def test_coverage_false_needs_no_back_panel(app):
+    response = await _post(app, coverage_asserted="false", panels=["FRONT"])
+    assert response.status_code == 202
 
 
-def test_unknown_scan_is_404(client):
-    r = client.get("/api/v1/scans/nope")
-    assert r.status_code == 404 and r.json()["error"]["code"] == "E_NOT_FOUND"
+async def test_hash_mismatch_is_rejected(app):
+    response = await _post(app, image_sha256=["0" * 64, "0" * 64])
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "E_VALIDATION"
+
+
+async def test_mime_spoofing_is_rejected(app):
+    response = await _post(app, media_type="image/png")
+    assert response.status_code == 415
+    assert response.json()["error"]["code"] == "E_UNSUPPORTED_MEDIA"
+
+
+async def test_corrupt_image_is_rejected_even_with_a_matching_hash(app):
+    response = await _post(app, image_data=b"\xff\xd8\xffnot-a-jpeg")
+    assert response.status_code == 415
+    assert response.json()["error"]["code"] == "E_UNSUPPORTED_MEDIA"
+
+
+async def test_pixel_cap_is_enforced(app):
+    small_cap = create_app(Settings(storage_root=str(app.state.settings.storage_root),
+                                    max_image_pixels=20))
+    response = await _post(small_cap, image_data=_jpeg((6, 4)))
+    assert response.status_code == 415
+    assert "pixel cap" in response.json()["error"]["message"]
+
+
+async def test_unknown_scan_is_404(app):
+    response = await _request(app, "GET", "/api/v1/scans/nope")
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "E_NOT_FOUND"

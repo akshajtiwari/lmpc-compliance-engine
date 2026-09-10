@@ -2,11 +2,19 @@
 The contract is final (Part 12.3); scan_store.py chooses the backing store."""
 from __future__ import annotations
 import uuid
+from datetime import date
 from dataclasses import dataclass, field
 
 from ..api.errors import ApiError
+from .evidence import EvidenceImage
 
 REQUIRED_PANELS = {"FRONT", "BACK"}          # Part 7.3: BACK waivable => flag false
+MODES = {"PHYSICAL_PACKAGE", "ECOMMERCE_LISTING"}
+CATEGORIES = {
+    "FOOD", "COSMETIC", "GENERIC", "CEMENT", "FERTILIZER", "FARM_PRODUCE",
+    "TOBACCO", "DRUG_FORMULATION", "MEDICAL_DEVICE", "RESTAURANT_FAST_FOOD",
+    "HANDLOOM_THREAD_COIL",
+}
 
 
 @dataclass
@@ -17,14 +25,29 @@ class ScanRecord:
     category: str
     coverage_asserted: bool
     panels: list[str]
-    image_names: list[str]
+    images: list[EvidenceImage]
     status: str = "RECEIVED"
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
-def validate(coverage_asserted: bool, panels: list[str], n_images: int) -> None:
+def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
+             coverage_asserted: bool, panels: list[str], n_images: int) -> None:
+    try:
+        uuid.UUID(client_uuid)
+    except ValueError as exc:
+        raise ApiError("E_VALIDATION", "client_uuid must be a UUID") from exc
+    try:
+        date.fromisoformat(captured_at)
+    except ValueError as exc:
+        raise ApiError("E_VALIDATION", "captured_at must be an ISO-8601 date") from exc
+    if mode not in MODES:
+        raise ApiError("E_VALIDATION", f"unsupported scan mode: {mode}")
+    if category not in CATEGORIES:
+        raise ApiError("E_VALIDATION", f"unsupported commodity category: {category}")
     if not 1 <= n_images <= 6 or n_images != len(panels):
         raise ApiError("E_VALIDATION", "1–6 images, one panel label per image")
+    if any(not panel or len(panel) > 10 for panel in panels):
+        raise ApiError("E_VALIDATION", "panel labels must contain 1–10 characters")
     if coverage_asserted and not REQUIRED_PANELS.issubset(panels):
         raise ApiError(
             "E_COVERAGE_MISMATCH",
@@ -41,13 +64,16 @@ class MemoryStore:
 
     def create(self, *, client_uuid: str, captured_at: str, mode: str, category: str,
                coverage_asserted: bool, panels: list[str],
-               image_names: list[str]) -> tuple[ScanRecord, bool]:
-        validate(coverage_asserted, panels, len(image_names))
+               images: list[EvidenceImage]) -> tuple[ScanRecord, bool]:
+        validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                 category=category, coverage_asserted=coverage_asserted, panels=panels,
+                 n_images=len(images))
+        client_uuid = str(uuid.UUID(client_uuid))
         if client_uuid in self._by_client:
             return self._by_client[client_uuid], False
         rec = ScanRecord(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                          category=category, coverage_asserted=coverage_asserted,
-                         panels=panels, image_names=image_names)
+                         panels=panels, images=images)
         self._by_id[rec.id] = self._by_client[client_uuid] = rec
         return rec, True
 

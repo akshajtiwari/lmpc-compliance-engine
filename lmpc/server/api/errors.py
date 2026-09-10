@@ -23,7 +23,7 @@ class ApiError(Exception):
         super().__init__(message)
 
 
-def handler(_: Request, exc: Exception) -> JSONResponse:
+async def handler(_: Request, exc: Exception) -> JSONResponse:
     status = CODES.get(exc.code, 500)          # type: ignore[attr-defined]
     body = {"error": {"code": exc.code, "message": exc.message,      # type: ignore
                       "details": exc.details}}                       # type: ignore
