@@ -11,5 +11,7 @@ corpus_general/*.pdf
 corpus_general/*.txt
 real/images/
 real/wide/images/
+real/wide/*.jpg
 real/.search/
+real/.products/
 real/*.log

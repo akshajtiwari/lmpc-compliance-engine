@@ -1,0 +1,125 @@
+{
+  "dataset": "wide",
+  "products": 80,
+  "found": {
+    "mrp": 10,
+    "net_quantity": 18,
+    "country_of_origin": 11,
+    "mfg_date": 13,
+    "manufacturer_block": 11,
+    "consumer_care": 8,
+    "generic_name": 4,
+    "unit_sale_price": 3
+  },
+  "outcomes": {
+    "INDETERMINATE": 619,
+    "NOT_APPLICABLE": 926,
+    "PASS": 117,
+    "FAIL": 17,
+    "REVIEW_REQUIRED": 1
+  },
+  "qty_hit": 9,
+  "qty_total": 51,
+  "per_check": {
+    "LMPC-R6-1-A-MANUFACTURER": {
+      "INDETERMINATE": 65,
+      "NOT_APPLICABLE": 5,
+      "PASS": 10
+    },
+    "LMPC-R6-1-B-GENERIC-NAME": {
+      "INDETERMINATE": 71,
+      "NOT_APPLICABLE": 5,
+      "PASS": 4
+    },
+    "LMPC-R6-1-C-NET-QUANTITY": {
+      "INDETERMINATE": 58,
+      "PASS": 17,
+      "NOT_APPLICABLE": 5
+    },
+    "LMPC-R6-1-D-MFG-DATE": {
+      "INDETERMINATE": 63,
+      "NOT_APPLICABLE": 5,
+      "PASS": 12
+    },
+    "LMPC-R6-1-E-MRP": {
+      "INDETERMINATE": 65,
+      "PASS": 10,
+      "NOT_APPLICABLE": 5
+    },
+    "LMPC-R6-1-F-CONSUMER-CARE": {
+      "INDETERMINATE": 67,
+      "NOT_APPLICABLE": 5,
+      "PASS": 8
+    },
+    "LMPC-R6-COUNTRY-OF-ORIGIN": {
+      "NOT_APPLICABLE": 79,
+      "PASS": 1
+    },
+    "LMPC-R6-1-E-MRP-FORM": {
+      "NOT_APPLICABLE": 70,
+      "INDETERMINATE": 6,
+      "FAIL": 4
+    },
+    "LMPC-R6-1-E-MRP-ROUNDING": {
+      "NOT_APPLICABLE": 74,
+      "INDETERMINATE": 6
+    },
+    "LMPC-R6-1-C-QTY-FORM": {
+      "NOT_APPLICABLE": 63,
+      "FAIL": 1,
+      "PASS": 12,
+      "INDETERMINATE": 4
+    },
+    "LMPC-R6-1-D-DATE-FORM": {
+      "NOT_APPLICABLE": 68,
+      "PASS": 3,
+      "INDETERMINATE": 6,
+      "FAIL": 3
+    },
+    "LMPC-R10-PIN-CODE": {
+      "NOT_APPLICABLE": 70,
+      "PASS": 3,
+      "INDETERMINATE": 4,
+      "FAIL": 3
+    },
+    "LMPC-R6-1-LL-UNIT-SALE-PRICE": {
+      "NOT_APPLICABLE": 77,
+      "INDETERMINATE": 3
+    },
+    "LMPC-R7-3-WIDTH-RATIO": {
+      "INDETERMINATE": 75,
+      "NOT_APPLICABLE": 5
+    },
+    "LMPC-R8-CLEAR-SPACE": {
+      "NOT_APPLICABLE": 63,
+      "FAIL": 6,
+      "INDETERMINATE": 9,
+      "PASS": 2
+    },
+    "LMPC-R7-2-MIN-HEIGHT": {
+      "INDETERMINATE": 75,
+      "NOT_APPLICABLE": 5
+    },
+    "LMPC-R9-4-LANGUAGE": {
+      "INDETERMINATE": 42,
+      "PASS": 33,
+      "NOT_APPLICABLE": 5
+    },
+    "LMPC-R6-3-MRP-STICKER": {
+      "NOT_APPLICABLE": 80
+    },
+    "LMPC-R6-1-D-DATE-PLAUSIBLE": {
+      "NOT_APPLICABLE": 77,
+      "PASS": 2,
+      "REVIEW_REQUIRED": 1
+    },
+    "LMPC-R10-1-SMALL-PACKAGE-MARK": {
+      "NOT_APPLICABLE": 80
+    },
+    "LMPC-XF-UNIT-PRICE-CONSISTENT": {
+      "NOT_APPLICABLE": 80
+    }
+  },
+  "false_fail_backpanel": 0,
+  "devanagari_products": 0
+}
