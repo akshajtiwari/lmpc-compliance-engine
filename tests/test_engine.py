@@ -85,3 +85,30 @@ def test_every_verdict_carries_a_citation(pack):
                net_quantity_g=500)
     for r in run(pack, lab.scan)["results"]:
         assert r.citation, f"{r.check} produced a verdict with no legal citation"
+
+
+def test_tiny_package_relaxes_the_manufacturer_requirement(pack):
+    """Rule 10(1) proviso: at <= 10 cm3 an identifying mark suffices, so the full
+    name-and-address requirement the binding names as relaxed is not required."""
+    lab = make(lines=COMPLIANT_LINES, pdp_h_cm=1, pdp_w_cm=1, cap_mm=1,
+               net_quantity_g=12)
+    lab.scan.capacity_cm3 = 10
+    assert verdict(pack, lab.scan, "LMPC-R6-1-A-MANUFACTURER") is Verdict.NOT_APPLICABLE
+
+
+def test_normal_package_is_not_relaxed(pack):
+    lab = make(lines=COMPLIANT_LINES, pdp_h_cm=18, pdp_w_cm=12, cap_mm=3,
+               net_quantity_g=500)
+    assert verdict(pack, lab.scan, "LMPC-R6-1-A-MANUFACTURER") is Verdict.PASS
+
+
+def test_rule_7_5_gate_removes_the_typography_checks(pack):
+    lab = make(lines=COMPLIANT_LINES, pdp_h_cm=18, pdp_w_cm=12, cap_mm=3,
+               net_quantity_g=500)
+    lab.scan.other_law_requires_same_info = True
+    res = run(pack, lab.scan)
+    assert verdict(pack, lab.scan, "LMPC-R7-2-MIN-HEIGHT") is Verdict.NOT_APPLICABLE
+    assert all(v is Verdict.NOT_APPLICABLE
+               for c, v in {r.check: r.verdict for r in res["results"]}.items()
+               if c in ("LMPC-R7-2-MIN-HEIGHT", "LMPC-R7-3-WIDTH-RATIO",
+                        "LMPC-R8-CLEAR-SPACE"))

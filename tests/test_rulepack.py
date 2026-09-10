@@ -66,3 +66,31 @@ def test_ecommerce_mode_excludes_only_the_packing_date(pack):
     ex = set(pack["modes"]["ECOMMERCE_LISTING"]["excludes"])
     assert "LMPC-R6-1-D-MFG-DATE" in ex
     assert "LMPC-R6-1-E-MRP" not in ex
+
+
+CHECK_KEYS = {"check", "node", "clause", "operator", "field", "effective_from",
+              "effective_to", "citation", "verdict_ceiling", "ceiling_reason",
+              "only_when", "not_required_when", "boundary_review", "params",
+              "table_effective_from", "superseded", "confirmed_values"}
+GATE_KEYS = {"id", "clause", "node", "operator", "citation", "params", "effect",
+             "exceptions"}
+PARAM_KEYS = {"regex", "phrase_any", "phrase_present_at", "phrase_absent_below",
+              "illustrations", "predicate", "tiers", "numerator", "denominator", "min",
+              "exclude_glyphs", "field", "above_below_multiple", "left_right_multiple",
+              "input", "compare", "molded_column_when", "rows", "versions",
+              "source_instrument", "allowed_scripts", "additional_permitted",
+              "on_two_values", "higher_second_value", "not_after", "not_before",
+              "on_violation", "capacity_cm3_at_or_below", "relaxes", "expr",
+              "tolerance_pct", "on_mismatch", "any_of", "when"}
+
+
+def test_bindings_carry_no_key_the_engine_does_not_read(pack):
+    """A key nothing reads is a lie in the config: a reader assumes it is enforced."""
+    dead = []
+    for c in pack["checks"]:
+        dead += [f"{c['check']}.{k}" for k in c if k not in CHECK_KEYS]
+        dead += [f"{c['check']}.params.{k}" for k in c.get("params", {})
+                 if k not in PARAM_KEYS]
+    for g in pack["gates"]:
+        dead += [f"{g['id']}.{k}" for k in g if k not in GATE_KEYS]
+    assert not dead, f"keys the engine never reads: {dead}"
