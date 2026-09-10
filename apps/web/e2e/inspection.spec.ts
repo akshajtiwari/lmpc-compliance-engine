@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
 const WHITE_PNG = Buffer.from(
@@ -6,17 +7,19 @@ const WHITE_PNG = Buffer.from(
   "base64",
 );
 
-test("login, inspect a listing, explain a rule, finalise and download", async ({ page }) => {
+test("login, inspect a listing, explain a rule, finalise and download", async ({ page }, testInfo) => {
   const email = process.env.LMPC_E2E_EMAIL;
   const password = process.env.LMPC_E2E_PASSWORD;
   expect(email, "LMPC_E2E_EMAIL must identify the bootstrap account").toBeTruthy();
   expect(password, "LMPC_E2E_PASSWORD must match its local password").toBeTruthy();
 
   await page.goto("/login");
+  await expectWcag21Aa(page, testInfo, "login");
   await page.getByLabel("Email address").fill(email!);
   await page.getByLabel("Password").fill(password!);
   await page.getByRole("button", { name: "Open workbench" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+  await expectWcag21Aa(page, testInfo, "dashboard");
 
   await page.getByRole("link", { name: /Inspections/ }).click();
   await page.getByRole("link", { name: "New inspection" }).click();
@@ -41,6 +44,7 @@ test("login, inspect a listing, explain a rule, finalise and download", async ({
     "href", "https://shop.example.test/products/e2e-packet",
   );
   await expect(page.getByRole("heading", { name: "Rule findings" })).toBeVisible();
+  await expectWcag21Aa(page, testInfo, "scan-detail");
   const listingDateRule = page.locator(".rule-card")
     .filter({ hasText: "not required in ECOMMERCE_LISTING (Rule 6(10))" }).first();
   await expect(listingDateRule).toContainText("NOT APPLICABLE");
@@ -48,6 +52,7 @@ test("login, inspect a listing, explain a rule, finalise and download", async ({
   await page.locator(".info-button").first().click();
   await expect(page.getByRole("heading", { name: "What the requirement is" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "What the system did" })).toBeVisible();
+  await expectWcag21Aa(page, testInfo, "rule-explanation");
   await page.getByRole("button", { name: "Close" }).click();
 
   await page.getByRole("button", { name: "Finalise report" }).click();
@@ -61,3 +66,20 @@ test("login, inspect a listing, explain a rule, finalise and download", async ({
   const pdf = await readFile(downloadPath!);
   expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
 });
+
+async function expectWcag21Aa(page: Page, testInfo: TestInfo, state: string) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  await testInfo.attach(`${state}-axe-results`, {
+    body: Buffer.from(JSON.stringify({
+      state,
+      url: results.url,
+      timestamp: results.timestamp,
+      violations: results.violations,
+      incomplete: results.incomplete,
+    }, null, 2)),
+    contentType: "application/json",
+  });
+  expect(results.violations, `${state} has WCAG 2.1 A/AA violations`).toEqual([]);
+}

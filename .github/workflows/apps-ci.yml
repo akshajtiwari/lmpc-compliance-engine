@@ -128,6 +128,16 @@ jobs:
       - name: Exercise critical Workbench flow
         working-directory: apps/web
         run: npm run test:e2e
+      - name: Publish Workbench browser and accessibility evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: workbench-e2e-${{ github.run_id }}
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          if-no-files-found: error
+          retention-days: 30
 
   field:
     runs-on: ubuntu-latest

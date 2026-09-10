@@ -146,8 +146,10 @@ initial profile passed with 437 inspection flows and no failures. The profile us
 concurrent managed-account flows for a 90-second hold; this
 is a transparent engineering assumption, not a departmental capacity requirement. Record
 the real officer concurrency and arrival model before treating a passing run as pilot
-capacity evidence. Accessibility, offline/restore drills, security review and the real-unit
-pilot remain open.
+capacity evidence. Automated WCAG 2.1 A/AA checks now pass for login, dashboard, scan
+detail and the rule-explanation drawer. Manual keyboard/screen-reader review, the future
+rulepack-approval screen, offline/restore drills, security review and the real-unit pilot
+remain open.
 
 ---
 
