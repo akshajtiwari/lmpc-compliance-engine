@@ -10,6 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as pg
 
+from lmpc.server.db.base import CITEXT, LTREE
+
 revision = "0001"
 down_revision = None
 branch_labels = None
@@ -25,7 +27,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(150), nullable=False),
         sa.Column("state", sa.String(100), nullable=False),
         sa.Column("parent_jurisdiction_id", pg.UUID, sa.ForeignKey("jurisdictions.id")),
-        sa.Column("path", sa.String(500)),          # LTREE column; gist index below
+        sa.Column("path", LTREE()),
         sa.UniqueConstraint("name", "state", name="uq_jurisdiction_name_state"),
     )
     op.execute("CREATE INDEX idx_jurisdiction_path ON jurisdictions USING gist (path)")
@@ -33,7 +35,7 @@ def upgrade() -> None:
         "users",
         sa.Column("id", pg.UUID, primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("full_name", sa.String(200), nullable=False),
-        sa.Column("email", sa.String(255), nullable=False),
+        sa.Column("email", CITEXT(), nullable=False, unique=True),
         sa.Column("phone", sa.String(20)),
         sa.Column("role", sa.String(30), nullable=False),
         sa.CheckConstraint(
@@ -44,12 +46,12 @@ def upgrade() -> None:
         sa.Column("department", sa.String(150)),
         sa.Column("external_subject", sa.String(255), unique=True),
         sa.Column("password_hash", sa.Text),
+        sa.Column("mfa_secret_enc", sa.LargeBinary),
         sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.true()),
         sa.Column("last_login_at", sa.DateTime(timezone=True)),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
     )
-    op.create_index("uq_users_email_lower", "users", [sa.text("lower(email)")], unique=True)
     op.create_table(
         "refresh_tokens",
         sa.Column("id", pg.UUID, primary_key=True, server_default=sa.text("gen_random_uuid()")),
@@ -66,6 +68,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("refresh_tokens")
-    op.drop_index("uq_users_email_lower", table_name="users")
     op.drop_table("users")
     op.drop_table("jurisdictions")

@@ -1,6 +1,7 @@
 """Operations endpoints (Part 12.9). Anonymous by design: orchestrators cannot log in."""
 from __future__ import annotations
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from .. import rulepack
 
@@ -20,10 +21,17 @@ async def healthz() -> dict:
 
 
 @router.get("/readyz")
-async def readyz() -> dict:
+async def readyz(request: Request):
     pack = _state.get("rulepack")
-    ready = pack is not None and rulepack.intact(pack)
-    return {"status": "ok" if ready else "E_RULEPACK_INTEGRITY"}
+    checks = {
+        "rulepack": pack is not None and rulepack.intact(pack),
+        "database": request.app.state.scan_store.ready(),
+        "object_store": request.app.state.object_store.ready(),
+    }
+    if all(checks.values()):
+        return {"status": "ok"}
+    return JSONResponse(
+        {"status": "not_ready", "checks": checks}, status_code=503)
 
 
 @router.get("/version")

@@ -9,7 +9,7 @@ import uuid
 from datetime import date
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -31,10 +31,27 @@ def open_store(settings: Settings) -> MemoryStore | "DbStore":
 class DbStore:
     def __init__(self, settings: Settings):
         # Part 14 puts officer and jurisdiction on the token; until auth lands they
-        # arrive as bootstrap configuration and default to anonymous placeholders.
+        # arrive as bootstrap configuration.
+        if not settings.officer_uuid or not settings.jurisdiction_uuid:
+            raise RuntimeError(
+                "LMPC_DB_URL requires LMPC_OFFICER_UUID and LMPC_JURISDICTION_UUID")
+        try:
+            uuid.UUID(settings.officer_uuid)
+            uuid.UUID(settings.jurisdiction_uuid)
+        except ValueError as exc:
+            raise RuntimeError(
+                "LMPC_OFFICER_UUID and LMPC_JURISDICTION_UUID must be UUIDs") from exc
         self.sessions = sessionmaker_of(settings.db_url)
-        self.officer_id = settings.officer_uuid or str(uuid.UUID(int=0))
-        self.jurisdiction_id = settings.jurisdiction_uuid or str(uuid.UUID(int=0))
+        self.officer_id = settings.officer_uuid
+        self.jurisdiction_id = settings.jurisdiction_uuid
+
+    def ready(self) -> bool:
+        try:
+            with self.sessions() as session:
+                session.execute(text("SELECT 1"))
+            return True
+        except Exception:
+            return False
 
     def create(self, *, client_uuid: str, captured_at: str, mode: str, category: str,
                coverage_asserted: bool, panels: list[str],

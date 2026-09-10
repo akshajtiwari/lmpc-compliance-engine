@@ -17,6 +17,7 @@ from ..config import Settings
 class ObjectStore(Protocol):
     def put_immutable(self, key: str, data: bytes, media_type: str, sha256: str) -> None: ...
     def read(self, key: str) -> bytes: ...
+    def ready(self) -> bool: ...
 
 
 def open_object_store(settings: Settings) -> ObjectStore:
@@ -54,6 +55,17 @@ class LocalObjectStore:
 
     def read(self, key: str) -> bytes:
         return self._path(key).read_bytes()
+
+    def ready(self) -> bool:
+        """Prove the configured directory can accept an atomic local write."""
+        try:
+            self.root.mkdir(parents=True, exist_ok=True)
+            fd, probe = tempfile.mkstemp(prefix=".ready-", dir=self.root)
+            os.close(fd)
+            Path(probe).unlink()
+            return True
+        except OSError:
+            return False
 
     def _path(self, key: str) -> Path:
         if not key or key.startswith("/") or ".." in Path(key).parts:
@@ -98,6 +110,13 @@ class S3ObjectStore:
     def read(self, key: str) -> bytes:
         response = self.client.get_object(Bucket=self.bucket, Key=key)
         return response["Body"].read()
+
+    def ready(self) -> bool:
+        try:
+            self.client.head_bucket(Bucket=self.bucket)
+            return True
+        except Exception:
+            return False
 
 
 def _verify_digest(data: bytes, expected: str) -> None:

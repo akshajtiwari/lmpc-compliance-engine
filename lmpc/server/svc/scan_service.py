@@ -82,6 +82,9 @@ class MemoryStore:
         self._by_client: dict[str, ScanRecord] = {}
         self._reports: dict[str, dict] = {}
 
+    def ready(self) -> bool:
+        return True
+
     def create(self, *, client_uuid: str, captured_at: str, mode: str, category: str,
                coverage_asserted: bool, panels: list[str],
                images: list[EvidenceImage],

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: lmpc
+      POSTGRES_USER: lmpc
+      POSTGRES_PASSWORD: lmpc_local
+    ports:
+      - "127.0.0.1:54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lmpc -d lmpc"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - lmpc-postgres:/var/lib/postgresql/data
+
+volumes:
+  lmpc-postgres:

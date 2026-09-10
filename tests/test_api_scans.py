@@ -61,6 +61,20 @@ async def test_healthz_and_readyz(app):
     assert version["rulepack_sha256"] and version["current_to"] == "G.S.R. 418(E)"
 
 
+async def test_readyz_reports_a_failed_dependency(app):
+    original = app.state.object_store.ready
+    app.state.object_store.ready = lambda: False
+    try:
+        response = await _request(app, "GET", "/api/v1/readyz")
+    finally:
+        app.state.object_store.ready = original
+    assert response.status_code == 503
+    assert response.json() == {
+        "status": "not_ready",
+        "checks": {"rulepack": True, "database": True, "object_store": False},
+    }
+
+
 async def test_submit_scan_persists_hash_addressed_evidence(app):
     response = await _post(app)
     assert response.status_code == 202

@@ -1,0 +1,3 @@
+# Optional production adapter. Local development stores evidence on disk and does not
+# need this package or any cloud credentials.
+boto3>=1.34

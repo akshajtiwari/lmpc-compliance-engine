@@ -22,6 +22,21 @@ def test_scan_idempotency_is_a_database_guarantee():
     assert _table("scans").columns["client_uuid"].unique is True
 
 
+def test_jurisdiction_scope_uses_ltree_and_gist():
+    path = _table("jurisdictions").columns["path"]
+    index = next(item for item in _table("jurisdictions").indexes
+                 if item.name == "idx_jurisdiction_path")
+    assert str(path.type) == "LTREE"
+    assert index.dialect_options["postgresql"]["using"] == "gist"
+
+
+def test_email_is_case_insensitive_and_mfa_secret_is_modelled():
+    users = _table("users")
+    assert str(users.columns["email"].type) == "CITEXT"
+    assert users.columns["email"].unique is True
+    assert "mfa_secret_enc" in users.columns
+
+
 def test_product_dedup_is_a_stored_generated_column():
     col = _table("products").columns["dedup_key"]
     assert col.computed is not None and col.computed.persisted is True

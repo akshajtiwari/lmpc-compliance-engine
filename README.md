@@ -35,11 +35,29 @@ python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt          # + onnxruntime-gpu if you have CUDA
 
 python -m lmpc.lawc.build                # fetch gazettes, compile, write the rulepack
-pytest -q                                # 45 unit and adversarial tests
+pytest -q                                # unit, contract and adversarial tests
 python -m stress.run                     # 22 scenarios, noise and sensitivity sweeps
 python -m stress.campaign                # 24 validation checks
 python -m stress.realworld food          # real photographs, real OCR
 ```
+
+## Run the local API (no S3 required)
+
+The development stack uses PostgreSQL in Docker and stores immutable images and reports
+under `.lmpc-data/objects` on this machine. It does not install or contact S3.
+
+```bash
+cp .env.example .env
+make setup                               # once, if .venv is not already installed
+make dev                                 # migrates, seeds a local officer, serves :8000
+```
+
+Open `http://127.0.0.1:8000/docs` for the API explorer. Run the PostgreSQL round-trip with
+`make test-db`; run all deterministic suites with `make test`; stop PostgreSQL with
+`make db-down` (the named volume keeps its data).
+
+The dormant S3-compatible adapter is optional. Install `requirements-s3.txt` only when a
+bucket is available and `LMPC_S3_BUCKET` is intentionally configured.
 
 `python -m lmpc.lawc.build` refuses to produce a rulepack it cannot prove is current,
 correct and intact. That is the intended behaviour, not a failure.

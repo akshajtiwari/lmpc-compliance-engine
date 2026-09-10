@@ -4,6 +4,7 @@ __pycache__/
 venv/
 .pytest_cache/
 .lmpc-data/
+.env
 *.egg-info/
 out/
 models/*

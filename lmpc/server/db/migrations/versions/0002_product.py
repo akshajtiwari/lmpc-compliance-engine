@@ -25,6 +25,21 @@ def upgrade() -> None:
         sa.Column("fssai_overlap", sa.Boolean, nullable=False, server_default=sa.false()),
         sa.Column("default_exemptions", pg.JSONB, nullable=False, server_default=sa.text("'[]'")),
     )
+    categories = sa.table(
+        "commodity_categories", sa.column("code", sa.String), sa.column("name", sa.String),
+        sa.column("fssai_overlap", sa.Boolean), sa.column("default_exemptions", pg.JSONB))
+    names = {
+        "FOOD": "Food", "COSMETIC": "Cosmetic", "GENERIC": "Generic commodity",
+        "CEMENT": "Cement", "FERTILIZER": "Fertilizer", "FARM_PRODUCE": "Farm produce",
+        "TOBACCO": "Tobacco", "DRUG_FORMULATION": "Drug formulation",
+        "MEDICAL_DEVICE": "Medical device",
+        "RESTAURANT_FAST_FOOD": "Restaurant or hotel fast food",
+        "HANDLOOM_THREAD_COIL": "Handloom thread in coil",
+    }
+    op.bulk_insert(categories, [{"code": code, "name": name,
+                                 "fssai_overlap": code == "FOOD",
+                                 "default_exemptions": []}
+                                for code, name in names.items()])
     op.create_table(
         "manufacturers",
         sa.Column("id", pg.UUID, primary_key=True, server_default=sa.text("gen_random_uuid()")),
