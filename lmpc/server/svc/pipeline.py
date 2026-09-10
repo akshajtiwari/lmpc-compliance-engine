@@ -18,16 +18,19 @@ from .object_store import ObjectStore
 from .scan_service import ScanRecord
 
 Reader = Callable[..., list[Token]]
+CorrectionReader = Callable[[str], list[dict[str, Any]]]
 
 
 class Pipeline:
     def __init__(self, scan_store, object_store: ObjectStore, rulepack: dict,
-                 max_edge: int, reader: Reader | None = None):
+                 max_edge: int, reader: Reader | None = None,
+                 corrections: CorrectionReader | None = None):
         self.scans = scan_store
         self.objects = object_store
         self.rulepack = rulepack
         self.max_edge = max_edge
         self.reader = reader or ocr.read_bytes
+        self.corrections = corrections or (lambda _scan_id: [])
 
     def process(self, scan_id: str) -> ScanRecord:
         rec = self.scans.start_processing(scan_id)
@@ -47,9 +50,11 @@ class Pipeline:
                     data, panel=image.panel_label, min_conf=0.0, max_edge=self.max_edge))
             scan = _engine_scan(rec, tokens)
             fields = extract(scan, FIELD_KINDS)
+            corrected = {item["field"]: item for item in self.corrections(scan_id)}
+            _apply_corrections(fields, corrected)
             result = run(self.rulepack, scan, fields)
             return self.scans.complete_evaluation(
-                scan_id, declarations=_declarations(fields),
+                scan_id, declarations=_declarations(fields, corrected),
                 evaluations=_evaluations(result, self.rulepack), overall=result["overall"],
                 rulepack_version=self.rulepack["version"],
                 rulepack_sha256=self.rulepack["sha256"],
@@ -96,7 +101,22 @@ def _listing_tokens(rec: ScanRecord) -> list[Token]:
         for index, line in enumerate(lines)]
 
 
-def _declarations(fields: dict[str, Field | None]) -> list[dict[str, Any]]:
+def _apply_corrections(fields: dict[str, Field | None], corrections: dict[str, dict]) -> None:
+    for kind, item in corrections.items():
+        x, y, width, height = item["bbox"]
+        token = Token(
+            item["text"], x=x, y=y, w=width, h=height, conf=1.0,
+            panel=item.get("panel") or "FRONT", cap_height_px=height,
+            src=frozenset(item.get("source_token_ids") or [f"correction:{item['id']}"]))
+        normalized = dict(item.get("normalized_value") or {})
+        normalized["_features"] = {"officer_correction": 100.0}
+        fields[kind] = Field(kind=kind, text=item["text"], tokens=[token],
+                             score=100.0, margin=100.0, normalized=normalized)
+
+
+def _declarations(fields: dict[str, Field | None],
+                  corrections: dict[str, dict] | None = None) -> list[dict[str, Any]]:
+    corrections = corrections or {}
     out = []
     for kind, field in fields.items():
         if field is None:
@@ -108,7 +128,7 @@ def _declarations(fields: dict[str, Field | None]) -> list[dict[str, Any]]:
         bottom = max(token.y + token.h for token in tokens)
         normalized = {key: value for key, value in field.normalized.items()
                       if not key.startswith("_")}
-        out.append({
+        item = {
             "field": kind, "text": field.text, "normalized_value": normalized,
             "bbox": [left, top, right - left, bottom - top],
             "confidence": min(token.conf for token in tokens),
@@ -119,7 +139,10 @@ def _declarations(fields: dict[str, Field | None]) -> list[dict[str, Any]]:
             "is_repaired": any(token.repaired for token in tokens),
             "glyph_height_px": max((token.cap_height_px or token.h) for token in tokens),
             "panel": field.panel,
-        })
+        }
+        if kind in corrections:
+            item["corrected_by"] = corrections[kind]["corrected_by"]
+        out.append(item)
     return out
 
 

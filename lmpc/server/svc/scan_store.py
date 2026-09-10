@@ -6,7 +6,6 @@ the offline queue retries after a timeout — cannot create a second scan (Part 
 """
 from __future__ import annotations
 import uuid
-from datetime import date
 from typing import Any
 
 from sqlalchemy import func, select, text
@@ -20,6 +19,8 @@ from ..db.models import (ComplianceReport, ExtractedDeclaration, RuleEvaluation,
                          ScanImage)
 from .evidence import EvidenceImage
 from .scan_service import MemoryStore, ScanRecord, validate
+from .store_records import (declaration_dict, evaluation_dict, optional_date,
+                            report_dict, scan_metadata)
 
 Fields = dict  # the create() keyword contract shared by both stores
 
@@ -131,7 +132,9 @@ class DbStore:
                     source_token_ids=item["source_token_ids"],
                     is_composite=item["is_composite"], is_repaired=item["is_repaired"],
                     glyph_height_px=item["glyph_height_px"],
-                    is_on_pdp=item["panel"] == "FRONT")
+                    is_on_pdp=item["panel"] == "FRONT",
+                    corrected_by=(uuid.UUID(item["corrected_by"])
+                                  if item.get("corrected_by") else None))
                 session.add(declaration)
                 session.flush()
                 field_ids[item["field"]] = declaration.id
@@ -141,7 +144,7 @@ class DbStore:
                     clause=item["clause"], outcome=item["outcome"], reason=item["reason"],
                     citation=item["citation"], evidence=item["evidence"],
                     rulepack_version=rulepack_version,
-                    law_version=_optional_date(item["law_version"]),
+                    law_version=optional_date(item["law_version"]),
                     evidence_declaration_id=field_ids.get(item["field"])))
             row.status = "EVALUATION_COMPLETE"
             row.overall = overall
@@ -184,7 +187,7 @@ class DbStore:
             scan.status = "FINALIZED"
             session.commit()
             session.refresh(report)
-            return _report_dict(report)
+            return report_dict(report)
 
     def get_report(self, report_id: str) -> dict:
         try:
@@ -195,7 +198,7 @@ class DbStore:
             report = session.get(ComplianceReport, report_uuid)
             if report is None:
                 raise ApiError("E_NOT_FOUND", f"report {report_id} not found")
-            return _report_dict(report)
+            return report_dict(report)
 
     def _rec(self, scan_id: str | None = None, client_uuid: str | None = None) -> ScanRecord:
         with self.sessions() as s:
@@ -211,14 +214,17 @@ class DbStore:
                 for image in s.query(ScanImage).filter(ScanImage.scan_id == row.id).all()]
             batch = s.scalar(select(func.max(RuleEvaluation.batch)).where(
                 RuleEvaluation.scan_id == row.id)) or 0
-            declarations = [_declaration_dict(item) for item in s.scalars(select(
+            declarations = [declaration_dict(item) for item in s.scalars(select(
                 ExtractedDeclaration).where(
                     ExtractedDeclaration.scan_id == row.id,
-                    ExtractedDeclaration.batch == batch))]
-            evaluations = [_evaluation_dict(item) for item in s.scalars(select(
+                    ExtractedDeclaration.batch == batch).order_by(
+                        ExtractedDeclaration.created_at, ExtractedDeclaration.id))]
+            evaluations = [evaluation_dict(item) for item in s.scalars(select(
                 RuleEvaluation).where(
                     RuleEvaluation.scan_id == row.id,
-                    RuleEvaluation.batch == batch))]
+                    RuleEvaluation.batch == batch).order_by(
+                        RuleEvaluation.evaluated_at, RuleEvaluation.is_override,
+                        RuleEvaluation.id))]
             return ScanRecord(
                 client_uuid=str(row.client_uuid), captured_at=str(row.captured_at),
                 mode=row.mode, category=row.category_code,
@@ -227,7 +233,7 @@ class DbStore:
                 status=row.status, id=str(row.id), overall=row.overall,
                 rulepack_version=row.rulepack_version, rulepack_sha256=row.rulepack_sha256,
                 batch=batch, declarations=declarations, evaluations=evaluations,
-                metadata=_metadata(row), officer_id=str(row.officer_id),
+                metadata=scan_metadata(row), officer_id=str(row.officer_id),
                 jurisdiction_id=str(row.jurisdiction_id))
 
 
@@ -236,64 +242,3 @@ def _uuid_or_404(value: str) -> uuid.UUID:
         return uuid.UUID(value)
     except ValueError:
         raise ApiError("E_NOT_FOUND", f"scan {value} not found") from None
-
-
-def _optional_date(value: str | None) -> date | None:
-    return date.fromisoformat(value) if value else None
-
-
-def _declaration_dict(row: ExtractedDeclaration) -> dict:
-    return {
-        "id": str(row.id), "batch": row.batch, "field": row.field_type,
-        "text": row.raw_text, "normalized_value": row.normalized_value or {},
-        "bbox": [row.bbox_x, row.bbox_y, row.bbox_w, row.bbox_h],
-        "confidence": float(row.ocr_confidence) if row.ocr_confidence is not None else None,
-        "score": float(row.score) if row.score is not None else None,
-        "margin": float(row.runner_up_margin) if row.runner_up_margin is not None else None,
-        "feature_weights": row.feature_weights or {},
-        "source_token_ids": row.source_token_ids or [],
-        "is_composite": row.is_composite, "is_repaired": row.is_repaired,
-        "glyph_height_px": (float(row.glyph_height_px)
-                            if row.glyph_height_px is not None else None),
-    }
-
-
-def _evaluation_dict(row: RuleEvaluation) -> dict:
-    return {
-        "id": str(row.id), "batch": row.batch, "check": row.check_code,
-        "clause": row.clause, "outcome": row.outcome, "reason": row.reason,
-        "citation": row.citation, "evidence": row.evidence or {},
-        "law_version": str(row.law_version) if row.law_version else None,
-        "is_override": row.is_override,
-    }
-
-
-def _metadata(row: Scan) -> dict:
-    return {
-        "buyer_type": row.buyer_type, "package_shape": row.package_shape,
-        "scale_reference_type": row.scale_reference_type,
-        "scale_reference_data": row.scale_reference_data,
-        "px_per_mm": float(row.px_per_mm) if row.px_per_mm is not None else None,
-        "pdp_h_cm": float(row.pdp_h_cm) if row.pdp_h_cm is not None else None,
-        "pdp_w_cm": float(row.pdp_w_cm) if row.pdp_w_cm is not None else None,
-        "capacity_cm3": float(row.capacity_cm3) if row.capacity_cm3 is not None else None,
-        "net_quantity_g": (float(row.net_quantity_g)
-                           if row.net_quantity_g is not None else None),
-        "net_quantity_ml": (float(row.net_quantity_ml)
-                            if row.net_quantity_ml is not None else None),
-        "is_imported": row.is_imported, "is_molded": row.is_molded,
-        "other_law_requires_same_info": row.other_law_requires_same_info,
-        "geo_lat": float(row.geo_lat) if row.geo_lat is not None else None,
-        "geo_lng": float(row.geo_lng) if row.geo_lng is not None else None,
-        "ecommerce_url": row.ecommerce_url, "ecommerce_text": row.ecommerce_text,
-    }
-
-
-def _report_dict(row: ComplianceReport) -> dict:
-    return {
-        "id": str(row.id), "scan_id": str(row.scan_id), "version": row.version,
-        "overall_status": row.overall_status, "pdf_storage_key": row.pdf_storage_key,
-        "docx_storage_key": row.docx_storage_key,
-        "content_sha256": row.content_sha256, "manifest": row.manifest,
-        "finalized_at": row.finalized_at.isoformat(),
-    }

@@ -23,6 +23,10 @@ async def finalize_report(
             and scan.officer_id == principal.id):
         raise ApiError("E_FORBIDDEN", "the capturing officer cannot finalise this report")
     report = request.app.state.reports.finalize(scan_id)
+    request.app.state.auth.audit_action(
+        principal, "compliance_report", report["id"], "REPORT_FINALIZED",
+        {"scan_id": scan_id, "version": report["version"],
+         "content_sha256": report["content_sha256"]})
     return {"report_id": report["id"], "version": report["version"],
             "content_sha256": report["content_sha256"]}
 

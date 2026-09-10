@@ -55,9 +55,11 @@ make dev                                 # migrates, seeds a local officer, serv
 Open `http://127.0.0.1:8000/` for the installable guided capture app and
 `http://127.0.0.1:8000/docs` for the API explorer. The capture app keeps drafts and an
 outbox in IndexedDB, so an interrupted or offline upload can be retried with the same
-client UUID. Run the PostgreSQL round-trip with `make test-db`; run all deterministic
-suites with `make test`; stop PostgreSQL with `make db-down` (the named volume keeps its
-data).
+client UUID. The local API also exposes jurisdiction-scoped scan search, append-only
+declaration corrections, evaluation-batch history and reasoned verdict overrides. A
+correction is reused by later deterministic evaluation batches; the OCR original is never
+deleted. Run the PostgreSQL round-trip with `make test-db`; run all deterministic suites
+with `make test`; stop PostgreSQL with `make db-down` (the named volume keeps its data).
 
 The example environment enables the local-password path with
 `reviewer@local.invalid` and the password shown in `.env.example`. Change that password

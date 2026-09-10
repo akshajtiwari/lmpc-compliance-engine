@@ -6,12 +6,13 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .api import auth, errors, health, reports, scans
+from .api import auth, errors, health, reports, review, scans
 from .config import Settings
 from .svc.object_store import open_object_store
 from .svc.auth import AuthManager
 from .svc.pipeline import Pipeline
 from .svc.reporting import ReportService
+from .svc.review import ReviewService
 from .svc.scan_store import open_store
 
 
@@ -37,14 +38,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.object_store = open_object_store(s)
     app.state.scan_store = open_store(s)
     app.state.auth = AuthManager(s)
+    app.state.review = ReviewService(app.state.scan_store, app.state.auth)
     errors.install(app)
     app.include_router(auth.router)
     app.include_router(health.router)
     app.include_router(scans.router)
     app.include_router(reports.router)
+    app.include_router(review.router)
     pack = health.boot(s.rulepack_path)   # fail-fast before the first request
     app.state.pipeline = Pipeline(
-        app.state.scan_store, app.state.object_store, pack, s.ocr_max_edge)
+        app.state.scan_store, app.state.object_store, pack, s.ocr_max_edge,
+        corrections=app.state.review.corrections)
     app.state.reports = ReportService(
         app.state.scan_store, app.state.object_store, pack, max_edge=s.ocr_max_edge,
         git_sha=s.git_sha, container_digest=s.container_digest)

@@ -167,6 +167,27 @@ class AuthManager:
             self.audit_denial(principal, "scan", scan.id)
             raise ApiError("E_FORBIDDEN", "the scan is outside your authorised scope")
 
+    def ensure_jurisdiction_scope(self, principal: Principal,
+                                  jurisdiction_id: str) -> None:
+        if self.disabled or principal.role == "ADMIN":
+            return
+        allowed = (principal.jurisdiction_id == jurisdiction_id
+                   if principal.role == "FIELD_OFFICER" else
+                   self._jurisdiction_contains(principal.jurisdiction_id, jurisdiction_id))
+        if not allowed:
+            self.audit_denial(principal, "jurisdiction", jurisdiction_id)
+            raise ApiError("E_FORBIDDEN", "the jurisdiction is outside your authorised scope")
+
+    def audit_action(self, principal: Principal, entity_type: str, entity_id: str,
+                     action: str, diff: dict | None = None) -> None:
+        if self.disabled:
+            return
+        with self.sessions() as session:  # type: ignore[operator]
+            session.add(AuditLog(
+                entity_type=entity_type, entity_id=uuid.UUID(entity_id),
+                actor_id=uuid.UUID(principal.id), action=action, diff=diff))
+            session.commit()
+
     def audit_denial(self, principal: Principal, entity_type: str,
                      entity_id: str | None) -> None:
         if self.disabled:
@@ -257,4 +278,3 @@ def _audit(action: str, actor_id: uuid.UUID | None, ip: str | None,
     return AuditLog(
         entity_type="user", entity_id=actor_id, actor_id=actor_id, action=action,
         diff=diff, ip=ip, user_agent=user_agent)
-

@@ -45,10 +45,18 @@ class ScanRecord:
     jurisdiction_id: str | None = None
 
     def latest_declarations(self) -> list[dict[str, Any]]:
-        return [item for item in self.declarations if item["batch"] == self.batch]
+        effective = {}
+        for item in self.declarations:
+            if item["batch"] == self.batch:
+                effective[item["field"]] = item
+        return list(effective.values())
 
     def latest_evaluations(self) -> list[dict[str, Any]]:
-        return [item for item in self.evaluations if item["batch"] == self.batch]
+        effective = {}
+        for item in self.evaluations:
+            if item["batch"] == self.batch:
+                effective[item["check"]] = item
+        return list(effective.values())
 
 
 def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
