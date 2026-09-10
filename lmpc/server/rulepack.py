@@ -41,5 +41,5 @@ def intact(pack: dict | None = None) -> bool:
 def summary() -> dict:
     """The identity every verdict cites."""
     p = get()
-    return {"version": p["version"], "sha256": p["sha256"][:16],
+    return {"version": p["version"], "rulepack_sha256": p["sha256"],
             "current_to": p["currency"]["newest_instrument"]}
