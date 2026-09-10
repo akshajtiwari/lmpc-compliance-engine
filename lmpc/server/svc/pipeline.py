@@ -5,6 +5,7 @@ OCR run marks the scan failed and never fabricates a compliance finding.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -39,7 +40,7 @@ class Pipeline:
                     scan_id, declarations=[], evaluations=_evaluations(result, self.rulepack),
                     overall=result["overall"], rulepack_version=self.rulepack["version"],
                     rulepack_sha256=self.rulepack["sha256"], max_edges={})
-            tokens = []
+            tokens = _listing_tokens(rec)
             for image in rec.images:
                 data = self.objects.read(image.storage_key)
                 tokens.extend(self.reader(
@@ -74,6 +75,25 @@ def _engine_scan(rec: ScanRecord, tokens: list[Token]) -> Scan:
         net_quantity_ml=meta.get("net_quantity_ml"), capacity_cm3=meta.get("capacity_cm3"),
         coverage_asserted=rec.coverage_asserted,
     )
+
+
+def _listing_tokens(rec: ScanRecord) -> list[Token]:
+    """Treat officer-pasted listing text as listing evidence, never as package OCR.
+
+    Rule 6(10) explicitly governs what is displayed online. Geometry here is synthetic
+    and therefore all typography/placement checks remain excluded by the listing mode.
+    """
+    if rec.mode != "ECOMMERCE_LISTING":
+        return []
+    text = (rec.metadata.get("ecommerce_text") or "").strip()
+    if not text:
+        return []
+    lines = [line.strip() for line in re.split(
+        r"(?:\r?\n|(?<=[.;])\s+(?=[A-Z]))", text) if line.strip()]
+    return [Token(
+        line, x=0, y=index * 28, w=max(8, min(1600, len(line) * 8)), h=22,
+        conf=1.0, panel="LISTING", src=frozenset({f"listing:{index}"}))
+        for index, line in enumerate(lines)]
 
 
 def _declarations(fields: dict[str, Field | None]) -> list[dict[str, Any]]:

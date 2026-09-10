@@ -52,9 +52,12 @@ make setup                               # once, if .venv is not already install
 make dev                                 # migrates, seeds a local officer, serves :8000
 ```
 
-Open `http://127.0.0.1:8000/docs` for the API explorer. Run the PostgreSQL round-trip with
-`make test-db`; run all deterministic suites with `make test`; stop PostgreSQL with
-`make db-down` (the named volume keeps its data).
+Open `http://127.0.0.1:8000/` for the installable guided capture app and
+`http://127.0.0.1:8000/docs` for the API explorer. The capture app keeps drafts and an
+outbox in IndexedDB, so an interrupted or offline upload can be retried with the same
+client UUID. Run the PostgreSQL round-trip with `make test-db`; run all deterministic
+suites with `make test`; stop PostgreSQL with `make db-down` (the named volume keeps its
+data).
 
 The dormant S3-compatible adapter is optional. Install `requirements-s3.txt` only when a
 bucket is available and `LMPC_S3_BUCKET` is intentionally configured.

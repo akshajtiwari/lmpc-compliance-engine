@@ -89,3 +89,30 @@ def test_applicability_gate_stops_an_exempt_scan_before_ocr(tmp_path):
     assert completed.declarations == []
     assert completed.images[0].max_edge_used is None
     assert all(item["outcome"] == "NOT_APPLICABLE" for item in completed.evaluations)
+
+
+def test_ecommerce_listing_text_is_evidence_for_rule_6_10(tmp_path):
+    data = b"validated-listing-screenshot"
+    digest = hashlib.sha256(data).hexdigest()
+    image = EvidenceImage(
+        filename="listing.jpg", media_type="image/jpeg", data=b"", sha256=digest,
+        width_px=1400, height_px=900, storage_key=f"images/{digest}.jpg",
+        panel_label="LISTING")
+    objects = LocalObjectStore(tmp_path)
+    objects.put_immutable(image.storage_key, data, image.media_type, digest)
+    scans = MemoryStore()
+    rec, _ = scans.create(
+        client_uuid="10000000-0000-4000-8000-000000000099",
+        captured_at="2026-09-07", mode="ECOMMERCE_LISTING", category="FOOD",
+        coverage_asserted=False, panels=["LISTING"], images=[image],
+        metadata={"ecommerce_text": "MRP Rs. 45.00 (incl. of all taxes)"})
+
+    completed = Pipeline(
+        scans, objects, load(), 1800, reader=lambda *_args, **_kwargs: []).process(rec.id)
+
+    mrp = next(item for item in completed.latest_declarations() if item["field"] == "mrp")
+    assert mrp["panel"] == "LISTING"
+    assert mrp["source_token_ids"] == ["listing:0"]
+    evaluated = {item["check"]: item for item in completed.latest_evaluations()}
+    assert evaluated["LMPC-R6-1-E-MRP"]["outcome"] == "PASS"
+    assert evaluated["LMPC-R7-2-MIN-HEIGHT"]["outcome"] == "NOT_APPLICABLE"

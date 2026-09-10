@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="Offline-capable guided label capture for LMPC inspections">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <title>LMPC Field Capture</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="app-header">
+    <button class="brand" id="homeButton" type="button" aria-label="LMPC home">
+      <span class="brand-mark" aria-hidden="true">माप</span>
+      <span><strong>LMPC</strong><small>Field compliance</small></span>
+    </button>
+    <div class="header-actions">
+      <span class="network" id="networkState" role="status"><i></i><span>Checking</span></span>
+      <button class="icon-button" id="languageButton" type="button" aria-label="Change language">हिं</button>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section class="view active" id="homeView" aria-labelledby="homeTitle">
+      <div class="hero">
+        <p class="eyebrow">LEGAL METROLOGY • FIELD TOOL</p>
+        <h1 id="homeTitle">Inspect every declaration.<br><span>Keep every finding traceable.</span></h1>
+        <p class="hero-copy">Capture each package panel with immediate quality checks. Work stays on this device when offline and syncs to your local compliance server when connected.</p>
+        <div class="hero-actions">
+          <button class="button primary" id="newScanButton" type="button">Start inspection <span aria-hidden="true">→</span></button>
+          <button class="button secondary" id="historyButton" type="button">View saved inspections</button>
+        </div>
+      </div>
+      <div class="home-grid">
+        <article class="status-card">
+          <div class="status-card-head"><span>Local service</span><i id="serviceDot"></i></div>
+          <strong id="serviceStatus">Checking readiness…</strong>
+          <p id="serviceDetail">Rulepack, database and evidence storage</p>
+        </article>
+        <article class="status-card">
+          <div class="status-card-head"><span>On-device queue</span><i class="dot-teal"></i></div>
+          <strong><span id="queuedCount">0</span> waiting to sync</strong>
+          <p id="storageStatus">Checking offline storage…</p>
+        </article>
+        <article class="principle-card">
+          <span class="principle-number">01</span>
+          <div><strong>Coverage before conclusions</strong><p>A missing declaration becomes a violation only after every required surface is confirmed.</p></div>
+        </article>
+        <article class="principle-card">
+          <span class="principle-number">02</span>
+          <div><strong>Law, evidence, reason</strong><p>Every result carries its clause, gazette citation, measured evidence and rulepack hash.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" id="setupView" aria-labelledby="setupTitle">
+      <div class="section-heading">
+        <button class="back-button" data-back="home" type="button">← Back</button>
+        <p class="eyebrow">NEW INSPECTION</p>
+        <h1 id="setupTitle">Tell us what is being inspected</h1>
+        <p>This metadata determines which rules apply. It does not replace anything printed on the label.</p>
+      </div>
+      <form class="form-card" id="setupForm">
+        <div class="field-grid">
+          <label>Inspection mode
+            <select name="mode" id="modeInput">
+              <option value="PHYSICAL_PACKAGE">Physical package</option>
+              <option value="ECOMMERCE_LISTING">E-commerce listing</option>
+            </select>
+          </label>
+          <label>Commodity category
+            <select name="category" required>
+              <option value="FOOD">Food</option>
+              <option value="COSMETIC">Cosmetic</option>
+              <option value="GENERIC">Generic commodity</option>
+              <option value="CEMENT">Cement</option>
+              <option value="FERTILIZER">Fertilizer</option>
+              <option value="FARM_PRODUCE">Farm produce</option>
+              <option value="TOBACCO">Tobacco</option>
+              <option value="DRUG_FORMULATION">Drug formulation</option>
+              <option value="MEDICAL_DEVICE">Medical device</option>
+              <option value="RESTAURANT_FAST_FOOD">Restaurant / fast food</option>
+              <option value="HANDLOOM_THREAD_COIL">Handloom thread coil</option>
+            </select>
+          </label>
+          <label>Buyer type
+            <select name="buyer_type">
+              <option value="RETAIL">Retail</option>
+              <option value="INDUSTRIAL">Industrial</option>
+              <option value="INSTITUTIONAL">Institutional</option>
+            </select>
+          </label>
+          <label>Package shape
+            <select name="package_shape">
+              <option value="RECTANGULAR">Rectangular / flat</option>
+              <option value="CYLINDRICAL">Cylindrical</option>
+              <option value="IRREGULAR">Irregular</option>
+            </select>
+          </label>
+          <label>Capture date
+            <input name="captured_at" id="dateInput" type="date" required>
+          </label>
+          <label>Scale reference
+            <select name="scale_type">
+              <option value="NONE">None</option>
+              <option value="ISO_ID1_CARD">ISO ID-1 card</option>
+              <option value="APRILTAG_36H11">AprilTag 36H11</option>
+              <option value="MANUAL_DIMENSIONS">Manual dimensions</option>
+            </select>
+          </label>
+          <label>Panel height (cm) <small>optional</small>
+            <input name="h_cm" type="number" min="0.01" step="0.01" inputmode="decimal">
+          </label>
+          <label>Panel width (cm) <small>optional</small>
+            <input name="w_cm" type="number" min="0.01" step="0.01" inputmode="decimal">
+          </label>
+        </div>
+        <label class="checkbox"><input name="is_imported" type="checkbox"><span>Imported package</span></label>
+        <label class="checkbox"><input name="is_molded" type="checkbox"><span>Declarations are moulded or embossed</span></label>
+        <div class="listing-fields" id="listingFields" hidden>
+          <label>Listing URL <small>optional</small><input name="listing_url" type="url" placeholder="https://…"></label>
+          <label>Listing text <textarea name="listing_text" rows="5" placeholder="Paste all product-page declaration text"></textarea></label>
+        </div>
+        <div class="form-actions"><button class="button primary" type="submit">Continue to guided capture →</button></div>
+      </form>
+    </section>
+
+    <section class="view capture-view" id="captureView" aria-labelledby="captureTitle">
+      <div class="capture-topbar">
+        <button class="back-button" id="captureBack" type="button">← Details</button>
+        <div class="progress-wrap"><span id="stepText">Panel 1 of 5</span><div class="progress"><i id="stepProgress"></i></div></div>
+        <button class="text-button danger" id="discardButton" type="button">Discard</button>
+      </div>
+      <div class="capture-layout">
+        <div class="camera-column">
+          <div class="camera-shell" id="cameraShell">
+            <video id="camera" playsinline muted aria-label="Camera preview"></video>
+            <canvas id="captureCanvas" hidden></canvas>
+            <div class="frame-guide" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <div class="camera-empty" id="cameraEmpty">
+              <span class="camera-glyph" aria-hidden="true">⌾</span>
+              <strong>Camera is not active</strong>
+              <p>Allow camera access, or choose an existing photograph.</p>
+            </div>
+            <div class="live-quality" id="liveQuality" hidden></div>
+          </div>
+          <div class="camera-actions">
+            <button class="button secondary" id="startCameraButton" type="button">Start camera</button>
+            <button class="shutter" id="shutterButton" type="button" aria-label="Capture photograph" hidden><i></i></button>
+            <label class="button secondary file-button">Choose photo<input id="fileInput" type="file" accept="image/jpeg,image/png,image/heic,image/heif" capture="environment"></label>
+          </div>
+          <p class="fallback-note">Choosing a file is supported, but cannot prove full-surface coverage. The final coverage assertion will remain off.</p>
+        </div>
+        <aside class="capture-instructions">
+          <p class="eyebrow" id="panelKind">REQUIRED PANEL</p>
+          <h1 id="captureTitle">Front panel</h1>
+          <p id="panelInstruction">Place the main display panel inside the guide. Keep the camera square and make all print readable.</p>
+          <div class="quality-list" id="qualityList">
+            <div data-gate="resolution"><i>○</i><span><strong>Resolution</strong><small>At least 1200 px on the long edge</small></span><b>Waiting</b></div>
+            <div data-gate="blur"><i>○</i><span><strong>Sharpness</strong><small>Hold still and tap to focus</small></span><b>Waiting</b></div>
+            <div data-gate="exposure"><i>○</i><span><strong>Exposure</strong><small>Print must not be too dark or bright</small></span><b>Waiting</b></div>
+            <div data-gate="glare"><i>○</i><span><strong>Glare</strong><small>Tilt away from direct light</small></span><b>Waiting</b></div>
+          </div>
+          <div class="quality-message" id="qualityMessage" role="alert" hidden></div>
+          <div class="accepted-preview" id="acceptedPreview" hidden>
+            <img alt="Accepted panel preview" id="acceptedImage">
+            <div><strong>Panel accepted</strong><small id="acceptedMetrics"></small></div>
+            <button class="text-button" id="retakeButton" type="button">Retake</button>
+          </div>
+          <label class="waive-box" id="waiveBox"><input type="checkbox" id="waiveInput"><span><strong id="waiveTitle">This panel is unavailable</strong><small id="waiveHelp">Coverage will not be asserted. Missing declarations will remain indeterminate.</small></span></label>
+          <button class="button primary full" id="nextPanelButton" type="button" disabled>Accept and continue →</button>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="reviewView" aria-labelledby="reviewTitle">
+      <div class="section-heading">
+        <button class="back-button" id="reviewBack" type="button">← Capture</button>
+        <p class="eyebrow">REVIEW EVIDENCE</p>
+        <h1 id="reviewTitle">Confirm the inspection record</h1>
+        <p>Nothing is evaluated until these exact image hashes reach the local server.</p>
+      </div>
+      <div class="review-layout">
+        <div class="panel-review" id="panelReview"></div>
+        <aside class="submit-card">
+          <div class="coverage-status" id="coverageStatus"></div>
+          <dl id="reviewMetadata"></dl>
+          <button class="button primary full" id="submitScanButton" type="button">Submit and evaluate</button>
+          <button class="button secondary full" id="saveOfflineButton" type="button">Save to offline queue</button>
+          <p class="small-note">The same client UUID makes retrying safe; the server will never create a duplicate scan.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="syncView" aria-labelledby="syncTitle">
+      <div class="sync-card">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="eyebrow">SECURE LOCAL SYNC</p>
+        <h1 id="syncTitle">Preserving evidence…</h1>
+        <p id="syncMessage">Hashing the accepted panels before upload.</p>
+        <div class="sync-steps" id="syncSteps">
+          <span class="active">1. Verify hashes</span><span>2. Store originals</span><span>3. Evaluate rules</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="resultView" aria-labelledby="resultTitle">
+      <div class="result-header">
+        <button class="back-button" id="resultHome" type="button">← Home</button>
+        <div class="rulepack-chip" id="rulepackChip"></div>
+      </div>
+      <div id="resultSummary"></div>
+      <div class="result-layout">
+        <div>
+          <div class="evidence-tabs" id="evidenceTabs"></div>
+          <div class="evidence-viewer"><img id="evidenceImage" alt="Selected evidence panel"><div id="evidenceBoxes"></div></div>
+          <section class="declarations-section"><h2>Extracted declarations</h2><div id="declarationList"></div></section>
+        </div>
+        <aside>
+          <div class="filter-row" id="verdictFilters"></div>
+          <div class="verdict-list" id="verdictList"></div>
+        </aside>
+      </div>
+      <div class="report-bar">
+        <div><strong>Ready for an immutable report?</strong><span>PDF and editable DOCX are rendered from this same finding set.</span></div>
+        <button class="button primary" id="finalizeButton" type="button">Finalise report</button>
+        <div class="download-group" id="downloadGroup" hidden></div>
+      </div>
+    </section>
+
+    <section class="view" id="historyView" aria-labelledby="historyTitle">
+      <div class="section-heading history-heading">
+        <button class="back-button" data-back="home" type="button">← Home</button>
+        <p class="eyebrow">ON THIS DEVICE</p>
+        <h1 id="historyTitle">Saved inspections</h1>
+        <p>Drafts and queued captures stay available offline. Synced records open their latest local result.</p>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

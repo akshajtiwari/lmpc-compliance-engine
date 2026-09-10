@@ -84,7 +84,26 @@ async def test_submit_scan_persists_hash_addressed_evidence(app):
     assert [(image["width"], image["height"]) for image in body["images"]] == [(12, 8)] * 2
     for image in body["images"]:
         assert app.state.object_store.read(image["storage_key"]) == _jpeg()
+        served = await _request(app, "GET", image["url"])
+        assert served.content == _jpeg()
+        assert served.headers["content-type"] == "image/jpeg"
+        assert served.headers["etag"] == f'"{image["sha256"]}"'
     assert all(image.data == b"" for image in app.state.scan_store.get(body["scan_id"]).images)
+
+
+async def test_panel_labels_must_be_unique(app):
+    response = await _post(app, panels=["FRONT", "FRONT"])
+    assert response.status_code == 400
+    assert "only be uploaded once" in response.json()["error"]["message"]
+
+
+async def test_capture_pwa_is_served_by_the_api_process(app):
+    page = await _request(app, "GET", "/")
+    manifest = await _request(app, "GET", "/manifest.webmanifest")
+    assert page.status_code == 200 and "LMPC Field Capture" in page.text
+    assert manifest.status_code == 200 and manifest.json()["start_url"] == "/"
+    assert "default-src 'self'" in page.headers["content-security-policy"]
+    assert page.headers["permissions-policy"] == "camera=(self), geolocation=(self)"
 
 
 async def test_reevaluate_runs_the_real_rule_engine_and_returns_the_latest_batch(app):

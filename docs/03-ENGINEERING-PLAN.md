@@ -19,9 +19,9 @@ proposal; it is a report on a partly-built system.
 | Rulepack | **Working.** 21 checks, 4 gates, hash-addressed, current to G.S.R. 418(E) (29 May 2026) |
 | Rule engine | **Working.** 6 verdict states, temporal selection, 12 operators |
 | Extraction | **Weak.** MRP found on ~50 % of packets where it is legible |
-| Capture app | **Not built.** This is now the highest-value missing piece |
+| Capture app | **Local MVP working.** Guided panels, measurable quality gates, offline outbox and retry-safe sync |
 | Web console | **Not built** |
-| Reports, repository, auth | **Not built** |
+| Reports, repository, auth | **Reports + PostgreSQL repository working; auth not built** |
 | Tests | 74 unit/integration · 22 scenarios (28 expectations) · 24 campaign checks · 140 real products |
 
 **Validated behaviour:** 0 false accusations in 2,700 real rule evaluations; 0 violations

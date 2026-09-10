@@ -4,7 +4,7 @@ Every image is validated, hash-verified and persisted before processing is accep
 from __future__ import annotations
 import json
 from fastapi import APIRouter, File, Form, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from ..svc.evidence import validate_image
 from ..svc.scan_service import validate, validate_metadata
@@ -71,6 +71,20 @@ async def get_scan(scan_id: str, request: Request) -> dict:
     return _envelope(request.app.state.scan_store.get(scan_id), created=True)
 
 
+@router.get("/{scan_id}/images/{panel}")
+async def get_scan_image(scan_id: str, panel: str, request: Request) -> Response:
+    rec = request.app.state.scan_store.get(scan_id)
+    image = next((item for item in rec.images if item.panel_label == panel), None)
+    if image is None:
+        raise ApiError("E_NOT_FOUND", f"panel {panel} not found on scan {scan_id}")
+    body = request.app.state.object_store.read(image.storage_key)
+    media_type = image.media_type or _media_type(image.storage_key)
+    return Response(
+        body, media_type=media_type,
+        headers={"Cache-Control": "private, max-age=31536000, immutable",
+                 "ETag": f'"{image.sha256}"', "X-Content-Type-Options": "nosniff"})
+
+
 @router.post("/{scan_id}/reevaluate")
 async def reevaluate_scan(scan_id: str, request: Request) -> JSONResponse:
     """Run one append-only evaluation batch.
@@ -101,7 +115,8 @@ def _envelope(rec, created: bool) -> dict:
                          if rec.rulepack_version else None),
             "images": [{"panel": image.panel_label, "storage_key": image.storage_key,
                         "sha256": image.sha256, "width": image.width_px,
-                        "height": image.height_px, "max_edge_used": image.max_edge_used}
+                        "height": image.height_px, "max_edge_used": image.max_edge_used,
+                        "url": f"/api/v1/scans/{rec.id}/images/{image.panel_label}"}
                        for image in rec.images],
             "declarations": rec.latest_declarations(),
             "evaluations": rec.latest_evaluations()}
@@ -122,3 +137,11 @@ def _json_object(raw: str | None, field: str) -> dict:
     if not isinstance(value, dict):
         raise ApiError("E_VALIDATION", f"{field} must be a JSON object")
     return value
+
+
+def _media_type(storage_key: str) -> str:
+    if storage_key.endswith(".png"):
+        return "image/png"
+    if storage_key.endswith(".heic"):
+        return "image/heic"
+    return "image/jpeg"

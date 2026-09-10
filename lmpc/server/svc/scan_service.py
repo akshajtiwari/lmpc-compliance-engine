@@ -67,6 +67,8 @@ def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
         raise ApiError("E_VALIDATION", "1–6 images, one panel label per image")
     if any(panel not in PANELS for panel in panels):
         raise ApiError("E_VALIDATION", "unsupported panel label")
+    if len(set(panels)) != len(panels):
+        raise ApiError("E_VALIDATION", "a panel label may only be uploaded once")
     if coverage_asserted and not REQUIRED_PANELS.issubset(panels):
         raise ApiError(
             "E_COVERAGE_MISMATCH",
