@@ -77,12 +77,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not request.url.path.endswith(("/docs", "/redoc", "/openapi.json")):
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; img-src 'self' blob: data:; "
-                "style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; "
+                "style-src 'self'; script-src 'self'; connect-src 'self'; "
                 "worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Permissions-Policy"] = "camera=(self), geolocation=(self)"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
+        if request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains; preload")
         return response
 
     app.state.settings = s

@@ -58,6 +58,7 @@ async def login(payload: LoginBody, request: Request) -> JSONResponse:
         "access_token": access, "refresh_token": refresh,
         "expires_in": int(ACCESS_TTL.total_seconds()), "user": principal.public(),
     })
+    response.headers["Cache-Control"] = "no-store"
     _cookie(response, refresh, request.app.state.settings.cookie_secure)
     return response
 
@@ -75,6 +76,7 @@ async def refresh(
         "access_token": access, "expires_in": int(ACCESS_TTL.total_seconds()),
         "user": principal.public(),
     })
+    response.headers["Cache-Control"] = "no-store"
     _cookie(response, rotated, request.app.state.settings.cookie_secure)
     return response
 

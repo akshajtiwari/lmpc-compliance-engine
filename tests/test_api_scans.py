@@ -121,6 +121,7 @@ async def test_capture_pwa_is_served_by_the_api_process(app):
     assert page.status_code == 200 and "LMPC Field Capture" in page.text
     assert manifest.status_code == 200 and manifest.json()["start_url"] == "/"
     assert "default-src 'self'" in page.headers["content-security-policy"]
+    assert "unsafe-inline" not in page.headers["content-security-policy"]
     assert page.headers["permissions-policy"] == "camera=(self), geolocation=(self)"
 
 

@@ -13,6 +13,7 @@ def test_pwa_shell_is_small_and_has_no_network_dependency():
     assert 'src="https://' not in content
     assert 'href="https://' not in content
     assert "url(\"https://" not in content
+    assert "style=\"" not in content
 
 
 def test_offline_queue_uses_the_required_indexeddb_stores():

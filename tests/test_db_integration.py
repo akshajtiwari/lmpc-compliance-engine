@@ -141,6 +141,7 @@ async def test_local_login_rotation_and_rbac_are_enforced(auth_app):
             "password": credentials["reviewer_password"]})
         assert anonymous.status_code == 401 and bad.status_code == 401
         assert login.status_code == 200 and "HttpOnly" in login.headers["set-cookie"]
+        assert login.headers["cache-control"] == "no-store"
         first_refresh = login.json()["refresh_token"]
         access = login.json()["access_token"]
         me = await client.get(

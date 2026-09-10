@@ -366,7 +366,7 @@ function renderCapture() {
   panelIndex = Math.max(0, Math.min(panelIndex, panels.length - 1));
   const panel = panels[panelIndex];
   $("#stepText").textContent = `Panel ${panelIndex + 1} of ${panels.length}`;
-  $("#stepProgress").style.width = `${((panelIndex + 1) / panels.length) * 100}%`;
+  $("#stepProgress").value = ((panelIndex + 1) / panels.length) * 100;
   $("#panelKind").textContent = panel.kind;
   $("#captureTitle").textContent = panel.title;
   $("#panelInstruction").textContent = panel.instruction;
@@ -810,7 +810,7 @@ function renderDeclarations(declarations) {
     const weights = Object.entries(item.feature_weights || {});
     const max = Math.max(1, ...weights.map(([, value]) => Number(value)));
     const action = hasPermission("declarations:correct") && currentResult?.status !== "FINALIZED" ? `<button class="review-action" data-correct="${esc(item.field)}" type="button">Correct extraction</button>` : "";
-    return `<article class="declaration"><div class="declaration-head"><span>${esc(item.field)}${item.corrected_by ? " · officer corrected" : ""}</span><b>score ${Number(item.score || 0).toFixed(1)} · margin ${Number(item.margin || 0).toFixed(1)}</b></div><q>${esc(item.text)}</q><div class="score-bars">${weights.map(([name, value]) => `<div class="score-bar"><span>${esc(name)}</span><i><b style="width:${Math.max(0, Number(value) / max * 100)}%"></b></i><strong>${Number(value).toFixed(1)}</strong></div>`).join("")}</div>${action}</article>`;
+    return `<article class="declaration"><div class="declaration-head"><span>${esc(item.field)}${item.corrected_by ? " · officer corrected" : ""}</span><b>score ${Number(item.score || 0).toFixed(1)} · margin ${Number(item.margin || 0).toFixed(1)}</b></div><q>${esc(item.text)}</q><div class="score-bars">${weights.map(([name, value]) => `<div class="score-bar"><span>${esc(name)}</span><progress max="${max}" value="${Math.max(0, Number(value))}" aria-label="${esc(name)} weight"></progress><strong>${Number(value).toFixed(1)}</strong></div>`).join("")}</div>${action}</article>`;
   }).join("") || '<div class="empty-state"><strong>No declaration was identified confidently</strong><span>The rules will abstain where evidence is insufficient.</span></div>';
   $$('[data-correct]').forEach(button => button.addEventListener("click", () => {
     const item = currentResult.declarations.find(row => row.field === button.dataset.correct);
