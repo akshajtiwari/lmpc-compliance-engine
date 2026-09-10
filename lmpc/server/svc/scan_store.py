@@ -16,7 +16,8 @@ from sqlalchemy.orm.exc import NoResultFound
 from ..api.errors import ApiError
 from ..config import Settings
 from ..db import sessionmaker_of
-from ..db.models import ExtractedDeclaration, RuleEvaluation, Scan, ScanImage
+from ..db.models import (ComplianceReport, ExtractedDeclaration, RuleEvaluation, Scan,
+                         ScanImage)
 from .evidence import EvidenceImage
 from .scan_service import MemoryStore, ScanRecord, validate
 
@@ -138,6 +139,44 @@ class DbStore:
                 row.status = "FAILED"
                 session.commit()
 
+    def next_report_version(self, scan_id: str) -> int:
+        scan_uuid = _uuid_or_404(scan_id)
+        with self.sessions() as session:
+            if session.get(Scan, scan_uuid) is None:
+                raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found")
+            latest = session.scalar(select(func.max(ComplianceReport.version)).where(
+                ComplianceReport.scan_id == scan_uuid)) or 0
+            return latest + 1
+
+    def save_report(self, scan_id: str, *, version: int, overall_status: str,
+                    pdf_storage_key: str, docx_storage_key: str,
+                    content_sha256: str, manifest: dict) -> dict:
+        scan_uuid = _uuid_or_404(scan_id)
+        with self.sessions() as session:
+            scan = session.get(Scan, scan_uuid)
+            if scan is None:
+                raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found")
+            report = ComplianceReport(
+                scan_id=scan_uuid, version=version, overall_status=overall_status,
+                pdf_storage_key=pdf_storage_key, docx_storage_key=docx_storage_key,
+                content_sha256=content_sha256, manifest=manifest)
+            session.add(report)
+            scan.status = "FINALIZED"
+            session.commit()
+            session.refresh(report)
+            return _report_dict(report)
+
+    def get_report(self, report_id: str) -> dict:
+        try:
+            report_uuid = uuid.UUID(report_id)
+        except ValueError:
+            raise ApiError("E_NOT_FOUND", f"report {report_id} not found") from None
+        with self.sessions() as session:
+            report = session.get(ComplianceReport, report_uuid)
+            if report is None:
+                raise ApiError("E_NOT_FOUND", f"report {report_id} not found")
+            return _report_dict(report)
+
     def _rec(self, scan_id: str | None = None, client_uuid: str | None = None) -> ScanRecord:
         with self.sessions() as s:
             q = s.query(Scan)
@@ -226,4 +265,14 @@ def _metadata(row: Scan) -> dict:
         "geo_lat": float(row.geo_lat) if row.geo_lat is not None else None,
         "geo_lng": float(row.geo_lng) if row.geo_lng is not None else None,
         "ecommerce_url": row.ecommerce_url, "ecommerce_text": row.ecommerce_text,
+    }
+
+
+def _report_dict(row: ComplianceReport) -> dict:
+    return {
+        "id": str(row.id), "scan_id": str(row.scan_id), "version": row.version,
+        "overall_status": row.overall_status, "pdf_storage_key": row.pdf_storage_key,
+        "docx_storage_key": row.docx_storage_key,
+        "content_sha256": row.content_sha256, "manifest": row.manifest,
+        "finalized_at": row.finalized_at.isoformat(),
     }

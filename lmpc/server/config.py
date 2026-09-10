@@ -20,6 +20,8 @@ class Settings:
     max_image_pixels: int = 100_000_000
     ocr_max_edge: int = 1800
     rate_limit_per_min: int = 60
+    git_sha: str = ""
+    container_digest: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -38,4 +40,6 @@ class Settings:
             max_image_pixels=int(e.get("LMPC_MAX_IMAGE_PIXELS", cls.max_image_pixels)),
             ocr_max_edge=int(e.get("LMPC_OCR_MAX_EDGE", cls.ocr_max_edge)),
             rate_limit_per_min=int(e.get("LMPC_RATE_LIMIT_PER_MIN",
-                                         cls.rate_limit_per_min)))
+                                         cls.rate_limit_per_min)),
+            git_sha=e.get("LMPC_GIT_SHA", ""),
+            container_digest=e.get("LMPC_CONTAINER_DIGEST", ""))

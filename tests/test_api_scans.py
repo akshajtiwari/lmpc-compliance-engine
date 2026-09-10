@@ -164,3 +164,26 @@ async def test_unknown_scan_is_404(app):
     response = await _request(app, "GET", "/api/v1/scans/nope")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "E_NOT_FOUND"
+
+
+async def test_report_finalization_metadata_and_downloads(app):
+    submitted = (await _post(app, coverage_asserted="false", panels=["FRONT"])).json()
+
+    def reader(_data, *, panel, **_kwargs):
+        return [Token("MRP Rs. 45.00 (incl. of all taxes)", 2, 3, 300, 20,
+                      conf=0.99, panel=panel)]
+
+    app.state.pipeline.reader = reader
+    scan_id = submitted["scan_id"]
+    await _request(app, "POST", f"/api/v1/scans/{scan_id}/reevaluate")
+    finalized = await _request(app, "POST", f"/api/v1/scans/{scan_id}/report")
+    assert finalized.status_code == 201
+    report_id = finalized.json()["report_id"]
+    metadata = await _request(app, "GET", f"/api/v1/reports/{report_id}")
+    assert metadata.json()["content_sha256"] == finalized.json()["content_sha256"]
+    pdf = await _request(app, "GET", f"/api/v1/reports/{report_id}/download?format=pdf")
+    docx = await _request(app, "GET", f"/api/v1/reports/{report_id}/download?format=docx")
+    assert pdf.content.startswith(b"%PDF-") and pdf.headers["content-type"] == "application/pdf"
+    assert docx.content.startswith(b"PK") and "wordprocessingml" in docx.headers["content-type"]
+    blocked = await _request(app, "POST", f"/api/v1/scans/{scan_id}/reevaluate")
+    assert blocked.status_code == 409 and blocked.json()["error"]["code"] == "E_SCAN_FINALIZED"
