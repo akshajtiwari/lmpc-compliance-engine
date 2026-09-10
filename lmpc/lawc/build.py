@@ -96,10 +96,10 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
     ensure_corpus(corpus)
     compiled = parse.main(corpus)
     chain = compiled["chain"]
-    b = yaml.safe_load(BINDINGS.read_text())
+    b = yaml.safe_load(BINDINGS.read_text(encoding="utf-8"))
 
     acknowledged = {g["gsr"]: g for g in
-                    (yaml.safe_load(GAPS.read_text()) or {}).get("gaps", [])}
+                    (yaml.safe_load(GAPS.read_text(encoding="utf-8")) or {}).get("gaps", [])}
     disclosures = []
     for m in chain["missing_documents"]:
         g = acknowledged.get(m["gsr"])
@@ -196,7 +196,7 @@ def build(corpus: Path = CORPUS, out: Path = OUT) -> dict:
 
     out.mkdir(exist_ok=True)
     path = out / "current.json"
-    path.write_text(json.dumps(pack, indent=2, ensure_ascii=False))
+    path.write_text(json.dumps(pack, indent=2, ensure_ascii=False), encoding="utf-8")
     return pack
 
 
@@ -218,7 +218,7 @@ def verify(pack: dict) -> None:
 
 
 def load(out: Path = OUT, check: bool = True) -> dict:
-    pack = json.loads((out / "current.json").read_text())
+    pack = json.loads((out / "current.json").read_text(encoding="utf-8"))
     if check:
         verify(pack)
     return pack

@@ -16,7 +16,9 @@ _pack: dict | None = None
 def load(path: str) -> dict:
     """Read and verify once; re-verified on every restart, never on every request."""
     global _pack
-    with open(path) as fh:
+    # The rulepack contains Unicode legal text. Relying on the Windows ANSI locale
+    # silently mojibakes that text and therefore changes its verified content hash.
+    with open(path, encoding="utf-8") as fh:
         pack = json.load(fh)
     try:
         verify(pack)

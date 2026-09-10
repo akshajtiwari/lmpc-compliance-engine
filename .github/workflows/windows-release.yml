@@ -50,6 +50,7 @@ jobs:
       RELEASE_TAG: ${{ inputs.release_tag }}
       PRE_RELEASE: ${{ inputs.prerelease }}
       LMPC_PANGO_DLL_DIR: C:\msys64\ucrt64\bin
+      WEASYPRINT_DLL_DIRECTORIES: C:\msys64\ucrt64\bin
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

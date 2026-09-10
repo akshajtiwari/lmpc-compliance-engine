@@ -44,6 +44,9 @@ for distribution in ("rapidocr-onnxruntime", "onnxruntime", "weasyprint", "pytho
 # linked dependencies into the application folder.
 if sys.platform == "win32":
     dll_root = Path(os.environ.get("LMPC_PANGO_DLL_DIR", r"C:\msys64\ucrt64\bin"))
+    fontconfig_root = dll_root.parent / "etc" / "fonts"
+    if fontconfig_root.exists():
+        datas.append((str(fontconfig_root), "etc/fonts"))
     patterns = (
         "libgobject-2.0-0.dll",
         "libglib-2.0-0.dll",

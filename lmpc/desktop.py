@@ -42,6 +42,9 @@ def _configure_windows_dlls() -> None:
         return
     root = _bundle_root()
     os.environ["WEASYPRINT_DLL_DIRECTORIES"] = str(root)
+    fontconfig_root = root / "etc" / "fonts"
+    os.environ["FONTCONFIG_FILE"] = str(fontconfig_root / "fonts.conf")
+    os.environ["FONTCONFIG_PATH"] = str(fontconfig_root)
     add_directory = getattr(os, "add_dll_directory", None)
     if add_directory:
         add_directory(str(root))
