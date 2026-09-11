@@ -34,6 +34,7 @@ the system, not by estimating.
 | [`evidence/WIDE-REAL-WORLD-TEST.md`](evidence/WIDE-REAL-WORLD-TEST.md) | 80 more products across cosmetics, household, pet food — 3 defects, resolution budget |
 | [`evidence/LOAD-TEST.md`](evidence/LOAD-TEST.md) | Managed-account inspection load harness, thresholds and measured-run status |
 | [`evidence/ACCESSIBILITY.md`](evidence/ACCESSIBILITY.md) | Automated Workbench WCAG 2.1 A/AA audit, remediations and remaining manual scope |
+| [`evidence/MOBILE-CLIENT-SLICE.md`](evidence/MOBILE-CLIENT-SLICE.md) | What the Field app slice proves by test, what needs a physical device, and what was deliberately not built |
 
 ## Source material
 
