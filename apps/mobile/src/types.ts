@@ -15,6 +15,11 @@ export type Session = {
   user: Principal;
 };
 
+export type AccountScope = {
+  accountId: string;
+  serverFingerprint: string;
+};
+
 export type CapturedPanel = {
   panel: "FRONT" | "BACK" | "SIDE_1" | "SIDE_2";
   uri: string;
@@ -77,4 +82,11 @@ export type LocalInspection = {
   state: "QUEUED" | "UPLOADING" | "COMPLETE" | "FAILED";
   error: string | null;
   draft_json: string;
+  attempts: number;
+  next_attempt_at: string | null;
+  last_attempt_at: string | null;
+  synced_at: string | null;
+  account_id: string | null;
+  server_fingerprint: string | null;
+  updated_at: string;
 };
