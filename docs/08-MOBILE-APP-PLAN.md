@@ -258,11 +258,16 @@ Where things stand today (verified by the repository's own tests, not device run
   offline outbox and idempotent sync, M5's client pieces (capture-quality gates with
   retake prompts, per-panel deferred upload, report PDF download/share, six-state
   verdict mapping), and most of M6's CI lane (typecheck, lint, unit tests, doctor,
-  JS-bundle export, OpenAPI drift check, cleartext-policy check).
+  JS-bundle export, OpenAPI drift check, cleartext-policy check). Also code-complete:
+  scale-reference capture (ID-1 card corner marking, plan §6.3), the server's
+  perspective-aware measurement that consumes it (`lmpc/server/svc/scale.py`), and
+  e-commerce listing capture in the Field app (plan §6.4) — see
+  `docs/evidence/MOBILE-CLIENT-SLICE.md` for what the tests prove.
 - **Still pending physical validation:** every milestone **gate** (M1–M7) requires the
   real-device drills described below; nothing in this repository substitutes for them.
-- **Not built:** scale-reference capture, perspective measurement, e-commerce capture in
-  the Field app, iOS parity, signed release builds.
+  The scale-reference marking UX specifically needs a hand-held drill: the homography
+  math is verified on synthetic cameras, the drag UX is not.
+- **Not built:** iOS parity, signed release builds.
 
 ### M0 — LAN and API foundation
 

@@ -106,8 +106,10 @@ export class ApiClient {
   async upload(draft: Draft): Promise<ScanResult> {
     // Deferred intake (plan §8 item 9): declare the inspection, then upload each
     // panel on its own request so a flaky network resumes instead of restarting.
+    const mode=draft.mode??"PHYSICAL_PACKAGE";
     const form=new FormData();
-    form.append("client_uuid",draft.clientUuid);form.append("captured_at",draft.capturedAt);form.append("mode","PHYSICAL_PACKAGE");form.append("category",draft.category);form.append("coverage_asserted",String(draft.coverageAsserted));form.append("buyer_type",draft.buyerType);form.append("package_shape",draft.packageShape);form.append("scale_reference",JSON.stringify({type:"NONE"}));form.append("flags",JSON.stringify({}));
+    form.append("client_uuid",draft.clientUuid);form.append("captured_at",draft.capturedAt);form.append("mode",mode);form.append("category",draft.category);form.append("coverage_asserted",String(draft.coverageAsserted));form.append("buyer_type",draft.buyerType);form.append("package_shape",draft.packageShape);form.append("scale_reference",JSON.stringify(draft.scaleReference??{type:"NONE"}));form.append("flags",JSON.stringify({}));
+    if(draft.listing)form.append("ecommerce",JSON.stringify({listing_text:draft.listing.text,url:draft.listing.url}));
     for(const item of draft.panels)form.append("panels",item.panel);
     // begin is idempotent: the retry that timed out gets the scan that already exists.
     const begun=await this.request<ScanResult>("/scans/deferred",{method:"POST",body:form},true,45_000);

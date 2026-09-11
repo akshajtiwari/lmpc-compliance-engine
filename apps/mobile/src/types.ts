@@ -28,11 +28,25 @@ export type FrameQualityReport = {
   warnings: string[];
 };
 
+export type PanelLabel = "FRONT" | "BACK" | "SIDE_1" | "SIDE_2" | "SCALE_REF"
+  | "LISTING" | `LISTING_${2 | 3 | 4 | 5 | 6}`;
+
 export type CapturedPanel = {
-  panel: "FRONT" | "BACK" | "SIDE_1" | "SIDE_2";
+  panel: PanelLabel;
   uri: string;
   source: "CAMERA" | "GALLERY";
   quality?: FrameQualityReport;
+};
+
+// Corner marks in ORIGINAL image pixel coordinates, clockwise from the first
+// corner of the long edge. The server's scale module re-derives everything.
+export type ScaleReference = {
+  type: "NONE" | "ISO_ID1_CARD";
+  data?: {
+    observed_px?: number;
+    quad?: number[][];
+    panel_quad?: number[][];
+  };
 };
 
 export type Draft = {
@@ -43,6 +57,9 @@ export type Draft = {
   packageShape: "RECTANGULAR" | "CYLINDRICAL" | "IRREGULAR";
   coverageAsserted: boolean;
   panels: CapturedPanel[];
+  mode?: "PHYSICAL_PACKAGE" | "ECOMMERCE_LISTING";
+  scaleReference?: ScaleReference;
+  listing?: {text: string; url: string | null};
 };
 
 export type Finding = {

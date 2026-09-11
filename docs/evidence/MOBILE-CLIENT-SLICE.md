@@ -42,8 +42,28 @@ Every item below is covered by an automated test that runs in the repository's C
   begin (idempotent) → per-panel uploads, skipping panels the server already holds →
   complete-upload → process; a resumed attempt of an already-evaluated scan returns
   the existing result instead of reprocessing.
+- **Scale-reference capture** (`apps/mobile/src/quad.ts`,
+  `apps/mobile/tests/quad.test.cjs`, `apps/mobile/src/ScaleMark.tsx`): the officer lays
+  an ISO ID-1 card on the package's display face, photographs it, and drags corner
+  handles onto the card and (optionally) the display panel. The client validates only
+  convexity and ID-1 aspect (±22%) as an advisory pre-gate; every physical conclusion
+  is derived server-side.
+- **Perspective-aware server measurement** (`lmpc/server/svc/scale.py`,
+  `tests/test_scale_reference.py`): card-corner quads are converted to an image→
+  millimetre homography (SVD-solved); the display panel's quad is back-mapped through
+  the inverse homography and its px/mm is the area average `√(area_px/area_mm)`, which
+  recovers exact panel dimensions in centimetres for coplanar rectangular faces. Mis-
+  marked quads (non-convex, non-ID-1 aspect, tilted card, non-rectangular mapped panel,
+  implausible scale) return `None`, so the engine abstains INDETERMINATE rather than
+  guessing; with clean marks, `LMPC-R7-2-MIN-HEIGHT` evaluates to PASS on a synthetic
+  camera (px/mm 12) where it previously could not run at all.
+- **E-commerce listing capture** (`apps/mobile/src/ListingCapture.tsx`): a dedicated
+  capture mode for third-party online listings — pasted shopper-visible text, optional
+  source URL, and 1–6 screenshots labelled `LISTING`…`LISTING_6`, uploaded through the
+  same deferred flow with `mode=ECOMMERCE_LISTING` and coverage asserted false (Rule
+  6(10) checks the online display; screenshots never assert package coverage).
 - **TypeScript**: `npm run typecheck` covers the full app, and `npm test` compiles the
-  sync and quality modules before running the unit tests.
+  sync, quality and quad modules before running the unit tests.
 - **Python suite**: the full server/engine test suite passes with the new routes,
   including the RBAC route-permission matrix and the repository line-budget guards
   (`scan_intake.py`, `scan_payload.py`, `scan_fields.py`, `report_store.py` were
@@ -64,19 +84,20 @@ on real hardware:
 - M7: iOS entirely (credentials absent).
 - Cleartext/ATS behavior on-device (the plugin logic is unit-tested; the produced
   manifest is not verified by an emulator here).
+- Scale-reference marking against a real photo of a real card on a real package
+  (the homography math is tested on synthetic cameras; the drag UX has not been held
+  by a hand).
 
 ## Published preview
 
 Tag `v0.3.0-preview` carries the Windows portable build and the Field APK together on one
 GitHub release, both with SHA-256 checksums; install steps live in the top-level README.
 The APK is built by CI from a clean checkout that passes typecheck, lint, unit tests and
-expo-doctor — but M1–M4 and M6 above still require a physical phone.
+expo-doctor — but M1–M4 and M6 above still require a physical phone. That APK predates
+the scale-reference and listing capture slices; they will ride the next tagged build.
 
 ## Deliberately not built
 
-- Scale-reference capture and perspective measurement (needs native modules; the
-  server's W4 dimension checks cannot consume client scale data yet).
-- E-commerce listing capture in the Field app (Workbench and PWA cover it).
 - OCR/extraction improvement: the engine is validated (0 false accusations across
   2,700 evaluations) but extraction recall (~50%) is a separate server workstream
   with its own ≥90% target.
