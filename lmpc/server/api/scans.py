@@ -2,18 +2,18 @@
 
 Every image is validated, hash-verified and persisted before processing is accepted."""
 from __future__ import annotations
-import json
 import mimetypes
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 
 from ..svc.evidence import validate_image
-from ..svc.scan_service import validate, validate_metadata, validate_panel_mode
-from ..svc.rule_help import decision_explanation
+from ..svc.scan_fields import validate_image_quality, validate_metadata
+from ..svc.scan_service import validate, validate_panel_mode
 from ..svc.auth import Principal
 from ..obs import metrics
 from .auth import require
 from .errors import ApiError
+from .scan_payload import envelope, json_object
 
 router = APIRouter(prefix="/scans", tags=["scans"])
 
@@ -36,6 +36,7 @@ async def create_scan(
     panels: list[str] = Form(...),
     images: list[UploadFile] = File(...),
     image_sha256: list[str] = Form(...),
+    image_quality: list[str] | None = Form(None),
     principal: Principal = Depends(require("scans:create")),
 ) -> JSONResponse:
     validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
@@ -43,23 +44,27 @@ async def create_scan(
              n_images=len(images))
     metadata = validate_metadata(
         mode=mode, buyer_type=buyer_type, package_shape=package_shape,
-        scale_reference=_json_object(scale_reference, "scale_reference"),
-        dimensions=_json_object(dimensions, "dimensions"),
-        flags=_json_object(flags, "flags"), geo=_json_object(geo, "geo"),
-        ecommerce=_json_object(ecommerce, "ecommerce"))
+        scale_reference=json_object(scale_reference, "scale_reference"),
+        dimensions=json_object(dimensions, "dimensions"),
+        flags=json_object(flags, "flags"), geo=json_object(geo, "geo"),
+        ecommerce=json_object(ecommerce, "ecommerce"))
     validate_panel_mode(
         mode=mode, coverage_asserted=coverage_asserted, panels=panels)
     if len(image_sha256) != len(images):
         raise ApiError("E_VALIDATION", "one image_sha256 is required per image")
+    quality = validate_image_quality(
+        None if image_quality is None else
+        [json_object(item, "image_quality") for item in image_quality], len(images))
     settings = request.app.state.settings
     evidence = []
-    for panel, upload, digest in zip(panels, images, image_sha256, strict=True):
+    for panel, upload, digest, quality_report in zip(
+            panels, images, image_sha256, quality, strict=True):
         data = await upload.read(settings.max_image_bytes + 1)
         item = validate_image(
             data=data, filename=upload.filename or "image",
             media_type=upload.content_type or "", expected_sha256=digest,
             max_bytes=settings.max_image_bytes, max_pixels=settings.max_image_pixels,
-        ).on_panel(panel)
+        ).on_panel(panel).with_quality(quality_report)
         evidence.append(item)
     for item in evidence:
         request.app.state.object_store.put_immutable(
@@ -78,7 +83,7 @@ async def create_scan(
             {"client_uuid": rec.client_uuid, "category": rec.category,
              "mode": rec.mode})
     # A repeated client_uuid is 200 with the existing scan — never a duplicate.
-    return JSONResponse(_envelope(rec, created), status_code=202 if created else 200)
+    return JSONResponse(envelope(rec, created), status_code=202 if created else 200)
 
 
 @router.get("/{scan_id}")
@@ -88,7 +93,7 @@ async def get_scan(
 ) -> dict:
     rec = request.app.state.scan_store.get(scan_id)
     request.app.state.auth.ensure_scan_scope(principal, rec)
-    return _envelope(rec, created=True)
+    return envelope(rec, created=True)
 
 
 @router.get("/{scan_id}/images/{panel}")
@@ -128,7 +133,9 @@ async def reevaluate_scan(
         raise
     except Exception as exc:
         raise ApiError("E_INTERNAL", f"scan processing failed: {type(exc).__name__}") from exc
-    return JSONResponse(_envelope(rec, created=True), status_code=202)
+    return JSONResponse(envelope(rec, created=True), status_code=202)
+
+
 @router.post("/{scan_id}/process")
 async def process_new_scan(
     scan_id: str, request: Request,
@@ -143,56 +150,15 @@ async def process_new_scan(
     request.app.state.auth.ensure_scan_scope(principal, rec)
     if rec.latest_evaluations() or rec.status not in {"RECEIVED", "FAILED"}:
         raise ApiError("E_CONFLICT", "this scan has already entered evaluation")
+    missing = sorted(set(rec.panels) - {image.panel_label for image in rec.images})
+    if missing:
+        raise ApiError(
+            "E_VALIDATION",
+            f"this scan is still missing uploaded panels: {missing}")
     try:
         rec = request.app.state.pipeline.process(scan_id)
     except ApiError:
         raise
     except Exception as exc:
         raise ApiError("E_INTERNAL", f"scan processing failed: {type(exc).__name__}") from exc
-    return JSONResponse(_envelope(rec, created=True), status_code=202)
-def _envelope(rec, created: bool) -> dict:
-    body = {"scan_id": rec.id, "status": rec.status,
-            "client_uuid": rec.client_uuid, "officer_id": rec.officer_id,
-            "jurisdiction_id": rec.jurisdiction_id,
-            "status_url": f"/api/v1/scans/{rec.id}",
-            "coverage_asserted": rec.coverage_asserted,
-            "panels_captured": rec.panels,
-            "captured_at": rec.captured_at, "mode": rec.mode, "category": rec.category,
-            "buyer_type": rec.metadata.get("buyer_type", "RETAIL"),
-            "package_shape": rec.metadata.get("package_shape", "RECTANGULAR"),
-            "ecommerce": ({
-                "url": rec.metadata.get("ecommerce_url"),
-                "listing_text": rec.metadata.get("ecommerce_text"),
-            } if rec.mode == "ECOMMERCE_LISTING" else None),
-            "dimensions": {"h_cm": rec.metadata.get("pdp_h_cm"),
-                           "w_cm": rec.metadata.get("pdp_w_cm"),
-                           "capacity_cm3": rec.metadata.get("capacity_cm3")},
-            "overall": rec.overall,
-            "decision_explanation": decision_explanation(rec),
-            "rulepack": ({"version": rec.rulepack_version,
-                          "sha256": rec.rulepack_sha256}
-                         if rec.rulepack_version else None),
-            "images": [{"panel": image.panel_label, "storage_key": image.storage_key,
-                        "sha256": image.sha256, "width": image.width_px,
-                        "height": image.height_px, "max_edge_used": image.max_edge_used,
-                        "url": f"/api/v1/scans/{rec.id}/images/{image.panel_label}"}
-                       for image in rec.images],
-            "declarations": rec.latest_declarations(),
-            "evaluations": rec.latest_evaluations()}
-    if rec.failure_reason:
-        body["failure_reason"] = rec.failure_reason
-    if not created:
-        body["duplicate_ignored"] = True
-    return body
-
-
-def _json_object(raw: str | None, field: str) -> dict:
-    if not raw:
-        return {}
-    try:
-        value = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ApiError("E_VALIDATION", f"{field} must be valid JSON") from exc
-    if not isinstance(value, dict):
-        raise ApiError("E_VALIDATION", f"{field} must be a JSON object")
-    return value
+    return JSONResponse(envelope(rec, created=True), status_code=202)

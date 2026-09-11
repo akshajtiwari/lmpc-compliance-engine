@@ -31,6 +31,7 @@ class EvidenceImage:
     storage_key: str
     panel_label: str = ""
     max_edge_used: int | None = None
+    quality: dict | None = None
 
     def on_panel(self, panel: str) -> "EvidenceImage":
         return replace(self, panel_label=panel)
@@ -40,6 +41,9 @@ class EvidenceImage:
 
     def with_max_edge(self, value: int) -> "EvidenceImage":
         return replace(self, max_edge_used=value)
+
+    def with_quality(self, quality: dict | None) -> "EvidenceImage":
+        return replace(self, quality=quality)
 
 
 def validate_image(*, data: bytes, filename: str, media_type: str,

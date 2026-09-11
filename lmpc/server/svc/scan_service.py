@@ -5,7 +5,6 @@ import uuid
 from datetime import UTC, date, datetime
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urlsplit
 
 from ..api.errors import ApiError
 from .evidence import EvidenceImage
@@ -18,6 +17,7 @@ MODES = {"PHYSICAL_PACKAGE", "ECOMMERCE_LISTING"}
 BUYER_TYPES = {"RETAIL", "INDUSTRIAL", "INSTITUTIONAL"}
 PACKAGE_SHAPES = {"RECTANGULAR", "CYLINDRICAL", "IRREGULAR"}
 SCALE_TYPES = {"ISO_ID1_CARD", "APRILTAG_36H11", "MANUAL_DIMENSIONS", "NONE"}
+QUALITY_KEYS = {"source", "sharpness", "mean_luma", "glare_fraction", "warnings"}
 CATEGORIES = {
     "FOOD", "COSMETIC", "GENERIC", "CEMENT", "FERTILIZER", "FARM_PRODUCE",
     "TOBACCO", "DRUG_FORMULATION", "MEDICAL_DEVICE", "RESTAURANT_FAST_FOOD",
@@ -64,6 +64,17 @@ class ScanRecord:
 
 def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
              coverage_asserted: bool, panels: list[str], n_images: int) -> None:
+    validate_deferred(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                      category=category, coverage_asserted=coverage_asserted,
+                      panels=panels)
+    if not 1 <= n_images <= 6 or n_images != len(panels):
+        raise ApiError("E_VALIDATION", "1–6 images, one panel label per image")
+
+
+def validate_deferred(*, client_uuid: str, captured_at: str, mode: str, category: str,
+                      coverage_asserted: bool, panels: list[str]) -> None:
+    """Deferred intake declares metadata and panels first; images arrive one by one
+    over unreliable field networks (plan §8 item 9) and are completed afterwards."""
     try:
         uuid.UUID(client_uuid)
     except ValueError as exc:
@@ -76,8 +87,8 @@ def validate(*, client_uuid: str, captured_at: str, mode: str, category: str,
         raise ApiError("E_VALIDATION", f"unsupported scan mode: {mode}")
     if category not in CATEGORIES:
         raise ApiError("E_VALIDATION", f"unsupported commodity category: {category}")
-    if not 1 <= n_images <= 6 or n_images != len(panels):
-        raise ApiError("E_VALIDATION", "1–6 images, one panel label per image")
+    if not 1 <= len(panels) <= 6:
+        raise ApiError("E_VALIDATION", "declare 1–6 panel labels")
     if any(panel not in PANELS for panel in panels):
         raise ApiError("E_VALIDATION", "unsupported panel label")
     if len(set(panels)) != len(panels):
@@ -142,6 +153,52 @@ class MemoryStore:
         rec = self._by_id.get(scan_id)
         if rec is None:
             raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found")
+        return rec
+
+    def begin(self, *, client_uuid: str, captured_at: str, mode: str, category: str,
+              coverage_asserted: bool, panels: list[str],
+              metadata: dict[str, Any] | None = None,
+              officer_id: str | None = None,
+              jurisdiction_id: str | None = None) -> tuple[ScanRecord, bool]:
+        validate_deferred(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                          category=category, coverage_asserted=coverage_asserted,
+                          panels=panels)
+        client_uuid = str(uuid.UUID(client_uuid))
+        if client_uuid in self._by_client:
+            return self._by_client[client_uuid], False
+        rec = ScanRecord(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                         category=category, coverage_asserted=coverage_asserted,
+                         panels=panels, images=[], metadata=metadata or {},
+                         officer_id=officer_id, jurisdiction_id=jurisdiction_id)
+        self._by_id[rec.id] = self._by_client[client_uuid] = rec
+        return rec, True
+
+    def add_image(self, scan_id: str, panel: str, item: EvidenceImage) -> dict:
+        rec = self.get(scan_id)
+        if panel not in rec.panels:
+            raise ApiError("E_VALIDATION", f"panel {panel} was not declared for this scan")
+        if rec.status != "RECEIVED":
+            raise ApiError("E_CONFLICT",
+                           f"scan {scan_id} has left the RECEIVED state and cannot take images")
+        existing = next((image for image in rec.images
+                         if image.panel_label == panel), None)
+        if existing is not None:
+            if existing.sha256 != item.sha256:
+                raise ApiError(
+                    "E_CONFLICT",
+                    f"panel {panel} already holds different evidence")
+            return {"panel": panel, "sha256": existing.sha256,
+                    "duplicate_ignored": True}
+        rec.images.append(item.on_panel(panel))
+        return {"panel": panel, "sha256": item.sha256, "duplicate_ignored": False}
+
+    def complete_upload(self, scan_id: str) -> ScanRecord:
+        rec = self.get(scan_id)
+        supplied = {image.panel_label for image in rec.images}
+        missing = sorted(set(rec.panels) - supplied)
+        if missing:
+            raise ApiError(
+                "E_VALIDATION", f"this scan is still missing uploaded panels: {missing}")
         return rec
 
     def start_processing(self, scan_id: str) -> ScanRecord:
@@ -209,68 +266,3 @@ class MemoryStore:
         return sorted(
             (item for item in self._reports.values() if item["scan_id"] == scan_id),
             key=lambda item: item["version"], reverse=True)
-
-
-def validate_metadata(*, mode: str, buyer_type: str, package_shape: str,
-                      scale_reference: dict, dimensions: dict, flags: dict,
-                      geo: dict, ecommerce: dict) -> dict[str, Any]:
-    if buyer_type not in BUYER_TYPES:
-        raise ApiError("E_VALIDATION", f"unsupported buyer_type: {buyer_type}")
-    if package_shape not in PACKAGE_SHAPES:
-        raise ApiError("E_VALIDATION", f"unsupported package_shape: {package_shape}")
-    scale_type = scale_reference.get("type", "NONE")
-    if scale_type not in SCALE_TYPES:
-        raise ApiError("E_VALIDATION", f"unsupported scale reference: {scale_type}")
-    numbers = {key: _positive_number(dimensions, key)
-               for key in ("h_cm", "w_cm", "capacity_cm3")}
-    if (numbers["h_cm"] is None) != (numbers["w_cm"] is None):
-        raise ApiError("E_VALIDATION", "dimensions require both h_cm and w_cm")
-    expected_flags = {"is_imported", "is_molded", "other_law_requires_same_info"}
-    if any(key not in expected_flags or not isinstance(value, bool)
-           for key, value in flags.items()):
-        raise ApiError("E_VALIDATION", "flags contain an unknown or non-boolean value")
-    lat, lng = geo.get("lat"), geo.get("lng")
-    numeric_geo = all(not isinstance(value, bool) and isinstance(value, (int, float))
-                      for value in (lat, lng) if value is not None)
-    if (lat is None) != (lng is None) or not numeric_geo \
-            or (lat is not None and not (-90 <= lat <= 90)) \
-            or (lng is not None and not (-180 <= lng <= 180)):
-        raise ApiError("E_VALIDATION", "geo requires a valid latitude and longitude")
-    listing_text = ecommerce.get("listing_text")
-    listing_url = ecommerce.get("url")
-    if mode == "ECOMMERCE_LISTING" and not (
-            isinstance(listing_text, str) and listing_text.strip()):
-        raise ApiError("E_VALIDATION", "ecommerce.listing_text is required in listing mode")
-    if any(value is not None and not isinstance(value, str)
-           for value in (listing_url, listing_text)):
-        raise ApiError("E_VALIDATION", "ecommerce url and listing_text must be strings")
-    if isinstance(listing_text, str) and len(listing_text) > 50_000:
-        raise ApiError("E_VALIDATION", "ecommerce.listing_text exceeds 50000 characters")
-    if isinstance(listing_url, str) and listing_url:
-        parsed_url = urlsplit(listing_url.strip())
-        if (len(listing_url) > 2048 or parsed_url.scheme not in {"http", "https"}
-                or not parsed_url.hostname or parsed_url.username is not None
-                or parsed_url.password is not None):
-            raise ApiError("E_VALIDATION", "ecommerce.url must be an HTTP(S) URL")
-    return {
-        "buyer_type": buyer_type, "package_shape": package_shape,
-        "scale_reference_type": scale_type,
-        "scale_reference_data": scale_reference.get("data"),
-        "pdp_h_cm": numbers["h_cm"], "pdp_w_cm": numbers["w_cm"],
-        "capacity_cm3": numbers["capacity_cm3"],
-        "is_imported": flags.get("is_imported", False),
-        "is_molded": flags.get("is_molded", False),
-        "other_law_requires_same_info": flags.get("other_law_requires_same_info", False),
-        "geo_lat": lat, "geo_lng": lng,
-        "ecommerce_url": listing_url.strip() if isinstance(listing_url, str) else None,
-        "ecommerce_text": listing_text.strip() if isinstance(listing_text, str) else None,
-    }
-
-
-def _positive_number(values: dict, key: str) -> float | None:
-    value = values.get(key)
-    if value is None:
-        return None
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
-        raise ApiError("E_VALIDATION", f"dimensions.{key} must be a positive number")
-    return float(value)

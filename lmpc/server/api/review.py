@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from ..svc.auth import Principal
 from ..svc.review import validate_bbox, validate_changes
 from .auth import require
-from .scans import _envelope
+from .scan_payload import envelope
 
 router = APIRouter(tags=["review"])
 
@@ -71,7 +71,7 @@ async def update_scan(
 ) -> dict:
     changes = validate_changes(payload.model_dump(exclude_unset=True))
     record = request.app.state.review.update_scan(scan_id, changes, principal)
-    return {**_envelope(record, created=True), "reevaluation_required": True}
+    return {**envelope(record, created=True), "reevaluation_required": True}
 
 
 @router.post("/scans/{scan_id}/declarations/{field}")

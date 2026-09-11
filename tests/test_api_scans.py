@@ -209,6 +209,37 @@ async def test_optional_scan_metadata_is_validated_and_retained(app):
     assert rec.metadata["pdp_h_cm"] == 12.5 and rec.metadata["is_imported"] is True
 
 
+async def test_image_quality_is_recorded_per_image(app):
+    quality = json.dumps({
+        "source": "CAMERA", "sharpness": 132.5, "mean_luma": 141.0,
+        "glare_fraction": 0.012, "warnings": [],
+    })
+    response = await _post(app, image_quality=[quality, quality])
+    assert response.status_code == 202
+    body = response.json()
+    assert all(image["quality"]["sharpness"] == 132.5 for image in body["images"])
+
+
+async def test_image_quality_is_optional_and_defaults_to_none(app):
+    response = await _post(app)
+    assert response.status_code == 202
+    assert all(image["quality"] is None for image in response.json()["images"])
+
+
+async def test_image_quality_rejects_unknown_keys_and_bad_values(app):
+    response = await _post(app, image_quality=[
+        json.dumps({"sharpness": 10, "cheated": True}),
+        json.dumps({"sharpness": 10}),
+    ])
+    assert response.status_code == 400
+    assert "unknown keys" in response.json()["error"]["message"]
+
+    out_of_range = json.dumps({"glare_fraction": 1.5})
+    response = await _post(app, image_quality=[out_of_range, out_of_range])
+    assert response.status_code == 400
+    assert "glare_fraction" in response.json()["error"]["message"]
+
+
 async def test_listing_mode_requires_listing_text(app):
     response = await _post(app, mode="ECOMMERCE_LISTING")
     assert response.status_code == 400
@@ -302,3 +333,138 @@ async def test_report_finalization_metadata_and_downloads(app):
     assert docx.content.startswith(b"PK") and "wordprocessingml" in docx.headers["content-type"]
     blocked = await _request(app, "POST", f"/api/v1/scans/{scan_id}/reevaluate")
     assert blocked.status_code == 409 and blocked.json()["error"]["code"] == "E_SCAN_FINALIZED"
+
+
+async def _deferred_begin(app, client_uuid=None, **over):
+    body = {
+        "client_uuid": client_uuid or str(uuid.uuid4()),
+        "captured_at": "2026-09-07", "mode": "PHYSICAL_PACKAGE", "category": "FOOD",
+        "coverage_asserted": "true", "panels": ["FRONT", "BACK"],
+    }
+    body.update(over)
+    return await _request(app, "POST", "/api/v1/scans/deferred", data=body)
+
+
+def _panel_form(panel: str, data: bytes, quality: str | None = None):
+    form = {
+        "panel": panel, "image_sha256": hashlib.sha256(data).hexdigest(),
+        "image_quality": quality,
+    }
+    files = {"image": (f"{panel.lower()}.jpg", data, "image/jpeg")}
+    return form, files
+
+
+@pytest.fixture()
+def deferred_app(tmp_path):
+    """A fresh app: the deferred tests are request-heavy and would trip the shared
+    module-scoped app's per-minute rate limit."""
+    return create_app(Settings(storage_root=str(tmp_path), rate_limit_per_min=10_000))
+
+
+async def test_deferred_begin_declares_a_scan_without_images(deferred_app):
+    first, second = (await _deferred_begin(deferred_app, client_uuid=(same := str(uuid.uuid4()))),
+                     await _deferred_begin(deferred_app, client_uuid=same))
+    assert first.status_code == 202
+    body = first.json()
+    assert body["status"] == "RECEIVED"
+    assert body["panels_captured"] == ["FRONT", "BACK"]
+    assert body["images"] == []
+    assert second.status_code == 200
+    assert second.json()["scan_id"] == body["scan_id"]
+    assert second.json()["duplicate_ignored"] is True
+
+
+async def test_deferred_scan_takes_each_panel_on_its_own_request(deferred_app):
+    begun = (await _deferred_begin(deferred_app)).json()
+    form, files = _panel_form("FRONT", _jpeg())
+    appended = await _request(deferred_app, "POST", f"/api/v1/scans/{begun['scan_id']}/images",
+                              data=form, files=files)
+    assert appended.status_code == 201
+    assert appended.json()["duplicate_ignored"] is False
+    # the same panel resending the same bytes is accepted and ignored
+    resent = await _request(deferred_app, "POST", f"/api/v1/scans/{begun['scan_id']}/images",
+                            data=form, files=files)
+    assert resent.status_code == 200
+    assert resent.json()["duplicate_ignored"] is True
+    assert len(begun["panels_captured"]) == 2
+    stored = deferred_app.state.scan_store.get(begun["scan_id"])
+    assert [image.panel_label for image in stored.images] == ["FRONT"]
+
+
+async def test_deferred_scan_conflicts_when_a_panel_gets_different_evidence(deferred_app):
+    begun = (await _deferred_begin(deferred_app)).json()
+    form, files = _panel_form("FRONT", _jpeg())
+    await _request(deferred_app, "POST", f"/api/v1/scans/{begun['scan_id']}/images",
+                   data=form, files=files)
+    clash, clash_files = _panel_form("FRONT", _jpeg((20, 10)))
+    response = await _request(deferred_app, "POST", f"/api/v1/scans/{begun['scan_id']}/images",
+                              data=clash, files=clash_files)
+    assert response.status_code == 409
+    assert "different evidence" in response.json()["error"]["message"]
+
+
+async def test_deferred_scan_rejects_undeclared_and_duplicate_panels(deferred_app):
+    begun = (await _deferred_begin(deferred_app)).json()
+    form, files = _panel_form("SIDE_1", _jpeg())
+    response = await _request(deferred_app, "POST", f"/api/v1/scans/{begun['scan_id']}/images",
+                              data=form, files=files)
+    assert response.status_code == 400
+    assert "was not declared" in response.json()["error"]["message"]
+
+
+async def test_complete_upload_requires_every_declared_panel(deferred_app):
+    begun = (await _deferred_begin(deferred_app)).json()
+    scan_id = begun["scan_id"]
+    response = await _request(deferred_app, "POST", f"/api/v1/scans/{scan_id}/complete-upload")
+    assert response.status_code == 400
+    assert "missing uploaded panels: ['BACK', 'FRONT']" in response.json()["error"]["message"]
+    form, files = _panel_form("FRONT", _jpeg())
+    await _request(deferred_app, "POST", f"/api/v1/scans/{scan_id}/images", data=form, files=files)
+    still_missing = await _request(
+        deferred_app, "POST", f"/api/v1/scans/{scan_id}/complete-upload")
+    assert "BACK" in still_missing.json()["error"]["message"]
+    process = await _request(deferred_app, "POST", f"/api/v1/scans/{scan_id}/process")
+    assert process.status_code == 400
+    assert "missing uploaded panels" in process.json()["error"]["message"]
+
+
+async def test_deferred_scan_processes_once_every_panel_has_arrived(deferred_app):
+    begun = (await _deferred_begin(deferred_app)).json()
+    scan_id = begun["scan_id"]
+
+    def reader(_data, *, panel, **_kwargs):
+        if panel == "BACK":
+            return [Token("Net Qty 500 g", 4, 3, 300, 20, conf=0.99, panel=panel)]
+        return [Token("MRP Rs. 45.00 (incl. of all taxes)", 2, 3, 300, 20,
+                      conf=0.99, panel=panel)]
+
+    deferred_app.state.pipeline.reader = reader
+    try:
+        quality = json.dumps({"source": "CAMERA", "sharpness": 90.0,
+                              "mean_luma": 128.0, "glare_fraction": 0.0,
+                              "warnings": []})
+        for panel in ("FRONT", "BACK"):
+            form, files = _panel_form(panel, _jpeg(), quality=quality)
+            upload = await _request(
+                deferred_app, "POST", f"/api/v1/scans/{scan_id}/images", data=form, files=files)
+            assert upload.status_code == 201
+        completed = await _request(
+            deferred_app, "POST", f"/api/v1/scans/{scan_id}/complete-upload")
+        assert completed.status_code == 202
+        assert completed.json()["status"] == "RECEIVED"
+        processed = await _request(deferred_app, "POST", f"/api/v1/scans/{scan_id}/process")
+    finally:
+        deferred_app.state.pipeline.reader = None
+    assert processed.status_code == 202
+    body = processed.json()
+    assert body["status"] == "EVALUATION_COMPLETE"
+    assert all(image["quality"]["source"] == "CAMERA" for image in body["images"])
+    assert any(item["field"] == "mrp" for item in body["declarations"])
+
+
+async def test_deferred_begin_rejects_a_bad_declaration(deferred_app):
+    response = await _deferred_begin(deferred_app, panels=["FRONT", "FRONT"])
+    assert response.status_code == 400
+    assert "only be uploaded once" in response.json()["error"]["message"]
+    response = await _deferred_begin(deferred_app, client_uuid="not-a-uuid")
+    assert response.status_code == 400

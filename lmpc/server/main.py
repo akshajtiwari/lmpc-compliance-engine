@@ -9,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from .api import accounts, auth, dashboard, errors, health, reports, review, rules, scans
+from .api import (accounts, auth, dashboard, errors, health, reports, review, rules,
+                  scan_intake, scans)
 from .config import Settings
 from .svc.object_store import open_object_store
 from .svc.accounts import AccountService
@@ -101,6 +102,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(accounts.router)
     app.include_router(health.router)
     app.include_router(scans.router)
+    app.include_router(scan_intake.router)
     app.include_router(reports.router)
     app.include_router(review.router)
     app.include_router(dashboard.router)
