@@ -13,8 +13,7 @@
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "LMPC Field connects to your department's inspection server on the local network.",
         "NSAppTransportSecurity": {
-          "NSAllowsLocalNetworking": true,
-          "NSAllowsArbitraryLoads": true
+          "NSAllowsLocalNetworking": true
         }
       }
     },
@@ -30,12 +29,38 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
-      ["expo-splash-screen", {"backgroundColor": "#F7F8F1", "image": "./assets/splash-icon.png", "imageWidth": 220, "resizeMode": "contain"}],
-      ["expo-camera", {"cameraPermission": "Allow LMPC Field to photograph package-label evidence.", "recordAudioAndroid": false}],
-      ["expo-image-picker", {"photosPermission": "Allow LMPC Field to import supporting package-label evidence.", "microphonePermission": false}],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F7F8F1",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow LMPC Field to photograph package-label evidence.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow LMPC Field to import supporting package-label evidence.",
+          "microphonePermission": false
+        }
+      ],
       "./plugins/with-local-http",
       "expo-sqlite",
-      ["expo-secure-store", {"configureAndroidBackup": true, "faceIDPermission": "Allow LMPC Field to unlock this device session."}]
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow LMPC Field to unlock this device session."
+        }
+      ]
     ]
   }
 }

@@ -20,10 +20,19 @@ export type AccountScope = {
   serverFingerprint: string;
 };
 
+export type FrameQualityReport = {
+  source: "CAMERA" | "GALLERY";
+  sharpness: number;
+  mean_luma: number;
+  glare_fraction: number;
+  warnings: string[];
+};
+
 export type CapturedPanel = {
   panel: "FRONT" | "BACK" | "SIDE_1" | "SIDE_2";
   uri: string;
   source: "CAMERA" | "GALLERY";
+  quality?: FrameQualityReport;
 };
 
 export type Draft = {
@@ -59,6 +68,7 @@ export type ScanResult = {
     ocr_ran: boolean;
   } | null;
   evaluations: Finding[];
+  images?: {panel: string}[];
 };
 
 export type RuleDetail = {
@@ -71,6 +81,13 @@ export type RuleDetail = {
   important_limits: string[];
   outcomes: Record<string, string>;
   non_normative_notice: string;
+};
+
+export type ReportSummary = {
+  id: string;
+  version: number;
+  overall_status: string;
+  finalized_at: string;
 };
 
 export type LocalInspection = {

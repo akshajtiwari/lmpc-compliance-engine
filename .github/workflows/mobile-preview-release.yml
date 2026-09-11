@@ -20,6 +20,7 @@ jobs:
       contents: write
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
+      LMPC_FIELD_PREVIEW_HTTP: "1"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

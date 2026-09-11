@@ -1,6 +1,6 @@
 import { CryptoDigestAlgorithm, digest } from "expo-crypto";
-import { File } from "expo-file-system";
-import type { Draft, Principal, RuleDetail, ScanResult, Session } from "./types";
+import { Directory, File, Paths } from "expo-file-system";
+import type { Draft, Principal, ReportSummary, RuleDetail, ScanResult, Session } from "./types";
 import { saveSession } from "./storage";
 
 type AuthBody = { access_token: string; refresh_token: string; user: Principal; server_fingerprint?: string };
@@ -104,16 +104,47 @@ export class ApiClient {
     const body=await response.json() as AuthBody; this.session={...this.session,accessToken:body.access_token,refreshToken:body.refresh_token,user:body.user}; await saveSession(this.session);this.changed(this.session);
   }
   async upload(draft: Draft): Promise<ScanResult> {
+    // Deferred intake (plan §8 item 9): declare the inspection, then upload each
+    // panel on its own request so a flaky network resumes instead of restarting.
     const form=new FormData();
     form.append("client_uuid",draft.clientUuid);form.append("captured_at",draft.capturedAt);form.append("mode","PHYSICAL_PACKAGE");form.append("category",draft.category);form.append("coverage_asserted",String(draft.coverageAsserted));form.append("buyer_type",draft.buyerType);form.append("package_shape",draft.packageShape);form.append("scale_reference",JSON.stringify({type:"NONE"}));form.append("flags",JSON.stringify({}));
-    for(const item of draft.panels){const file=new File(item.uri);const hash=await sha256(file);form.append("panels",item.panel);form.append("image_sha256",hash);form.append("images",{uri:file.uri,name:`${item.panel.toLowerCase()}.jpg`,type:"image/jpeg"} as unknown as Blob);}
-    const created=await this.request<ScanResult>("/scans",{method:"POST",body:form},true,45_000);
-    return created.evaluations?.length
-      ? created
-      : this.request<ScanResult>(`/scans/${created.scan_id}/process`,{method:"POST"},true,120_000);
+    for(const item of draft.panels)form.append("panels",item.panel);
+    // begin is idempotent: the retry that timed out gets the scan that already exists.
+    const begun=await this.request<ScanResult>("/scans/deferred",{method:"POST",body:form},true,45_000);
+    if(!begun.evaluations?.length){
+      const uploaded=new Set(begun.images?.map(image=>image.panel)??[]);
+      for(const item of draft.panels){
+        if(uploaded.has(item.panel))continue;
+        const file=new File(item.uri);
+        const panelForm=new FormData();
+        panelForm.append("panel",item.panel);
+        panelForm.append("image_sha256",await sha256(file));
+        panelForm.append("image_quality",JSON.stringify(item.quality??{source:item.source}));
+        panelForm.append("image",{uri:file.uri,name:`${item.panel.toLowerCase()}.jpg`,type:"image/jpeg"} as unknown as Blob);
+        await this.request(`/scans/${begun.scan_id}/images`,{method:"POST",body:panelForm},true,45_000);
+      }
+      await this.request(`/scans/${begun.scan_id}/complete-upload`,{method:"POST"},true,45_000);
+      return this.request<ScanResult>(`/scans/${begun.scan_id}/process`,{method:"POST"},true,120_000);
+    }
+    return begun;
   }
   rule(check: string){return this.request<RuleDetail>(`/rules/${encodeURIComponent(check)}`);}
   scan(id:string){return this.request<ScanResult>(`/scans/${id}`);}
+  reports(scanId:string){return this.request<{items:ReportSummary[]}>(`/scans/${scanId}/reports`);}
+  async downloadReport(reportId:string,format:"pdf"|"docx"="pdf"){
+    // The metadata call reuses the 401-refresh path, so the download below always
+    // starts with a valid access token.
+    await this.request(`/reports/${reportId}`);
+    const url=`${this.session.serverUrl}/api/v1/reports/${reportId}/download?format=${format}`;
+    const directory=new Directory(Paths.cache,"reports");
+    if(!directory.exists)directory.create({intermediates:true});
+    const target=new File(directory,`lmpc-report-${reportId.slice(0,8)}.${format}`);
+    const task=File.createDownloadTask(url,target,
+      {headers:{Authorization:`Bearer ${this.session.accessToken}`}});
+    const file=await task.downloadAsync();
+    if(!file)throw new Error("The report download did not complete");
+    return file;
+  }
   async logout() {
     try {
       await timedFetch(`${this.session.serverUrl}/api/v1/auth/logout`, {
