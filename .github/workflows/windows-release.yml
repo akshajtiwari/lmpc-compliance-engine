@@ -156,4 +156,9 @@ jobs:
             "--notes-file", "dist\release-notes.md"
           )
           if ($env:PRE_RELEASE -eq "true") { $arguments += "--prerelease" }
-          gh @arguments
+          # A shared tag may already carry the Field APK; replace assets instead of failing.
+          if (gh release view $env:RELEASE_TAG 2>$null) {
+            gh release upload $env:RELEASE_TAG "dist\$zipName" "dist\SHA256SUMS.txt" --clobber
+          } else {
+            gh @arguments
+          }

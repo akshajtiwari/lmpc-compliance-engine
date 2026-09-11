@@ -28,6 +28,33 @@ label photos ──► OCR ──► layout ──► scoring ──► normalis
 The system answers confidently to roughly 10 % character error, then stops answering
 rather than guessing.
 
+## Install a released build (no building required)
+
+Every published tag on the [Releases page](https://github.com/akshajtiwari/lmpc-compliance-engine/releases)
+carries **all** preview assets together:
+
+| Asset | What it is |
+|---|---|
+| `LMPC-Compliance-<tag>-windows-x64.zip` + `SHA256SUMS.txt` | Portable Windows server + capture PWA + Workbench launcher |
+| `LMPC-Field-<tag>-android.apk` | Installable Android Field app (debug-signed, LAN preview) |
+| `LMPC-Field-<tag>-SHA256SUMS.txt` | APK checksum |
+
+**Verify the checksums before installing** (a mismatch means do not install):
+
+```bash
+sha256sum -c SHA256SUMS.txt                     # inside the folder you downloaded into
+```
+
+**Windows portable** — extract the whole ZIP (it must stay together), run
+`LMPC-Compliance.exe`, and the server opens on `http://127.0.0.1:8000` with no Docker and
+no S3. Run `LMPC-Compliance.exe --self-test` any time to verify the frozen OCR/PDF/DOCX
+engines on your machine.
+
+**Android Field app** — copy the APK onto the phone (or download it there), allow
+"install unknown apps" for your file manager, install, then follow the Field pairing
+steps in the next section. The APK's network security config permits plain-HTTP LAN
+traffic **only** in this preview build; production phones must use an HTTPS deployment.
+
 ## Quick start
 
 ```bash
@@ -78,6 +105,11 @@ private Wi-Fi or hotspot:
 make dev-lan
 cd apps/web && npm ci && npm run dev -- --hostname 0.0.0.0
 ```
+
+The portable Windows build can also expose the guided capture app on the LAN — run
+`LMPC-Compliance.exe --host 0.0.0.0 --port 8000` — but it runs with auth disabled and
+cannot issue Field-app enrollment QRs; phone enrollment always needs the Workbench stack
+above.
 
 Open Workbench at `http://<computer-lan-ip>:3000`, sign in with the bootstrap administrator,
 create a field-officer account, and show its one-time enrollment QR. Install/open **LMPC
