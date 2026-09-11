@@ -1,4 +1,34 @@
-# LMPC Compliance — SIH pitch deck outline (draft for approval)
+# LMPC Compliance — SIH pitch deck outline
+
+Status: **built.** The outline below was drafted first; the actual deck is generated
+from the official SIH template by `build_deck.py` (see "Generated deck" at the end).
+The original seven-slide outline predates inspection of the official template, which
+caps the deck at six slides including the title page and forbids changing the
+template's idea-detail pointers — so the six content slides below were folded into
+the template's five content slides.
+
+## Generated deck
+
+- `LMPC-Compliance-SIH-Idea.pptx` — produced from the repository's official SIH
+  template by `python deck/lmpc-compliance/build_deck.py` (python-pptx).
+- `LMPC-Compliance-SIH-Idea.pdf` — the same deck exported to PDF (the SIH portal
+  accepts only PDF).
+- Mapping: outline slide 2 (enforcement gap) + slide 4 (trust model) → template
+  slide 2 "Proposed Solution"; outline slide 3 (two pipelines) + scale reference →
+  template slide 3 "Technical Approach"; outline slide 5 (requirement mapping) +
+  slide 7 (deployment) → template slide 4 "Feasibility and Viability"; outline
+  slide 6 (evidence) → template slide 5 "Impact and Benefits"; law citations and
+  release links → template slide 6 "Research and References".
+- The template's seventh slide ("IMPORTANT INSTRUCTIONS") is deleted by the build,
+  as SIH requires.
+- The title-slide submission metadata (Problem Statement ID, Theme, PS Category,
+  Team ID, Team Name) and the "Your Team Name" oval remain exactly as the template
+  ships them — those are the team's to fill.
+- Every figure in the deck (140 products, 403 photographs, 2,700 evaluations,
+  0 false accusations, 20 defects, 48 instruments, 1.6 s/panel) is copied verbatim
+  from `README.md` and `docs/evidence/`.
+
+## Original outline (seven slides, draft for approval)
 
 Format: 7 slides, 16:9. Slide 1 is the SIH title page; slides 2–7 are the six concise
 content slides. Unknown submission metadata remains clearly marked for the team to fill.
