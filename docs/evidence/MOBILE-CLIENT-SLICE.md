@@ -65,6 +65,13 @@ on real hardware:
 - Cleartext/ATS behavior on-device (the plugin logic is unit-tested; the produced
   manifest is not verified by an emulator here).
 
+## Published preview
+
+Tag `v0.3.0-preview` carries the Windows portable build and the Field APK together on one
+GitHub release, both with SHA-256 checksums; install steps live in the top-level README.
+The APK is built by CI from a clean checkout that passes typecheck, lint, unit tests and
+expo-doctor — but M1–M4 and M6 above still require a physical phone.
+
 ## Deliberately not built
 
 - Scale-reference capture and perspective measurement (needs native modules; the
