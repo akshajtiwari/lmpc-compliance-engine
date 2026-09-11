@@ -1,7 +1,10 @@
 # Native Mobile Application Plan
 
 **Decision date:** 2026-09-10  
-**Status:** Field and Workbench vertical slice implemented; physical-device validation pending
+**Status:** Field and Workbench vertical slice implemented through M5's code surface
+(offline sync, capture-quality gates, resumable per-panel uploads, report download);
+physical-device validation of every milestone gate is still pending (see
+`docs/evidence/MOBILE-CLIENT-SLICE.md`)
 **Supersedes:** the PWA-as-primary-client decision in Parts 4.1 and 17 of the older
 architecture documents. The existing PWA remains a fallback and a source of tested
 capture behavior while the native client is built.
@@ -218,11 +221,20 @@ Rules:
 5. Keep refresh-token-in-body support for the native client and verify rotation/reuse
    revocation through contract tests.
 6. Return explicit processing status and stable error codes suitable for polling.
-7. Generate and check in a pinned OpenAPI snapshot for the TypeScript client.
-8. Record capture source and quality measurements per image.
-9. Add resumable/chunked uploads after the initial end-to-end slice.
+7. Generate and check in a pinned OpenAPI snapshot for the TypeScript client. — **done:**
+   `docs/api/openapi.json` is pinned and a CI/test drift check fails on change.
+8. Record capture source and quality measurements per image. — **done:** the phone sends
+   `image_quality` (source, sharpness, mean luma, glare fraction, warnings) per panel and
+   the server persists it in `scan_images.quality`. Advisory only — verdicts never read it.
+9. Add resumable/chunked uploads after the initial end-to-end slice. — **done:** deferred
+   intake (`POST /scans/deferred` → per-panel `POST /scans/{id}/images` idempotent by
+   panel + sha256 → `POST /scans/{id}/complete-upload` → `/process`), used by the Field
+   app for every upload so any retry resumes instead of restarting. The multipart
+   endpoint remains for the Workbench and PWA.
 10. For production/on-prem deployment, use HTTPS. Cleartext private-LAN HTTP is permitted
-    only in the explicitly labeled development/preview profile.
+    only in the explicitly labeled development/preview profile. — **enforced:** cleartext
+    is denied by default in the Android manifest/plugin and the preview release workflow
+    is the only place that sets the opt-in environment flag.
 
 Native clients are not subject to browser CORS, but the later separate web origin will
 need a narrow allow-list or a same-origin reverse proxy.
@@ -239,6 +251,18 @@ need a narrow allow-list or a same-origin reverse proxy.
   expose an authentication-disabled instance on `0.0.0.0`.
 
 ## 10. Implementation milestones and gates
+
+Where things stand today (verified by the repository's own tests, not device runs):
+
+- **Code-complete and CI-verified:** M0/M1 (LAN pairing, enrollment, app shell), M4's
+  offline outbox and idempotent sync, M5's client pieces (capture-quality gates with
+  retake prompts, per-panel deferred upload, report PDF download/share, six-state
+  verdict mapping), and most of M6's CI lane (typecheck, lint, unit tests, doctor,
+  JS-bundle export, OpenAPI drift check, cleartext-policy check).
+- **Still pending physical validation:** every milestone **gate** (M1–M7) requires the
+  real-device drills described below; nothing in this repository substitutes for them.
+- **Not built:** scale-reference capture, perspective measurement, e-commerce capture in
+  the Field app, iOS parity, signed release builds.
 
 ### M0 — LAN and API foundation
 

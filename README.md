@@ -93,7 +93,10 @@ physical-package coverage.
 `apps/web` contains the separate desktop Workbench; `apps/mobile` contains the Expo/React
 Native Field app. The `Android Field preview release` workflow publishes an installable,
 debug-signed APK for LAN testing. Preview builds permit local HTTP; production deployment
-requires HTTPS.
+requires HTTPS. The Field app syncs offline evidence through a resumable per-panel upload
+contract, gates blurry or glare-washed captures with retake prompts, and can download
+finalized compliance reports; its device-level validation status is tracked honestly in
+`docs/evidence/MOBILE-CLIENT-SLICE.md`.
 
 The dormant S3-compatible adapter is optional. Install `requirements-s3.txt` only when a
 bucket is available and `LMPC_S3_BUCKET` is intentionally configured.
