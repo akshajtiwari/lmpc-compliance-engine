@@ -24,6 +24,9 @@ def validate_metadata(*, mode: str, buyer_type: str, package_shape: str,
     scale_type = scale_reference.get("type", "NONE")
     if scale_type not in SCALE_TYPES:
         raise ApiError("E_VALIDATION", f"unsupported scale reference: {scale_type}")
+    scale_data = scale_reference.get("data")
+    if scale_data is not None and not isinstance(scale_data, dict):
+        raise ApiError("E_VALIDATION", "scale_reference.data must be an object")
     numbers = {key: _positive_number(dimensions, key)
                for key in ("h_cm", "w_cm", "capacity_cm3")}
     if (numbers["h_cm"] is None) != (numbers["w_cm"] is None):

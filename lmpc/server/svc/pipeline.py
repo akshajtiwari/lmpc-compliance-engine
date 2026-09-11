@@ -17,6 +17,7 @@ from lmpc.engine.model import Field, Scan, Token
 
 from ..obs import metrics
 from .object_store import ObjectStore
+from .scale import engine_measurements
 from .scan_service import ScanRecord
 
 Reader = Callable[..., list[Token]]
@@ -83,6 +84,18 @@ class Pipeline:
 
 def _engine_scan(rec: ScanRecord, tokens: list[Token]) -> Scan:
     meta = rec.metadata
+    scale = engine_measurements(rec.mode, meta)
+    # A marked scale reference beats a bare client number: it was measured against
+    # a pinned physical artefact and carries the perspective guards with it.
+    px_per_mm = meta.get("px_per_mm")
+    pdp_h_cm, pdp_w_cm = meta.get("pdp_h_cm"), meta.get("pdp_w_cm")
+    if scale is not None:
+        measurements = scale.as_meta()
+        px_per_mm = measurements["px_per_mm"]
+        # Officer-typed dimensions remain authoritative when both exist; the card
+        # measurement fills the panel size only where nobody measured it directly.
+        pdp_h_cm = pdp_h_cm if pdp_h_cm is not None else measurements.get("pdp_h_cm")
+        pdp_w_cm = pdp_w_cm if pdp_w_cm is not None else measurements.get("pdp_w_cm")
     return Scan(
         tokens=tokens, captured_at=rec.captured_at,
         panels_captured=set(rec.panels), mode=rec.mode, category=rec.category,
@@ -90,8 +103,8 @@ def _engine_scan(rec: ScanRecord, tokens: list[Token]) -> Scan:
         is_imported=meta.get("is_imported", False), is_molded=meta.get("is_molded", False),
         other_law_requires_same_info=meta.get("other_law_requires_same_info", False),
         package_shape=meta.get("package_shape", "RECTANGULAR"),
-        px_per_mm=meta.get("px_per_mm"), pdp_h_cm=meta.get("pdp_h_cm"),
-        pdp_w_cm=meta.get("pdp_w_cm"), net_quantity_g=meta.get("net_quantity_g"),
+        px_per_mm=px_per_mm, pdp_h_cm=pdp_h_cm, pdp_w_cm=pdp_w_cm,
+        net_quantity_g=meta.get("net_quantity_g"),
         net_quantity_ml=meta.get("net_quantity_ml"), capacity_cm3=meta.get("capacity_cm3"),
         coverage_asserted=rec.coverage_asserted,
     )
