@@ -30,6 +30,13 @@ rather than guessing.
 
 ## Install a released build (no building required)
 
+> **Android release notice:** the `v0.3.0-preview` APK was assembled as a debug
+> variant, so it expected a Metro development server after showing the splash logo. Do
+> not use that APK as a standalone build. The source is fixed for `v0.4.0`: the release
+> workflow now assembles the release variant and refuses to publish an APK unless the
+> JavaScript bundle is embedded. Publish a new `v0.4.0-preview` tag before distributing
+> the Field app again.
+
 Every published tag on the [Releases page](https://github.com/akshajtiwari/lmpc-compliance-engine/releases)
 carries **all** preview assets together:
 

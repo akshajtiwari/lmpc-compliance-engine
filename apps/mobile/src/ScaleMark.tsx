@@ -4,11 +4,11 @@
 // The phone only records where the handles were dragged in image pixels; the
 // server's scale module owns every physical conclusion and refuses mis-marked
 // quads instead of guessing.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image, Pressable, StyleSheet, Text, View,
 } from "react-native";
-import { cardMarksPlausible, toImagePoints, type Point } from "./quad";
+import { cardMarksPlausible, scaleReferenceFromMarks, type Point } from "./quad";
 import type { ScaleReference } from "./types";
 
 const HANDLE = 30;
@@ -29,6 +29,7 @@ export function ScaleMark({imageUri, onDone, onCancel}: {
     {x: 0.55, y: 0.4}, {x: 0.85, y: 0.4}, {x: 0.85, y: 0.75}, {x: 0.55, y: 0.75},
   ]);
   const [step, setStep] = useState<Step>("card");
+  const [imageError, setImageError] = useState("");
   const drag = useRef<number | null>(null);
   const imageWidth = natural.width;
   const imageHeight = natural.height;
@@ -45,17 +46,22 @@ export function ScaleMark({imageUri, onDone, onCancel}: {
   const current = step === "card" ? card : panel;
   const setCurrent = step === "card" ? setCard : setPanel;
 
+  useEffect(() => {
+    let active = true;
+    Image.getSize(
+      imageUri,
+      (width, height) => { if (active) { setImageError(""); setNatural({width, height}); } },
+      () => { if (active) setImageError("Could not open this photograph for marking."); },
+    );
+    return () => { active = false; };
+  }, [imageUri]);
+
   const cardPlausible = cardMarksPlausible(
     card.map((point) => ({x: point.x * imageWidth, y: point.y * imageHeight})));
 
-  function finish() {
-    onDone({
-      type: "ISO_ID1_CARD",
-      data: {
-        quad: toImagePoints(card, 1, 1, imageWidth, imageHeight),
-        panel_quad: toImagePoints(panel, 1, 1, imageWidth, imageHeight),
-      },
-    });
+  function finish(includePanel: boolean) {
+    onDone(scaleReferenceFromMarks(
+      card, includePanel ? panel : undefined, imageWidth, imageHeight));
   }
 
   function onGrant(event: {nativeEvent: {locationX: number; locationY: number}}) {
@@ -99,20 +105,18 @@ export function ScaleMark({imageUri, onDone, onCancel}: {
         style={styles.frame}
         onLayout={({nativeEvent}) => setContainer(
           {width: nativeEvent.layout.width, height: nativeEvent.layout.height})}
-        onStartShouldSetResponder={() => fitted !== null}
-        onMoveShouldSetResponder={() => fitted !== null}
-        onResponderGrant={onGrant}
-        onResponderMove={onMove}
-        onResponderRelease={() => { drag.current = null; }}
       >
         {fitted && imageWidth > 0 && (
-          <View style={{width: fitted.width, height: fitted.height}}>
+          <View style={{width: fitted.width, height: fitted.height}}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={onGrant}
+            onResponderMove={onMove}
+            onResponderRelease={() => { drag.current = null; }}>
             <Image
               source={{uri: imageUri}}
               style={styles.image}
-              resizeMode="contain"
-              onLoad={({nativeEvent: {source}}) => setNatural(
-                {width: source.width, height: source.height})} />
+              resizeMode="contain" />
             {current.map((point, index) => (
               <View key={`${step}-${index}`} style={[styles.handle, {
                 left: point.x * fitted.width - HANDLE / 2,
@@ -123,6 +127,8 @@ export function ScaleMark({imageUri, onDone, onCancel}: {
             ))}
           </View>
         )}
+        {!fitted && !imageError && <Text style={styles.hint}>Opening photograph…</Text>}
+        {!!imageError && <Text style={styles.warning}>{imageError}</Text>}
       </View>
       <View style={styles.footer}>
         {step === "card" && !cardPlausible && (
@@ -136,13 +142,13 @@ export function ScaleMark({imageUri, onDone, onCancel}: {
             ? <Pressable onPress={() => onDone({type: "NONE"})}>
                 <Text style={styles.link}>Skip — no scale reference</Text>
               </Pressable>
-            : <Pressable onPress={finish}>
+            : <Pressable onPress={() => finish(false)}>
                 <Text style={styles.link}>Skip panel marks</Text>
               </Pressable>}
           <Pressable
             style={[styles.primary, step === "card" && !cardPlausible && styles.disabled]}
             disabled={step === "card" && !cardPlausible}
-            onPress={() => step === "card" ? setStep("panel") : finish()}>
+            onPress={() => step === "card" ? setStep("panel") : finish(true)}>
             <Text style={styles.primaryText}>
               {step === "card" ? "Next: display panel" : "Save scale reference"}
             </Text>

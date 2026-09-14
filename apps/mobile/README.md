@@ -19,3 +19,19 @@ npm run typecheck
 npm run doctor
 npx expo export --platform android
 ```
+
+## Standalone Android preview
+
+An `assembleDebug` APK expects Metro and is not distributable as a standalone app. The
+preview workflow deliberately builds the release variant (still signed with the
+development key) and verifies that `assets/index.android.bundle` exists inside the APK.
+
+To reproduce that build with an Android SDK installed:
+
+```bash
+LMPC_FIELD_PREVIEW_HTTP=1 npx expo prebuild --platform android --no-install --clean
+cd android
+./gradlew assembleRelease --no-daemon
+unzip -Z1 app/build/outputs/apk/release/app-release.apk > apk-entries.txt
+grep -Fx assets/index.android.bundle apk-entries.txt
+```

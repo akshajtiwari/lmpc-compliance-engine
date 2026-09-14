@@ -1,6 +1,6 @@
 # Mobile client slice — what is verified and what is not
 
-**Date:** 2026-09-11
+**Date:** 2026-09-14
 **Scope:** the Field app's offline/resilient sync slice, capture-quality gates,
 deferred per-panel uploads, report download, and the server side those depend on.
 
@@ -90,11 +90,15 @@ on real hardware:
 
 ## Published preview
 
-Tag `v0.3.0-preview` carries the Windows portable build and the Field APK together on one
-GitHub release, both with SHA-256 checksums; install steps live in the top-level README.
-The APK is built by CI from a clean checkout that passes typecheck, lint, unit tests and
-expo-doctor — but M1–M4 and M6 above still require a physical phone. That APK predates
-the scale-reference and listing capture slices; they will ride the next tagged build.
+Tag `v0.3.0-preview` carries the Windows portable build and a Field APK, but the Android
+artifact was incorrectly produced with `assembleDebug`. It therefore expects Metro after
+the native splash screen and must not be treated as a standalone preview. This was the
+cause of the observed logo-then-no-app failure.
+
+The `v0.4.0` source fixes the workflow to use `assembleRelease`, checks the APK archive for
+`assets/index.android.bundle` before publishing, and adds a regression test over the
+release workflow. It also contains the scale-reference and listing capture slices. A new
+tagged APK still needs to be published and pass the physical M1–M4/M6 drills above.
 
 ## Deliberately not built
 

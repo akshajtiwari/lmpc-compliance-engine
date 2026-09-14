@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {cardMarksPlausible, distance, listingPanels, quadAspect, quadConvex,
-  toImagePoints} = require("../.test-dist/quad.js");
+  scaleReferenceFromMarks, toImagePoints} = require("../.test-dist/quad.js");
 
 function quad(points) { return points.map(([x, y]) => ({x, y})); }
 
@@ -43,6 +43,17 @@ test("marks cannot escape the image bounds", () => {
   assert.deepEqual(mapped[0], [0, 0]);
   assert.equal(mapped[1][0], 1000);
   assert.equal(mapped[2][1], 1500);
+});
+
+test("skipping panel marks does not submit fabricated panel corners", () => {
+  const card = quad([[0.1, 0.1], [0.5, 0.1], [0.5, 0.3], [0.1, 0.3]]);
+  const skipped = scaleReferenceFromMarks(card, undefined, 1000, 2000);
+  const included = scaleReferenceFromMarks(card,
+    quad([[0.1, 0.4], [0.9, 0.4], [0.9, 0.9], [0.1, 0.9]]), 1000, 2000);
+  assert.equal(skipped.type, "ISO_ID1_CARD");
+  assert.equal("panel_quad" in skipped.data, false);
+  assert.deepEqual(included.data.panel_quad,
+    [[100, 800], [900, 800], [900, 1800], [100, 1800]]);
 });
 
 test("listing screenshots take sequential panel labels", () => {

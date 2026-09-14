@@ -6,7 +6,7 @@ on:
       release_tag:
         description: "SemVer tag for the installable Android preview"
         required: true
-        default: "v0.2.0-mobile-preview"
+        default: "v0.4.0-preview"
         type: string
 
 concurrency:
@@ -49,13 +49,19 @@ jobs:
           java-version: "17"
           cache: gradle
       - uses: android-actions/setup-android@v3
-      - name: Build installable preview APK
+      - name: Build standalone preview APK
         working-directory: apps/mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
+      - name: Verify APK contains the JavaScript application
+        run: |
+          apk="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$apk"
+          unzip -Z1 "$apk" > "$RUNNER_TEMP/lmpc-field-apk-entries.txt"
+          grep -Fxq 'assets/index.android.bundle' "$RUNNER_TEMP/lmpc-field-apk-entries.txt"
       - name: Package and checksum
         run: |
           mkdir -p dist
-          cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk "dist/LMPC-Field-${RELEASE_TAG}-android.apk"
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk "dist/LMPC-Field-${RELEASE_TAG}-android.apk"
           cd dist
           sha256sum "LMPC-Field-${RELEASE_TAG}-android.apk" > "LMPC-Field-${RELEASE_TAG}-SHA256SUMS.txt"
       - uses: actions/upload-artifact@v7

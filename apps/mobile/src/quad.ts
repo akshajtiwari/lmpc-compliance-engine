@@ -1,7 +1,7 @@
 // Pure geometry for the scale-reference marking screen (plan §6.3). The phone
 // only measures where the officer dragged corner handles; every legal conclusion
 // is re-derived server-side from the pinned ISO ID-1 card dimensions.
-import type {PanelLabel} from "./types";
+import type {PanelLabel, ScaleReference} from "./types";
 
 export type Point = {x: number; y: number};
 
@@ -62,6 +62,20 @@ export function toImagePoints(
     Math.round(Math.min(Math.max(point.x / viewWidth, 0), 1) * imageWidth * 1000) / 1000,
     Math.round(Math.min(Math.max(point.y / viewHeight, 0), 1) * imageHeight * 1000) / 1000,
   ]);
+}
+
+export function scaleReferenceFromMarks(
+  card: Point[], panel: Point[] | undefined, imageWidth: number, imageHeight: number,
+): ScaleReference {
+  return {
+    type: "ISO_ID1_CARD",
+    data: {
+      quad: toImagePoints(card, 1, 1, imageWidth, imageHeight),
+      ...(panel
+        ? {panel_quad: toImagePoints(panel, 1, 1, imageWidth, imageHeight)}
+        : {}),
+    },
+  };
 }
 
 // Listing screenshots keep their own panel labels: LISTING, then LISTING_2..6.

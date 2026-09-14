@@ -7,7 +7,8 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState,
+  type ErrorInfo, type ReactNode } from "react";
 import {
   ActivityIndicator, Alert, AppState, Image, KeyboardAvoidingView, Modal, Platform, Pressable,
   RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View,
@@ -25,11 +26,26 @@ const CATEGORIES=["FOOD","COSMETIC","GENERIC","CEMENT","FERTILIZER","FARM_PRODUC
 const PANELS: CapturedPanel["panel"][]=["FRONT","BACK","SIDE_1","SIDE_2"];
 
 export default function App() {
-  const [session,setSession]=useState<Session|null>(null);const [ready,setReady]=useState(false);const [screen,setScreen]=useState<Screen>({name:"home"});
-  useEffect(()=>{loadSession().then(setSession).finally(()=>setReady(true));},[]);
+  return <AppErrorBoundary><FieldApp/></AppErrorBoundary>;
+}
+
+class AppErrorBoundary extends Component<{children:ReactNode},{error:Error|null}> {
+  state:{error:Error|null}={error:null};
+  static getDerivedStateFromError(error:Error){return {error};}
+  componentDidCatch(error:Error,info:ErrorInfo){console.error("LMPC Field render failed",error,info.componentStack);}
+  render(){
+    if(this.state.error)return <FatalScreen message={this.state.error.message} retry={()=>this.setState({error:null})}/>;
+    return this.props.children;
+  }
+}
+
+function FieldApp() {
+  const [session,setSession]=useState<Session|null>(null);const [ready,setReady]=useState(false);const [startupError,setStartupError]=useState("");const [openAttempt,setOpenAttempt]=useState(0);const [screen,setScreen]=useState<Screen>({name:"home"});
+  useEffect(()=>{let active=true;setReady(false);setStartupError("");loadSession().then(value=>{if(active)setSession(value);}).catch(cause=>{if(active)setStartupError(cause instanceof Error?cause.message:"The encrypted device session could not be opened.");}).finally(()=>{if(active)setReady(true);});return()=>{active=false;};},[openAttempt]);
   const client=useMemo(()=>session?new ApiClient(session,setSession):null,[session]);
   const scope=useMemo(()=>session?accountScope(session):null,[session]);
   if(!ready)return <Loading label="Opening encrypted device session…"/>;
+  if(startupError)return <FatalScreen title="Could not open device storage" message={startupError} retry={()=>setOpenAttempt(value=>value+1)}/>;
   if(!session)return <EnrollmentScreen onComplete={async(value)=>{await saveSession(value);setSession(value);}}/>;
   const home=()=>setScreen({name:"home"});
   return <SafeAreaView style={styles.safe}><StatusBar style="dark"/>
@@ -127,12 +143,13 @@ function ChoiceRow({values,selected,select}:{values:string[];selected:string;sel
 function Choice({value,selected,onPress}:{value:string;selected:boolean;onPress:()=>void}){return <Pressable style={[styles.choice,selected&&styles.choiceOn]} onPress={onPress}><Text style={[styles.choiceText,selected&&styles.choiceTextOn]}>{value.replaceAll("_"," ")}</Text></Pressable>;}
 function Outcome({value}:{value:string}){const tone=value==="COMPLIANT"||value==="PASS"||value==="COMPLETE"?styles.pillPass:value==="NON_COMPLIANT"||value==="FAIL"||value==="FAILED"||value==="SYSTEM_ERROR"?styles.pillFail:value==="REVIEW_REQUIRED"||value==="INCOMPLETE_EVIDENCE"?styles.pillWarn:styles.pillInfo;return <View style={[styles.pill,tone]}><Text style={styles.pillText}>{value.replaceAll("_"," ")}</Text></View>;}
 function Loading({label}:{label:string}){return <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator size="large" color="#1e6647"/><Text style={styles.bodyCenter}>{label}</Text></View></SafeAreaView>;}
+function FatalScreen({title="LMPC Field could not start",message,retry}:{title?:string;message:string;retry:()=>void}){return <SafeAreaView style={styles.safe}><View style={styles.center}><Logo/><Text style={styles.h1}>{title}</Text><Text style={styles.bodyCenter}>Your captured evidence has not been removed. Try opening the app again; if this continues, share the diagnostic below with support.</Text><Text selectable style={styles.fatalCode}>{message||"Unknown startup error"}</Text><Primary label="Try again" onPress={retry}/></View></SafeAreaView>;}
 
 const styles=StyleSheet.create({
   flex:{flex:1},safe:{flex:1,backgroundColor:"#fafbf7"},page:{padding:20,paddingBottom:54},formPage:{padding:28,gap:17},center:{flex:1,padding:34,alignItems:"center",justifyContent:"center",gap:20},
   logo:{width:50,height:50,borderRadius:14,backgroundColor:"#153e2d",alignItems:"center",justifyContent:"center"},logoCompact:{width:34,height:34,borderRadius:10},logoLight:{backgroundColor:"#f2f5ed"},logoText:{color:"white",fontSize:15,fontWeight:"900",letterSpacing:1},logoTextLight:{color:"#153e2d"},
   header:{height:62,paddingHorizontal:18,borderBottomWidth:1,borderBottomColor:"#dae0da",flexDirection:"row",alignItems:"center",gap:12,backgroundColor:"#fafbf7"},headerTitle:{flex:1,fontWeight:"700",fontSize:16,color:"#17231d"},
-  eyebrow:{fontSize:11,fontWeight:"700",letterSpacing:1.1,color:"#327052",marginBottom:8},h1:{fontSize:32,lineHeight:38,fontWeight:"800",letterSpacing:-1.2,color:"#17231d",marginBottom:8},h2:{fontSize:20,fontWeight:"800",letterSpacing:-.5,color:"#17231d"},body:{fontSize:15,lineHeight:23,color:"#627068",marginBottom:22},bodyCenter:{fontSize:15,lineHeight:23,color:"#627068",textAlign:"center"},muted:{fontSize:12,lineHeight:18,color:"#6c7971"},mono:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:13,color:"#27382e"},fingerprint:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:11,lineHeight:17,color:"#27382e"},label:{fontSize:11,fontWeight:"700",letterSpacing:.8,color:"#637169",marginTop:17,marginBottom:8,textTransform:"uppercase"},input:{borderWidth:1,borderColor:"#cbd5cd",backgroundColor:"white",color:"#17231d",borderRadius:10,paddingHorizontal:13,paddingVertical:12,fontSize:15},link:{color:"#1e6647",fontWeight:"700",fontSize:14},error:{color:"#a72e2e",backgroundColor:"#fff0ef",borderRadius:8,padding:11,fontSize:13},errorSmall:{color:"#a72e2e",fontSize:11,marginTop:6},
+  eyebrow:{fontSize:11,fontWeight:"700",letterSpacing:1.1,color:"#327052",marginBottom:8},h1:{fontSize:32,lineHeight:38,fontWeight:"800",letterSpacing:-1.2,color:"#17231d",marginBottom:8},h2:{fontSize:20,fontWeight:"800",letterSpacing:-.5,color:"#17231d"},body:{fontSize:15,lineHeight:23,color:"#627068",marginBottom:22},bodyCenter:{fontSize:15,lineHeight:23,color:"#627068",textAlign:"center"},muted:{fontSize:12,lineHeight:18,color:"#6c7971"},mono:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:13,color:"#27382e"},fingerprint:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:11,lineHeight:17,color:"#27382e"},fatalCode:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:12,lineHeight:18,color:"#7b302d",backgroundColor:"#fff0ef",borderRadius:8,padding:12,width:"100%"},label:{fontSize:11,fontWeight:"700",letterSpacing:.8,color:"#637169",marginTop:17,marginBottom:8,textTransform:"uppercase"},input:{borderWidth:1,borderColor:"#cbd5cd",backgroundColor:"white",color:"#17231d",borderRadius:10,paddingHorizontal:13,paddingVertical:12,fontSize:15},link:{color:"#1e6647",fontWeight:"700",fontSize:14},error:{color:"#a72e2e",backgroundColor:"#fff0ef",borderRadius:8,padding:11,fontSize:13},errorSmall:{color:"#a72e2e",fontSize:11,marginTop:6},
   primary:{minHeight:50,borderRadius:11,backgroundColor:"#1e6647",alignItems:"center",justifyContent:"center",paddingHorizontal:18,marginTop:18},primaryText:{color:"white",fontSize:15,fontWeight:"800"},disabled:{opacity:.45},dangerButton:{borderWidth:1,borderColor:"#e4bdb8",backgroundColor:"#fff6f5",borderRadius:10,padding:14,alignItems:"center",marginTop:22},dangerText:{color:"#972f2b",fontWeight:"700"},
   choiceRow:{flexDirection:"row",flexWrap:"wrap",gap:8},choiceScroll:{gap:8,paddingRight:20},choice:{borderWidth:1,borderColor:"#cad5cc",borderRadius:20,paddingHorizontal:12,paddingVertical:9,backgroundColor:"white"},choiceOn:{backgroundColor:"#153e2d",borderColor:"#153e2d"},choiceText:{color:"#536159",fontSize:11,fontWeight:"700"},choiceTextOn:{color:"white"},
   warning:{padding:14,borderRadius:10,backgroundColor:"#fff3df",borderLeftWidth:3,borderLeftColor:"#d68223",marginTop:14},warningTitle:{fontWeight:"800",color:"#784810",marginBottom:4},warningText:{fontSize:13,lineHeight:19,color:"#795724"},info:{padding:14,borderRadius:10,backgroundColor:"#edf4ef",borderLeftWidth:3,borderLeftColor:"#498768",marginTop:14},infoText:{fontSize:13,lineHeight:19,color:"#365344"},

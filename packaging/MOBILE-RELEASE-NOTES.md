@@ -9,4 +9,6 @@ Installable LMPC Field Android preview for local-network testing.
 - See a plain-language explanation for every rule result and download finalized
   PDF/DOCX compliance reports.
 
-This is a debug-signed preview APK that permits local HTTP. It is not a production-store build.
+This is a standalone release-mode preview APK, signed with the development key, that
+permits local HTTP. It includes the JavaScript bundle and does not require Metro or a USB
+connection. It is not a production-store build.
