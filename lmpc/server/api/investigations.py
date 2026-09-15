@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..svc.auth import Principal
+from .errors import ApiError
 from .auth import require
 
 router = APIRouter(tags=["investigations"])
@@ -105,6 +106,36 @@ async def investigation_stats(
     principal: Principal = Depends(require("investigations:read")),
 ) -> dict:
     return _service(request).stats(principal, investigation_id)
+
+
+@router.post("/investigations/{investigation_id}/report", status_code=201)
+async def investigation_report(
+    investigation_id: str, request: Request, kind: str = Query("FIELD"),
+    principal: Principal = Depends(require("reports:create_field")),
+) -> dict:
+    """One document covering every product in the folder."""
+    if kind not in {"FIELD", "FINALIZED"}:
+        raise ApiError("E_VALIDATION", "kind must be FIELD or FINALIZED")
+    if kind == "FINALIZED" and not principal.has("reports:create"):
+        raise ApiError("E_FORBIDDEN", "only a reviewing officer may finalise a report")
+    report = request.app.state.reports.finalize_investigation(
+        investigation_id, kind=kind, generated_by=principal.id, principal=principal)
+    request.app.state.auth.audit_action(
+        principal, "compliance_report", report["id"], "INVESTIGATION_REPORT",
+        {"investigation_id": investigation_id, "kind": kind,
+         "version": report["version"]})
+    return {"report_id": report["id"], "version": report["version"],
+            "report_kind": kind, "content_sha256": report["content_sha256"]}
+
+
+@router.get("/investigations/{investigation_id}/reports")
+async def list_investigation_reports(
+    investigation_id: str, request: Request,
+    principal: Principal = Depends(require("investigations:read")),
+) -> dict:
+    _service(request).get(principal, investigation_id)
+    return {"items":
+            request.app.state.scan_store.list_investigation_reports(investigation_id)}
 
 
 @router.get("/investigations/{investigation_id}/notes")

@@ -72,13 +72,31 @@ def test_a_second_run_reuses_the_same_identities(portable):
     assert before == after
 
 
+def test_the_fingerprint_changes_when_a_column_is_added():
+    """A constant somebody has to remember to bump is not a guard. The first version of
+    this was exactly that, and the next schema change forgot to bump it — which is how a
+    desktop database survived a migration it had not had and then failed mid-report on a
+    missing column."""
+    from sqlalchemy import Column, String, Table
+
+    from lmpc.server.db.base import Base
+
+    before = desktop_bootstrap.schema_fingerprint()
+    probe = Table("fingerprint_probe", Base.metadata, Column("id", String, primary_key=True))
+    try:
+        assert desktop_bootstrap.schema_fingerprint() != before
+    finally:
+        Base.metadata.remove(probe)
+    assert desktop_bootstrap.schema_fingerprint() == before
+
+
 def test_a_database_from_another_schema_generation_is_refused(portable):
     """create_all adds missing tables but never alters an existing one, and there is no
     Alembic path for SQLite. Opening a stale database would surface later as corrupt
     evidence, so the build stops instead."""
     path = desktop_bootstrap.credentials_path(portable)
     record = json.loads(path.read_text())
-    record["schema_generation"] = desktop_bootstrap.SCHEMA_GENERATION + 1
+    record["schema_generation"] = "0000000000000000"
     path.write_text(json.dumps(record))
     with pytest.raises(RuntimeError, match="different version"):
         desktop._configure_environment()

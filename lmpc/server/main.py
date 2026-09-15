@@ -140,7 +140,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         corrections=app.state.review.corrections)
     app.state.reports = ReportService(
         app.state.scan_store, app.state.object_store, pack, max_edge=s.ocr_max_edge,
-        git_sha=s.git_sha, container_digest=s.container_digest)
+        git_sha=s.git_sha, container_digest=s.container_digest,
+        investigations=app.state.investigations)
     web_root = Path(__file__).with_name("web")
     app.mount("/", StaticFiles(directory=web_root, html=True), name="web")
     return app

@@ -1948,6 +1948,115 @@
         ]
       }
     },
+    "/investigations/{investigation_id}/report": {
+      "post": {
+        "description": "One document covering every product in the folder.",
+        "operationId": "investigation_report_investigations__investigation_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "investigation_id",
+            "required": true,
+            "schema": {
+              "title": "Investigation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "FIELD",
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Investigation Report Investigations  Investigation Id  Report Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Investigation Report",
+        "tags": [
+          "investigations"
+        ]
+      }
+    },
+    "/investigations/{investigation_id}/reports": {
+      "get": {
+        "operationId": "list_investigation_reports_investigations__investigation_id__reports_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "investigation_id",
+            "required": true,
+            "schema": {
+              "title": "Investigation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response List Investigation Reports Investigations  Investigation Id  Reports Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Investigation Reports",
+        "tags": [
+          "investigations"
+        ]
+      }
+    },
     "/investigations/{investigation_id}/scans": {
       "get": {
         "operationId": "investigation_scans_investigations__investigation_id__scans_get",
@@ -2981,6 +3090,56 @@
         "summary": "Override Evaluation",
         "tags": [
           "review"
+        ]
+      }
+    },
+    "/scans/{scan_id}/field-report": {
+      "post": {
+        "description": "The officer's own copy, watermarked and explicitly not a legal finding.\n\nNo self-review guard: this is the capturing officer's working document, and it\ndeliberately leaves the scan open to correction, re-evaluation and override. Only\nPOST /scans/{id}/report closes an inspection, and only a reviewer may call it.",
+        "operationId": "field_report_scans__scan_id__field_report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scan_id",
+            "required": true,
+            "schema": {
+              "title": "Scan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Field Report Scans  Scan Id  Field Report Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Field Report",
+        "tags": [
+          "reports"
         ]
       }
     },

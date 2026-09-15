@@ -39,6 +39,7 @@ ENDPOINT_PERMISSIONS = {
         "evaluations:override",
     ("GET", "/scans/{scan_id}/reports"): "reports:read",
     ("POST", "/scans/{scan_id}/report"): "reports:create",
+    ("POST", "/scans/{scan_id}/field-report"): "reports:create_field",
     ("GET", "/reports/{report_id}"): "reports:read",
     ("GET", "/reports/{report_id}/download"): "reports:export",
     ("GET", "/dashboard/summary"): "dashboard:read",
@@ -55,6 +56,8 @@ ENDPOINT_PERMISSIONS = {
     ("GET", "/investigations/{investigation_id}/stats"): "investigations:read",
     ("GET", "/investigations/{investigation_id}/notes"): "investigations:read",
     ("POST", "/investigations/{investigation_id}/notes"): "investigations:update",
+    ("POST", "/investigations/{investigation_id}/report"): "reports:create_field",
+    ("GET", "/investigations/{investigation_id}/reports"): "investigations:read",
 }
 ROLE_NEUTRAL_ENDPOINTS = {
     ("POST", "/auth/login"), ("POST", "/auth/refresh"),

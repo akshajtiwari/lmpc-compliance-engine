@@ -19,6 +19,7 @@ SORTS = {"recent": Investigation.opened_at.desc(),
 
 class InvestigationDb:
     def __init__(self, scan_store):
+        self.scans = scan_store
         self.sessions = scan_store.sessions
         self.dialect = self.sessions.kw["bind"].dialect.name
 
@@ -144,6 +145,15 @@ class InvestigationDb:
                 "by_overall": {k: v for k, v in by_overall.items() if k},
                 "top_violations": [{"check": code, "count": n} for code, n in top],
             }
+
+    def scan_records(self, investigation_id: str) -> list:
+        """Scan records in the folder, oldest first, as the scan store returns them."""
+        with self.sessions() as session:
+            ids = session.scalars(
+                select(Scan.id).where(
+                    Scan.investigation_id == uuid.UUID(investigation_id))
+                .order_by(Scan.captured_at, Scan.created_at, Scan.id)).all()
+        return [self.scans.get(str(scan_id)) for scan_id in ids]
 
     # ---- scoping ---------------------------------------------------------------
 

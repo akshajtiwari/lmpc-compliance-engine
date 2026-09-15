@@ -67,7 +67,11 @@ def scan_metadata(row: Scan) -> dict:
 
 def report_dict(row: ComplianceReport) -> dict:
     return {
-        "id": str(row.id), "scan_id": str(row.scan_id), "version": row.version,
+        "id": str(row.id),
+        "scan_id": str(row.scan_id) if row.scan_id else None,
+        "investigation_id": str(row.investigation_id) if row.investigation_id else None,
+        "report_kind": row.report_kind, "version": row.version,
+        "generated_by": str(row.generated_by) if row.generated_by else None,
         "overall_status": row.overall_status, "pdf_storage_key": row.pdf_storage_key,
         "docx_storage_key": row.docx_storage_key,
         "content_sha256": row.content_sha256, "manifest": row.manifest,

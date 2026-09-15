@@ -12,6 +12,7 @@ become — and it has to invent both passwords itself, because nobody types them
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import secrets
 import stat
@@ -24,9 +25,19 @@ from .base import Base
 from .models import CommodityCategory, Jurisdiction, User
 from .reference import seed_categories
 
-#: Raised by one and bumped by the other: any change to the SQLite schema that
-#: `create_all` would no longer produce from an existing file.
-SCHEMA_GENERATION = 1
+def schema_fingerprint() -> str:
+    """A digest of every table and column name in the model.
+
+    Deliberately computed, not a hand-maintained integer. The first version of this was a
+    constant somebody had to remember to bump, and the very next schema change forgot —
+    which produced exactly the failure the guard exists to prevent: `create_all` adds a
+    missing *table* but never alters an existing one, so an old database opened fine and
+    then failed mid-report on a column that was not there.
+    """
+    shape = ";".join(
+        f"{name}:" + ",".join(sorted(column.name for column in table.columns))
+        for name, table in sorted(Base.metadata.tables.items()))
+    return hashlib.sha256(shape.encode()).hexdigest()[:16]
 
 CREDENTIALS_FILE = "desktop.json"
 _ALPHABET = "abcdefghijkmnopqrstuvwxyz23456789"   # no look-alikes; these get read aloud
@@ -70,7 +81,7 @@ def run(data_root: Path, db_url: str) -> dict:
     Base.metadata.create_all(engine(db_url))
     jurisdiction_id, admin_id, officer_id = (uuid.uuid4() for _ in range(3))
     record = {
-        "schema_generation": SCHEMA_GENERATION,
+        "schema_generation": schema_fingerprint(),
         "jurisdiction_id": str(jurisdiction_id),
         "admin": {"id": str(admin_id), "email": "supervisor@lmpc.local",
                   "password": _password()},
@@ -106,12 +117,13 @@ def _guard_schema(stored: dict) -> None:
     corrupt evidence. Stopping here is the honest failure.
     """
     found = stored.get("schema_generation")
-    if found != SCHEMA_GENERATION:
+    expected = schema_fingerprint()
+    if found != expected:
         raise RuntimeError(
             f"this database was created by a different version of LMPC Compliance "
-            f"(schema {found}, this build expects {SCHEMA_GENERATION}). Move "
-            f"lmpc.sqlite3 and {CREDENTIALS_FILE} aside to start a new one; the old "
-            f"evidence stays readable by the build that wrote it.")
+            f"(schema {found}, this build expects {expected}). Move lmpc.sqlite3 and "
+            f"{CREDENTIALS_FILE} aside to start a new one; the old evidence stays "
+            f"readable by the build that wrote it.")
 
 
 def environment(data_root: Path, record: dict, db_url: str) -> dict[str, str]:

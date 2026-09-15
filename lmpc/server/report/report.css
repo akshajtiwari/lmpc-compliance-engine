@@ -1,0 +1,52 @@
+/* Print styling for the PDF. Read at render time, never inlined into the snapshot, so a
+   change to how the report looks can never change a report's content hash. */
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm;
+  @bottom-center { content: "Page " counter(page) " of " counter(pages); font: 7.5pt sans-serif; color: #6b7a86; }
+  @bottom-right { content: string(docref); font: 7.5pt sans-serif; color: #6b7a86; }
+}
+@page :first { margin-top: 24mm; }
+body { font: 9.2pt/1.45 "DejaVu Sans", sans-serif; color: #17212b; }
+h1 { font-size: 19pt; margin: 0 0 2mm; letter-spacing: -0.3pt; }
+h2 { font-size: 11pt; margin: 7mm 0 2mm; padding-bottom: 1.2mm; border-bottom: 0.6pt solid #c8d2da; }
+p { margin: 0 0 2mm; }
+
+.docref { string-set: docref content(); font: 7.5pt monospace; color: #6b7a86; }
+.lede { color: #56646f; font-size: 9.5pt; }
+
+.verdict { margin: 4mm 0 5mm; padding: 4mm 5mm; border-radius: 2mm; border-left: 2.4mm solid #17212b; background: #f2f5f8; }
+.verdict .word { font-size: 14pt; font-weight: 700; }
+.verdict .code { font: 8pt monospace; color: #56646f; letter-spacing: 0.4pt; }
+.verdict.fail { border-left-color: #a3271f; background: #fdf3f2; }
+.verdict.pass { border-left-color: #1c6b46; background: #f1f8f4; }
+.verdict.unclear { border-left-color: #8a6410; background: #fdf8ee; }
+
+.banner { margin: 3mm 0 0; padding: 2.6mm 4mm; border: 0.8pt solid #b3892a; background: #fdf6e6; color: #6b4e08; font-weight: 700; font-size: 9pt; border-radius: 1.5mm; }
+
+table { border-collapse: collapse; width: 100%; font-size: 8.2pt; }
+th, td { border: 0.5pt solid #b9c4cd; padding: 2mm 2.2mm; vertical-align: top; text-align: left; }
+th { background: #eef2f6; font-weight: 700; }
+tr { page-break-inside: avoid; }
+
+dl.kv { display: block; margin: 0; }
+dl.kv div { display: flex; gap: 4mm; padding: 1.4mm 0; border-bottom: 0.4pt dotted #ccd5dc; }
+dl.kv dt { width: 42mm; color: #56646f; flex: none; }
+dl.kv dd { margin: 0; font-weight: 600; }
+
+ul.counts { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 2.5mm; }
+ul.counts li { padding: 1.6mm 3mm; background: #eef2f6; border-radius: 1.4mm; font-size: 8.4pt; }
+ul.counts li b { font-size: 10pt; }
+
+.panels { display: flex; flex-wrap: wrap; gap: 3mm; }
+.panel { width: 44mm; }
+.panel img { width: 44mm; border: 0.5pt solid #b9c4cd; border-radius: 1mm; }
+.panel .label { font-size: 7.6pt; font-weight: 700; margin-top: 1mm; }
+.panel .hash { font: 6.4pt monospace; color: #6b7a86; overflow-wrap: anywhere; }
+
+.note { font-size: 8.4pt; color: #56646f; margin-top: 2mm; }
+.signoff { margin-top: 4mm; font-size: 9pt; }
+.signoff div { margin-bottom: 5mm; border-bottom: 0.5pt solid #17212b; width: 78mm; padding-bottom: 5mm; }
+.integrity { font: 7.6pt monospace; color: #3c4a55; }
+.integrity div { padding: 1mm 0; overflow-wrap: anywhere; }
+.watermark { position: fixed; top: 45%; left: 0; width: 100%; text-align: center; transform: rotate(-24deg); font-size: 34pt; font-weight: 700; color: rgba(163, 39, 31, 0.10); letter-spacing: 3pt; }

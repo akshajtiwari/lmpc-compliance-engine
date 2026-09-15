@@ -82,3 +82,79 @@ def test_system_error_blocks_finalization(tmp_path):
     with pytest.raises(ApiError, match="SYSTEM_ERROR") as raised:
         ReportService(scans, objects, pack, max_edge=1800).finalize(scan_id)
     assert raised.value.code == "E_CONFLICT"
+
+
+def test_a_field_copy_does_not_close_the_inspection(tmp_path):
+    """The single most dangerous thing a field copy could do.
+
+    save_report used to set status=FINALIZED unconditionally, which would mean an officer
+    exporting their own PDF silently locked the scan against correction, re-evaluation and
+    override — destroying their own evidence by pressing Download.
+    """
+    scans, objects, pack, scan_id = _evaluated(tmp_path)
+    service = ReportService(scans, objects, pack, max_edge=1800)
+
+    before = scans.get(scan_id).status
+    field = service.finalize(scan_id, kind="FIELD", generated_by="officer-1")
+
+    assert field["report_kind"] == "FIELD"
+    assert scans.get(scan_id).status == before != "FINALIZED"
+
+    finalized = service.finalize(scan_id, kind="FINALIZED", reviewed_by="reviewer-1")
+    assert finalized["report_kind"] == "FINALIZED"
+    assert scans.get(scan_id).status == "FINALIZED"
+
+
+def test_each_kind_has_its_own_version_sequence(tmp_path):
+    scans, objects, pack, scan_id = _evaluated(tmp_path)
+    service = ReportService(scans, objects, pack, max_edge=1800)
+    assert service.finalize(scan_id, kind="FIELD")["version"] == 1
+    assert service.finalize(scan_id, kind="FIELD")["version"] == 2
+    # A field copy must not consume the finalised report's v1.
+    assert service.finalize(scan_id, kind="FINALIZED")["version"] == 1
+
+
+def test_a_field_copy_says_on_its_face_that_it_is_not_a_finding(tmp_path):
+    scans, objects, pack, scan_id = _evaluated(tmp_path)
+    service = ReportService(scans, objects, pack, max_edge=1800)
+    report = service.finalize(scan_id, kind="FIELD")
+    text = "\n".join(p.text for p in
+                     Document(io.BytesIO(service.download(report["id"], "docx")[0])).paragraphs)
+    assert "NOT LEGALLY FINALISED" in text.upper()
+    assert "Signature" not in text, "an unsigned copy must not offer a signature block"
+
+
+def test_redrawing_the_report_never_changes_its_content_hash(tmp_path):
+    """The hash covers the findings, not the layout.
+
+    This is what lets the document be redesigned at all: a template change that altered a
+    stored hash would silently invalidate every report already issued.
+    """
+    scans, objects, pack, scan_id = _evaluated(tmp_path)
+    service = ReportService(scans, objects, pack, max_edge=1800)
+    first = service.finalize(scan_id, kind="FIELD")
+    second = service.finalize(scan_id, kind="FIELD")
+    assert first["content_sha256"] == second["content_sha256"]
+    assert first["manifest"]["renderer"]["template_version"] == \
+        second["manifest"]["renderer"]["template_version"]
+
+
+def test_evidence_is_readable_instead_of_dumped_as_json(tmp_path):
+    """The old report put json.dumps(evidence) in a table cell."""
+    from lmpc.server.report.sections import measured_required
+
+    measured, required = measured_required(
+        {"measured_height_mm": 1.4, "required_height_mm": 1.7})
+    assert "1.4" in measured and "mm" in measured
+    assert "1.7" in required and "mm" in required
+
+    # Scoring internals are how the engine decided, not what it measured. A column headed
+    # "what we measured" full of margins and token text tells a manufacturer nothing.
+    assert measured_required(
+        {"panel": "BACK", "score": 62, "margin": 48.9, "text": "Mfd by: X"}) == ("—", "—")
+    assert measured_required({"panels_captured": ["FRONT", "BACK"]}) == ("—", "—")
+    assert measured_required(None) == ("—", "—")
+    assert measured_required({"nested": {"x": 1}}) == ("—", "—")
+
+    # A limit is still a physical quantity, and belongs under "what is required".
+    assert measured_required({"ratio_min": 0.6})[1] != "—"

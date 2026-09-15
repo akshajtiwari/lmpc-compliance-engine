@@ -16,14 +16,14 @@ ROLE_PERMISSIONS = {
     "FIELD_OFFICER": {
         "scans:create", "scans:read", "scans:update", "declarations:correct",
         "evaluations:read", "reports:read", "reports:export", "products:read",
-        "dashboard:read", "rules:read",
+        "dashboard:read", "rules:read", "reports:create_field",
         "investigations:create", "investigations:read", "investigations:update",
     },
     "REVIEWING_OFFICER": {
         "scans:create", "scans:read", "scans:update", "scans:reevaluate",
         "declarations:correct", "evaluations:read", "evaluations:override",
         "reports:create", "reports:read", "reports:export", "products:read",
-        "products:merge", "rules:read", "dashboard:read",
+        "products:merge", "rules:read", "dashboard:read", "reports:create_field",
         "investigations:create", "investigations:read", "investigations:update",
     },
     "ADMIN": {
@@ -32,7 +32,7 @@ ROLE_PERMISSIONS = {
         "reports:create", "reports:read", "reports:export", "products:read",
         "products:merge", "rules:read", "rules:approve", "users:read", "users:manage",
         "jurisdictions:manage", "dashboard:read", "dashboard:read_all", "audit:read",
-        "investigations:create", "investigations:read", "investigations:update",
+        "reports:create_field", "investigations:create", "investigations:read", "investigations:update",
     },
     "AUDITOR": {
         "scans:read", "evaluations:read", "reports:read", "reports:export",

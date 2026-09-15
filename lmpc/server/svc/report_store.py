@@ -12,19 +12,21 @@ from .store_records import report_dict
 class ReportStoreMixin:
     """Versioned, append-only finalized reports behind POST /scans/{id}/report."""
 
-    def next_report_version(self, scan_id: str) -> int:
+    def next_report_version(self, scan_id: str, *, kind: str = "FINALIZED") -> int:
         scan_uuid = _uuid_or_404(scan_id)
         with self.sessions() as session:
             if session.get(Scan, scan_uuid) is None:
                 raise ApiError("E_NOT_FOUND", f"scan {scan_id} not found")
             latest = session.scalar(select(func.max(ComplianceReport.version)).where(
-                ComplianceReport.scan_id == scan_uuid)) or 0
+                ComplianceReport.scan_id == scan_uuid,
+                ComplianceReport.report_kind == kind)) or 0
             return latest + 1
 
     def save_report(self, scan_id: str, *, version: int, overall_status: str,
                     pdf_storage_key: str, docx_storage_key: str,
                     content_sha256: str, manifest: dict,
-                    reviewed_by: str | None = None) -> dict:
+                    reviewed_by: str | None = None, report_kind: str = "FINALIZED",
+                    generated_by: str | None = None) -> dict:
         scan_uuid = _uuid_or_404(scan_id)
         with self.sessions() as session:
             scan = session.get(Scan, scan_uuid)
@@ -34,12 +36,53 @@ class ReportStoreMixin:
                 scan_id=scan_uuid, version=version, overall_status=overall_status,
                 pdf_storage_key=pdf_storage_key, docx_storage_key=docx_storage_key,
                 content_sha256=content_sha256, manifest=manifest,
-                reviewed_by=uuid.UUID(reviewed_by) if reviewed_by else None)
+                reviewed_by=uuid.UUID(reviewed_by) if reviewed_by else None,
+                report_kind=report_kind,
+                generated_by=uuid.UUID(generated_by) if generated_by else None)
             session.add(report)
-            scan.status = "FINALIZED"
+            # Only a reviewer's signature closes an inspection. A field copy that set this
+            # would lock the scan against correction, re-evaluation and override — the
+            # officer would have destroyed their own evidence by exporting a PDF.
+            if report_kind == "FINALIZED":
+                scan.status = "FINALIZED"
             session.commit()
             session.refresh(report)
             return report_dict(report)
+
+    def next_investigation_report_version(self, investigation_id: str, *,
+                                          kind: str = "FINALIZED") -> int:
+        target = _uuid_or_404(investigation_id)
+        with self.sessions() as session:
+            latest = session.scalar(select(func.max(ComplianceReport.version)).where(
+                ComplianceReport.investigation_id == target,
+                ComplianceReport.report_kind == kind)) or 0
+            return latest + 1
+
+    def save_investigation_report(self, investigation_id: str, *, version: int,
+                                  overall_status: str, pdf_storage_key: str,
+                                  docx_storage_key: str, content_sha256: str,
+                                  manifest: dict, report_kind: str,
+                                  generated_by: str | None) -> dict:
+        with self.sessions() as session:
+            report = ComplianceReport(
+                investigation_id=_uuid_or_404(investigation_id), scan_id=None,
+                version=version, overall_status=overall_status,
+                pdf_storage_key=pdf_storage_key, docx_storage_key=docx_storage_key,
+                content_sha256=content_sha256, manifest=manifest,
+                report_kind=report_kind,
+                generated_by=uuid.UUID(generated_by) if generated_by else None)
+            session.add(report)
+            session.commit()
+            session.refresh(report)
+            return report_dict(report)
+
+    def list_investigation_reports(self, investigation_id: str) -> list[dict]:
+        target = _uuid_or_404(investigation_id)
+        with self.sessions() as session:
+            rows = session.scalars(select(ComplianceReport).where(
+                ComplianceReport.investigation_id == target)
+                .order_by(ComplianceReport.version.desc())).all()
+            return [report_dict(row) for row in rows]
 
     def get_report(self, report_id: str) -> dict:
         try:

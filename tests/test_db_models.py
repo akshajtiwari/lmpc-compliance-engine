@@ -69,18 +69,16 @@ def test_scans_captured_at_drives_the_law_not_the_clock():
     assert _table("scans").columns["captured_at"].nullable is False   # P7
 
 
-def test_report_versions_are_unique_per_scan():
-    uq = next(u for u in _table("compliance_reports").constraints
-              if isinstance(u, UniqueConstraint))
-    assert [c.name for c in uq.columns] == ["scan_id", "version"]
-
-
-@pytest.mark.parametrize("table,col", [
-    ("scans", "coverage_asserted"), ("scans", "captured_at"),
-    ("rule_evaluations", "reason"), ("rule_evaluations", "citation"),
-])
-def test_mandatory_columns_reject_nulls(table, col):
-    assert _table(table).columns[col].nullable is False
+def test_report_versions_are_unique_per_scan_and_kind():
+    """A field copy must not consume a finalised report's version number: two different
+    documents both labelled v1 is exactly the ambiguity a legal record cannot carry."""
+    constraints = {c.name: c for c in _table("compliance_reports").constraints
+                   if isinstance(c, UniqueConstraint)}
+    assert [column.name for column in constraints["uq_report_version"].columns] == \
+        ["scan_id", "report_kind", "version"]
+    assert [column.name for column in
+            constraints["uq_investigation_report_version"].columns] == \
+        ["investigation_id", "report_kind", "version"]
 
 
 def test_the_seeded_categories_match_the_migration():

@@ -110,6 +110,20 @@ class InvestigationService:
                 "pending_count": len(scans) - sum(by_overall.values()),
                 "by_overall": by_overall, "top_violations": []}
 
+    def scan_details(self, principal, investigation_id: str) -> list[dict]:
+        """Every evaluated scan in the folder, with its findings, for a consolidated
+        report. Unfinished scans are left out rather than reported as compliant."""
+        self._authorize(principal, investigation_id)
+        records = [record for record in self.scans._by_id.values()
+                   if getattr(record, "investigation_id", None) == investigation_id] \
+            if not self.db else None
+        if records is None:
+            records = self.db.scan_records(investigation_id)
+        return [{"id": record.id, "captured_at": record.captured_at,
+                 "category": record.category, "overall": record.overall,
+                 "evaluations": record.latest_evaluations()}
+                for record in records if record.overall]
+
     def ensure_open(self, principal, investigation_id: str | None) -> str | None:
         """Validate a folder a scan is being filed into. Returns the id, or None."""
         if not investigation_id:
