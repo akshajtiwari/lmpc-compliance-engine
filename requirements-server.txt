@@ -12,3 +12,4 @@ pillow-heif>=0.16    # HEIC uploads from mobile capture
 weasyprint>=62       # PDF reports from the shared verdict snapshot
 python-docx>=1.1     # editable DOCX reports from the same snapshot
 httpx>=0.27          # ASGI contract tests and service integrations
+segno>=1.6           # pairing QR, pure Python: no image factory for PyInstaller to find

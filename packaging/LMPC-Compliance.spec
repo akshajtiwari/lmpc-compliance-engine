@@ -17,6 +17,8 @@ datas = [
 ]
 binaries = []
 hiddenimports = [
+    "segno",                      # imported lazily by the pairing page
+    "sqlalchemy.dialects.sqlite",  # the desktop build's database
     "uvicorn.logging",
     "uvicorn.loops.auto",
     "uvicorn.protocols.http.auto",

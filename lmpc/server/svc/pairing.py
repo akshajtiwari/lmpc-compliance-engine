@@ -4,7 +4,6 @@ from __future__ import annotations
 import io
 from datetime import UTC, datetime
 
-import segno
 from sqlalchemy import func, select
 
 from ..db.models import DeviceEnrollment
@@ -68,10 +67,17 @@ class PairingService:
     # ---- rendering -------------------------------------------------------------
 
     def qr_svg(self) -> bytes:
+        # Imported here, not at module scope: the pairing page is mounted only by the
+        # desktop build, and a departmental deployment that never shows it should not
+        # fail to start for want of a QR library.
+        import segno
+
         uri = self.invitation()["enrollment_uri"]
         return segno.make(uri, error="m").svg_inline(scale=6, border=2).encode("utf-8")
 
     def qr_terminal(self) -> str:
+        import segno
+
         out = io.StringIO()
         segno.make(self.invitation()["enrollment_uri"], error="m").terminal(
             out, compact=True, border=2)

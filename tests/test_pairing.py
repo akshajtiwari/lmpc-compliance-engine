@@ -7,6 +7,7 @@ three gates that keep a credential-bearing page off the network.
 """
 from __future__ import annotations
 
+import sys
 import urllib.parse
 
 import httpx
@@ -162,3 +163,30 @@ async def test_pairing_does_not_exist_outside_the_desktop_build(tmp_path):
 
 def test_the_csrf_token_is_not_predictable():
     assert len(pairing_api.CSRF_TOKEN) >= 24
+
+
+def test_a_server_without_the_qr_library_still_starts(tmp_path, monkeypatch):
+    """segno is a desktop-only dependency, imported inside the two functions that draw a
+    code. A departmental deployment that never mounts the pairing page must not fail to
+    start for want of it — which is exactly how this shipped broken: an import at module
+    scope took down every route in the application.
+    """
+    import builtins
+
+    real_import = builtins.__import__
+
+    def refuse_segno(name, *args, **kwargs):
+        if name == "segno":
+            raise ModuleNotFoundError("No module named 'segno'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", refuse_segno)
+    for module in [name for name in sys.modules if name.startswith("lmpc.server")]:
+        monkeypatch.delitem(sys.modules, module, raising=False)
+
+    from lmpc.server.main import create_app as rebuilt
+
+    # Constructing the application is the invariant: it imports every router, including
+    # the pairing one, whether or not the pairing routes are mounted.
+    app = rebuilt(Settings(storage_root=str(tmp_path / "objects")))
+    assert app.title == "LMPC Compliance API"
