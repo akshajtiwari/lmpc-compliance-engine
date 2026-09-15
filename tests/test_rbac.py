@@ -47,6 +47,14 @@ ENDPOINT_PERMISSIONS = {
     ("GET", "/dashboard/geo"): "dashboard:read",
     ("GET", "/dashboard/quality"): "dashboard:read",
     ("GET", "/rules/{check_code}"): "rules:read",
+    ("POST", "/investigations"): "investigations:create",
+    ("GET", "/investigations"): "investigations:read",
+    ("GET", "/investigations/{investigation_id}"): "investigations:read",
+    ("PATCH", "/investigations/{investigation_id}"): "investigations:update",
+    ("GET", "/investigations/{investigation_id}/scans"): "investigations:read",
+    ("GET", "/investigations/{investigation_id}/stats"): "investigations:read",
+    ("GET", "/investigations/{investigation_id}/notes"): "investigations:read",
+    ("POST", "/investigations/{investigation_id}/notes"): "investigations:update",
 }
 ROLE_NEUTRAL_ENDPOINTS = {
     ("POST", "/auth/login"), ("POST", "/auth/refresh"),

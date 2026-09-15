@@ -46,6 +46,7 @@ class ScanRecord:
     metadata: dict[str, Any] = field(default_factory=dict)
     officer_id: str | None = None
     jurisdiction_id: str | None = None
+    investigation_id: str | None = None
 
     def latest_declarations(self) -> list[dict[str, Any]]:
         effective = {}
@@ -135,7 +136,8 @@ class MemoryStore:
                images: list[EvidenceImage],
                metadata: dict[str, Any] | None = None,
                officer_id: str | None = None,
-               jurisdiction_id: str | None = None) -> tuple[ScanRecord, bool]:
+               jurisdiction_id: str | None = None,
+               investigation_id: str | None = None) -> tuple[ScanRecord, bool]:
         validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                  category=category, coverage_asserted=coverage_asserted, panels=panels,
                  n_images=len(images))
@@ -145,7 +147,8 @@ class MemoryStore:
         rec = ScanRecord(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                          category=category, coverage_asserted=coverage_asserted,
                          panels=panels, images=images, metadata=metadata or {},
-                         officer_id=officer_id, jurisdiction_id=jurisdiction_id)
+                         officer_id=officer_id, jurisdiction_id=jurisdiction_id,
+                         investigation_id=investigation_id)
         self._by_id[rec.id] = self._by_client[client_uuid] = rec
         return rec, True
 
@@ -159,7 +162,8 @@ class MemoryStore:
               coverage_asserted: bool, panels: list[str],
               metadata: dict[str, Any] | None = None,
               officer_id: str | None = None,
-              jurisdiction_id: str | None = None) -> tuple[ScanRecord, bool]:
+              jurisdiction_id: str | None = None,
+              investigation_id: str | None = None) -> tuple[ScanRecord, bool]:
         validate_deferred(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                           category=category, coverage_asserted=coverage_asserted,
                           panels=panels)
@@ -169,7 +173,8 @@ class MemoryStore:
         rec = ScanRecord(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                          category=category, coverage_asserted=coverage_asserted,
                          panels=panels, images=[], metadata=metadata or {},
-                         officer_id=officer_id, jurisdiction_id=jurisdiction_id)
+                         officer_id=officer_id, jurisdiction_id=jurisdiction_id,
+                         investigation_id=investigation_id)
         self._by_id[rec.id] = self._by_client[client_uuid] = rec
         return rec, True
 

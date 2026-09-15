@@ -5,10 +5,10 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (Boolean, CheckConstraint, ForeignKey,
-                        Index, Integer, String, UniqueConstraint, Uuid, func, text)
+                        Index, Integer, String, UniqueConstraint, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BIGSERIAL, Base, INET, JSONB, UtcDateTime
+from .base import BIGSERIAL, Base, INET, JSONB, UtcDateTime, UuidCol
 
 RULEPACK_STATES = ("CANDIDATE", "ACTIVE", "ARCHIVED")
 LEDGER_STATUSES = ("QUARANTINED", "APPROVED", "REJECTED")
@@ -20,15 +20,15 @@ def _in(values: tuple[str, ...]) -> str:
 
 class ComplianceReport(Base):
     __tablename__ = "compliance_reports"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    scan_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("scans.id"))
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
+    scan_id: Mapped[uuid.UUID] = mapped_column(UuidCol, ForeignKey("scans.id"))
     version: Mapped[int] = mapped_column(Integer)
     overall_status: Mapped[str] = mapped_column(String(24))
     pdf_storage_key: Mapped[str | None] = mapped_column(String)
     docx_storage_key: Mapped[str | None] = mapped_column(String)
     content_sha256: Mapped[str] = mapped_column(String(64))
     manifest: Mapped[dict] = mapped_column(JSONB)             # Part 11.2
-    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("users.id"))
     review_notes: Mapped[str | None] = mapped_column(String)
     finalized_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (UniqueConstraint(scan_id, version, name="uq_report_version"),)
@@ -46,7 +46,7 @@ class Rulepack(Base):
     payload: Mapped[dict] = mapped_column(JSONB)
     built_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     published_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
-    approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("users.id"))
     approval_confirmations: Mapped[dict | None] = mapped_column(JSONB)
     __table_args__ = (
         CheckConstraint("state IN " + _in(RULEPACK_STATES), name="ck_rulepack_state"),
@@ -61,7 +61,7 @@ class Rulepack(Base):
 
 class AmendmentLedger(Base):
     __tablename__ = "amendment_ledger"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     instrument_key: Mapped[str] = mapped_column(String(40))   # "G.S.R. 875(E)@2016" (P2)
     family: Mapped[str | None] = mapped_column(String(40))
     prev_key: Mapped[str | None] = mapped_column(String(40))
@@ -72,7 +72,7 @@ class AmendmentLedger(Base):
     source_sha256: Mapped[str | None] = mapped_column(String(64))
     page: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default="QUARANTINED")
-    approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("users.id"))
     approved_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     reject_reason: Mapped[str | None] = mapped_column(String)
     __table_args__ = (
@@ -88,8 +88,8 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
     id: Mapped[int] = mapped_column(BIGSERIAL, primary_key=True, autoincrement=True)
     entity_type: Mapped[str] = mapped_column(String(50))
-    entity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
-    actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(UuidCol)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(String(50))
     diff: Mapped[dict | None] = mapped_column(JSONB)
     ip: Mapped[str | None] = mapped_column(INET)

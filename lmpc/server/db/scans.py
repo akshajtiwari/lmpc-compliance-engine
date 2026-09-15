@@ -5,11 +5,11 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import (Boolean, CheckConstraint, Date, ForeignKey, Index,
-                        Integer, String, UniqueConstraint, Uuid, func, text)
+from sqlalchemy import (Boolean, CheckConstraint, ForeignKey, Index,
+                        Integer, String, UniqueConstraint, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import ARRAY, Base, JSONB, ScaledNumeric, UtcDateTime
+from .base import ARRAY, Base, DateCol, JSONB, ScaledNumeric, UtcDateTime, UuidCol
 
 STATUSES = ("RECEIVED", "OCR_IN_PROGRESS", "OCR_COMPLETE", "EXTRACTION_COMPLETE",
             "EVALUATION_COMPLETE", "UNDER_REVIEW", "FINALIZED", "SYNC_CONFLICT",
@@ -26,13 +26,17 @@ def _in(values: tuple[str, ...]) -> str:
 
 class Scan(Base):
     __tablename__ = "scans"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    client_uuid: Mapped[uuid.UUID | None] = mapped_column(Uuid, unique=True)
-    product_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("products.id"))
-    officer_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), default=uuid.uuid4)
-    jurisdiction_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("jurisdictions.id"))
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
+    client_uuid: Mapped[uuid.UUID | None] = mapped_column(UuidCol, unique=True)
+    product_id: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("products.id"))
+    # Nullable: scans captured before investigations existed have no folder, and the
+    # clients show those in an "Unfiled" pseudo-folder rather than hiding them.
+    investigation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UuidCol, ForeignKey("investigations.id", ondelete="SET NULL"))
+    officer_id: Mapped[uuid.UUID] = mapped_column(UuidCol, ForeignKey("users.id"), default=uuid.uuid4)
+    jurisdiction_id: Mapped[uuid.UUID] = mapped_column(UuidCol, ForeignKey("jurisdictions.id"))
 
-    captured_at: Mapped[date] = mapped_column(Date)          # P7 — the governing law
+    captured_at: Mapped[date] = mapped_column(DateCol)          # P7 — the governing law
     mode: Mapped[str] = mapped_column(String(20))
     category_code: Mapped[str] = mapped_column(
         String(50), ForeignKey("commodity_categories.code"))
@@ -78,14 +82,15 @@ class Scan(Base):
               sqlite_where=text("status <> 'FINALIZED'")),
         Index("idx_scans_officer", officer_id, created_at.desc()),
         Index("idx_scans_product", product_id),
+        Index("idx_scans_investigation", investigation_id, created_at.desc()),
     )
 
 
 class ScanImage(Base):
     __tablename__ = "scan_images"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     scan_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("scans.id", ondelete="CASCADE"))
+        UuidCol, ForeignKey("scans.id", ondelete="CASCADE"))
     panel_label: Mapped[str] = mapped_column(String(10))
     storage_key: Mapped[str] = mapped_column(String)
     sha256: Mapped[str] = mapped_column(String(64))

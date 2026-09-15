@@ -86,3 +86,18 @@ def test_a_database_from_another_schema_generation_is_refused(portable):
 
 def test_desktop_rejects_invalid_port():
     assert desktop.main(["--port", "0", "--no-browser"]) == 2
+
+
+def test_the_portable_build_can_actually_accept_a_scan(portable):
+    """Commodity categories arrive with Alembic on PostgreSQL, and the desktop build runs
+    no migrations. Without seeding them here every scan dies on a foreign key — a 500 with
+    nothing in it for the officer to act on."""
+    from sqlalchemy import func, select
+
+    from lmpc.server.db.models import CommodityCategory
+    from lmpc.server.db.reference import COMMODITY_CATEGORIES
+
+    with sessionmaker_of(os.environ["LMPC_DB_URL"])() as session:
+        seeded = session.scalar(select(func.count()).select_from(CommodityCategory))
+        assert seeded == len(COMMODITY_CATEGORIES)
+        assert session.get(CommodityCategory, "FOOD").fssai_overlap is True

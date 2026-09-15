@@ -46,6 +46,7 @@ async def list_scans(
     date_from: date | None = None,
     date_to: date | None = None,
     officer_id: uuid.UUID | None = None,
+    investigation_id: uuid.UUID | None = None,
     jurisdiction_id: uuid.UUID | None = None,
     violation_type: str | None = None,
     q: str | None = Query(None, max_length=200),
@@ -58,6 +59,7 @@ async def list_scans(
         "manufacturer": manufacturer, "brand": brand, "category": category,
         "status": status, "overall": overall, "date_from": date_from,
         "date_to": date_to, "officer_id": officer_id,
+        "investigation_id": investigation_id,
         "jurisdiction_id": jurisdiction_id, "violation_type": violation_type, "q": q,
     }
     return request.app.state.review.list_scans(

@@ -19,7 +19,7 @@ from ..api.errors import ApiError
 from ..config import Settings
 from ..db import sessionmaker_of
 from ..db.models import AuditLog, DeviceEnrollment, RefreshToken, User
-from ..db.paths import jurisdiction_contains
+from .auth_scope import ScopeRules
 from .auth_core import (ALL_PERMISSIONS, ROLE_PERMISSIONS, Principal,
                         load_or_create_keys, password_hasher)
 
@@ -27,7 +27,7 @@ ACCESS_TTL = timedelta(minutes=15)
 REFRESH_TTL = timedelta(days=30)
 LOCK_WINDOW = timedelta(minutes=15)
 LOCK_DURATION = timedelta(minutes=15)
-class AuthManager:
+class AuthManager(ScopeRules):
     def __init__(self, settings: Settings):
         if settings.auth_mode not in {"disabled", "local"}:
             raise RuntimeError("LMPC_AUTH_MODE must be 'disabled' or 'local'")
@@ -178,28 +178,6 @@ class AuthManager:
     def server_fingerprint(self) -> str:
         """Stable public identifier used to notice an unexpected server change."""
         return hashlib.sha256(self.public_key).hexdigest() if self.public_key else ""
-    def ensure_scan_scope(self, principal: Principal, scan) -> None:
-        if self.disabled or principal.role == "ADMIN":
-            return
-        if principal.role == "FIELD_OFFICER":
-            allowed = scan.officer_id == principal.id
-        else:
-            allowed = self._jurisdiction_contains(
-                principal.jurisdiction_id, scan.jurisdiction_id)
-        if not allowed:
-            self.audit_denial(principal, "scan", scan.id)
-            raise ApiError("E_FORBIDDEN", "the scan is outside your authorised scope")
-    def ensure_jurisdiction_scope(self, principal: Principal,
-                                  jurisdiction_id: str) -> None:
-        if self.disabled or principal.role == "ADMIN":
-            return
-        allowed = (principal.jurisdiction_id == jurisdiction_id
-                   if principal.role == "FIELD_OFFICER" else
-                   self._jurisdiction_contains(principal.jurisdiction_id, jurisdiction_id))
-        if not allowed:
-            self.audit_denial(principal, "jurisdiction", jurisdiction_id)
-            raise ApiError("E_FORBIDDEN", "the jurisdiction is outside your authorised scope")
-
     def audit_action(self, principal: Principal, entity_type: str, entity_id: str,
                      action: str, diff: dict | None = None) -> None:
         if self.disabled:
@@ -223,13 +201,6 @@ class AuthManager:
                 entity_type=entity_type, entity_id=parsed, actor_id=uuid.UUID(principal.id),
                 action="PERMISSION_DENIED", diff=None))
             session.commit()
-
-    def _jurisdiction_contains(self, root: str | None, target: str | None) -> bool:
-        """One containment rule, shared with the repository scoping in review_db. An
-        access-control predicate that disagrees between two backends is a security
-        bug, not a portability detail."""
-        with self.sessions() as session:  # type: ignore[operator]
-            return jurisdiction_contains(session, root, target)
 
     def _access(self, principal: Principal, now: datetime) -> str:
         claims = {

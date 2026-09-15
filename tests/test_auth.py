@@ -14,13 +14,15 @@ EXPECTED = {
     "FIELD_OFFICER": {
         "scans:create", "scans:read", "scans:update", "declarations:correct",
         "evaluations:read", "reports:read", "reports:export", "products:read",
-        "dashboard:read",
+        "dashboard:read", "rules:read",
+        "investigations:create", "investigations:read", "investigations:update",
     },
     "REVIEWING_OFFICER": {
         "scans:create", "scans:read", "scans:update", "scans:reevaluate",
         "declarations:correct", "evaluations:read", "evaluations:override",
         "reports:create", "reports:read", "reports:export", "products:read",
         "products:merge", "rules:read", "dashboard:read",
+        "investigations:create", "investigations:read", "investigations:update",
     },
     "ADMIN": {
         "scans:create", "scans:read", "scans:update", "scans:reevaluate",
@@ -28,12 +30,20 @@ EXPECTED = {
         "reports:create", "reports:read", "reports:export", "products:read",
         "products:merge", "rules:read", "rules:approve", "users:read", "users:manage",
         "jurisdictions:manage", "dashboard:read", "dashboard:read_all", "audit:read",
+        "investigations:create", "investigations:read", "investigations:update",
     },
     "AUDITOR": {
         "scans:read", "evaluations:read", "reports:read", "reports:export",
         "products:read", "rules:read", "users:read", "dashboard:read", "audit:read",
+        "investigations:read",
     },
 }
+
+
+def test_a_field_officer_can_read_rule_explanations():
+    """The phone opens a rule sheet on every finding. Without this the button 403s for
+    exactly the role the app is built for."""
+    assert "rules:read" in ROLE_PERMISSIONS["FIELD_OFFICER"]
 
 
 def test_role_permission_matrix_is_exact():

@@ -201,10 +201,18 @@ class ReviewDb:
     def _filters(self, statement, values: dict):
         exact = {"category": Scan.category_code, "status": Scan.status,
                  "overall": Scan.overall, "officer_id": Scan.officer_id,
-                 "jurisdiction_id": Scan.jurisdiction_id}
+                 "jurisdiction_id": Scan.jurisdiction_id,
+                 "investigation_id": Scan.investigation_id}
         for key, column in exact.items():
             if values.get(key) is not None:
-                statement = statement.where(column == values[key])
+                value = values[key]
+                if key in {"officer_id", "jurisdiction_id", "investigation_id"} \
+                        and not isinstance(value, uuid.UUID):
+                    try:
+                        value = uuid.UUID(str(value))
+                    except ValueError as exc:
+                        raise ApiError("E_VALIDATION", f"{key} must be a UUID") from exc
+                statement = statement.where(column == value)
         if values.get("date_from"):
             statement = statement.where(Scan.captured_at >= values["date_from"])
         if values.get("date_to"):
@@ -252,6 +260,7 @@ def _summary(row: Scan, brand: str | None, manufacturer: str | None) -> dict:
         "officer_id": str(row.officer_id), "jurisdiction_id": str(row.jurisdiction_id),
         "product_id": str(row.product_id) if row.product_id else None,
         "brand": brand, "manufacturer": manufacturer,
+        "investigation_id": str(row.investigation_id) if row.investigation_id else None,
     }
 
 

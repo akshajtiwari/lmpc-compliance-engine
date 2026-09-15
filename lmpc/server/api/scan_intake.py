@@ -34,6 +34,7 @@ async def create_deferred_scan(
     flags: str | None = Form(None),
     geo: str | None = Form(None),
     ecommerce: str | None = Form(None),
+    investigation_id: str | None = Form(None),
     principal: Principal = Depends(require("scans:create")),
 ) -> JSONResponse:
     """Declare a field inspection without images.
@@ -52,11 +53,16 @@ async def create_deferred_scan(
         ecommerce=json_object(ecommerce, "ecommerce"))
     validate_panel_mode(
         mode=mode, coverage_asserted=coverage_asserted, panels=panels)
+    # A scan filed into a folder must land in one the officer may open, and one that is
+    # still accepting work.
+    investigation_id = request.app.state.investigations.ensure_open(
+        principal, investigation_id)
     svc = request.app.state.scan_store
     rec, created = svc.begin(
         client_uuid=client_uuid, captured_at=captured_at, mode=mode, category=category,
         coverage_asserted=coverage_asserted, panels=panels, metadata=metadata,
-        officer_id=principal.id, jurisdiction_id=principal.jurisdiction_id)
+        officer_id=principal.id, jurisdiction_id=principal.jurisdiction_id,
+        investigation_id=investigation_id)
     if created:
         metrics.inc("lmpc_scan_submitted_total")
         request.app.state.auth.audit_action(

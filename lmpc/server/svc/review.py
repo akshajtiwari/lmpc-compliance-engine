@@ -207,8 +207,10 @@ def _effective(rows: list[dict]) -> list[dict]:
 def _memory_match(row, filters: dict) -> bool:
     checks = (("category", row.category), ("status", row.status),
               ("overall", row.overall), ("officer_id", row.officer_id),
-              ("jurisdiction_id", row.jurisdiction_id))
-    if any(filters.get(key) is not None and filters[key] != value for key, value in checks):
+              ("jurisdiction_id", row.jurisdiction_id),
+              ("investigation_id", getattr(row, "investigation_id", None)))
+    if any(filters.get(key) is not None and str(filters[key]) != str(value)
+           for key, value in checks):
         return False
     if filters.get("date_from") and row.captured_at < str(filters["date_from"]):
         return False
@@ -229,4 +231,5 @@ def _memory_summary(row) -> dict:
             "overall": row.overall, "coverage_asserted": row.coverage_asserted,
             "officer_id": row.officer_id, "jurisdiction_id": row.jurisdiction_id,
             "product_id": row.metadata.get("product_id"), "brand": None,
-            "manufacturer": None}
+            "manufacturer": None,
+            "investigation_id": getattr(row, "investigation_id", None)}

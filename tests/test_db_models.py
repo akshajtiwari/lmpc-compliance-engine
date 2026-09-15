@@ -16,7 +16,7 @@ def test_every_part13_table_exists():
         "commodity_categories",
         "manufacturers", "products", "scans", "scan_images", "extracted_declarations",
         "rule_evaluations", "compliance_reports", "rulepacks", "amendment_ledger",
-        "audit_log"}
+        "audit_log", "investigations", "investigation_notes"}
 
 
 def test_scan_idempotency_is_a_database_guarantee():
@@ -81,3 +81,19 @@ def test_report_versions_are_unique_per_scan():
 ])
 def test_mandatory_columns_reject_nulls(table, col):
     assert _table(table).columns[col].nullable is False
+
+
+def test_the_seeded_categories_match_the_migration():
+    """PostgreSQL gets these rows from Alembic 0002; the desktop build seeds them itself
+    because it creates its schema with create_all and never runs a migration. Two copies
+    of the same list is fine — silently drifting copies are not."""
+    from pathlib import Path
+
+    from lmpc.server.db.reference import COMMODITY_CATEGORIES
+
+    migration = Path("lmpc/server/db/migrations/versions/0002_product.py").read_text()
+    for code, name in COMMODITY_CATEGORIES.items():
+        assert f'"{code}": "{name}"' in migration, f"{code} drifted from migration 0002"
+    quoted = migration[migration.index("names = {"):migration.index("op.bulk_insert")]
+    assert quoted.count('": "') == len(COMMODITY_CATEGORIES), \
+        "migration 0002 seeds a category the desktop build would not"

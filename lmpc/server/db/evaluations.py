@@ -5,11 +5,11 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import (Boolean, CheckConstraint, Date, ForeignKey, Index,
-                        Integer, String, UniqueConstraint, Uuid, func)
+from sqlalchemy import (Boolean, CheckConstraint, ForeignKey, Index,
+                        Integer, String, UniqueConstraint, func)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, JSONB, ScaledNumeric, UtcDateTime
+from .base import Base, DateCol, JSONB, ScaledNumeric, UtcDateTime, UuidCol
 
 OUTCOMES = ("PASS", "FAIL", "INDETERMINATE", "NOT_APPLICABLE", "REVIEW_REQUIRED",
             "SYSTEM_ERROR")
@@ -21,11 +21,11 @@ def _in(values: tuple[str, ...]) -> str:
 
 class ExtractedDeclaration(Base):
     __tablename__ = "extracted_declarations"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     scan_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("scans.id", ondelete="CASCADE"))
+        UuidCol, ForeignKey("scans.id", ondelete="CASCADE"))
     scan_image_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("scan_images.id"))
+        UuidCol, ForeignKey("scan_images.id"))
     batch: Mapped[int] = mapped_column(Integer, default=1)
     field_type: Mapped[str] = mapped_column(String(40))
     raw_text: Mapped[str | None] = mapped_column(String)
@@ -44,7 +44,7 @@ class ExtractedDeclaration(Base):
     glyph_height_px: Mapped[Decimal | None] = mapped_column(ScaledNumeric(8, 2))
     glyph_height_mm: Mapped[Decimal | None] = mapped_column(ScaledNumeric(6, 2))
     is_on_pdp: Mapped[bool | None] = mapped_column(Boolean)
-    corrected_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
+    corrected_by: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (Index("idx_extracted_scan", scan_id, batch),)
 
@@ -52,9 +52,9 @@ class ExtractedDeclaration(Base):
 class RuleEvaluation(Base):
     """Append-only: overrides insert a new row pointing at the original (13.4)."""
     __tablename__ = "rule_evaluations"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     scan_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("scans.id", ondelete="CASCADE"))
+        UuidCol, ForeignKey("scans.id", ondelete="CASCADE"))
     batch: Mapped[int] = mapped_column(Integer, default=1)
     check_code: Mapped[str] = mapped_column(String(60))
     clause: Mapped[str] = mapped_column(String(100))
@@ -63,14 +63,14 @@ class RuleEvaluation(Base):
     citation: Mapped[dict] = mapped_column(JSONB)
     evidence: Mapped[dict | None] = mapped_column(JSONB)
     rulepack_version: Mapped[str] = mapped_column(String(60))
-    law_version: Mapped[date | None] = mapped_column(Date)
+    law_version: Mapped[date | None] = mapped_column(DateCol)
     evidence_declaration_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("extracted_declarations.id"))
+        UuidCol, ForeignKey("extracted_declarations.id"))
     is_override: Mapped[bool] = mapped_column(Boolean, default=False)
     override_of_evaluation_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("rule_evaluations.id"))
+        UuidCol, ForeignKey("rule_evaluations.id"))
     override_reason: Mapped[str | None] = mapped_column(String)
-    overridden_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
+    overridden_by: Mapped[uuid.UUID | None] = mapped_column(UuidCol, ForeignKey("users.id"))
     evaluated_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (
         CheckConstraint("outcome IN " + _in(OUTCOMES), name="ck_eval_outcome"),

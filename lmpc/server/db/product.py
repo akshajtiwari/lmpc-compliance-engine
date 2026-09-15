@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, Computed, DateTime, ForeignKey, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, JSONB, UtcDateTime
+from .base import Base, JSONB, UtcDateTime, UuidCol
 
 
 class CommodityCategory(Base):
@@ -20,7 +20,7 @@ class CommodityCategory(Base):
 
 class Manufacturer(Base):
     __tablename__ = "manufacturers"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255))
     registered_address: Mapped[str | None] = mapped_column(String)
     external_registry_ref: Mapped[str | None] = mapped_column(String(100))
@@ -31,10 +31,10 @@ class Product(Base):
     """dedup_key is a stored generated column — the database, not application code,
     decides that two products are the same (13.2)."""
     __tablename__ = "products"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     brand_name: Mapped[str | None] = mapped_column(String(255))
     manufacturer_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("manufacturers.id"))
+        UuidCol, ForeignKey("manufacturers.id"))
     category_code: Mapped[str] = mapped_column(
         String(50), ForeignKey("commodity_categories.code"))
     barcode: Mapped[str | None] = mapped_column(String(50))

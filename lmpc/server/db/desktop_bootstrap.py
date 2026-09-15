@@ -21,7 +21,8 @@ from pathlib import Path
 from ..svc.auth_core import hash_password
 from . import engine, sessionmaker_of
 from .base import Base
-from .models import Jurisdiction, User
+from .models import CommodityCategory, Jurisdiction, User
+from .reference import seed_categories
 
 #: Raised by one and bumped by the other: any change to the SQLite schema that
 #: `create_all` would no longer produce from an existing file.
@@ -61,6 +62,9 @@ def run(data_root: Path, db_url: str) -> dict:
         stored = json.loads(path.read_text(encoding="utf-8"))
         _guard_schema(stored)
         Base.metadata.create_all(engine(db_url))   # no-op when the tables are there
+        with sessionmaker_of(db_url)() as session:
+            if seed_categories(session, CommodityCategory):
+                session.commit()                   # a build that added a category
         return stored
 
     Base.metadata.create_all(engine(db_url))
@@ -74,6 +78,9 @@ def run(data_root: Path, db_url: str) -> dict:
                     "password": _password()},
     }
     with sessionmaker_of(db_url)() as session:
+        # Without these a scan fails on a foreign key, which is a 500 with nothing in it
+        # for the officer to act on.
+        seed_categories(session, CommodityCategory)
         session.add(Jurisdiction(id=jurisdiction_id, name="This computer",
                                  state="Local", path="local"))
         session.add_all([

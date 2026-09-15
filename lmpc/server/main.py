@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from .api import (accounts, auth, dashboard, errors, health, pairing, reports, review,
-                  rules, scan_intake, scans)
+from .api import (accounts, auth, dashboard, errors, health, investigations,
+                  pairing, reports, review, rules, scan_intake, scans)
 from .config import Settings
 from .net import is_loopback
 from .svc.object_store import open_object_store
@@ -21,6 +21,7 @@ from .svc.pipeline import Pipeline
 from .svc.reporting import ReportService
 from .svc.review import ReviewService
 from .svc.scan_store import open_store
+from .svc.investigations import InvestigationService
 from .svc.pairing import PairingService
 from .svc.rate_limit import RateLimiter
 from .obs.logging import setup as setup_logging, trace_id
@@ -118,6 +119,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.accounts = AccountService(app.state.auth)
     app.state.review = ReviewService(app.state.scan_store, app.state.auth)
     app.state.dashboard = DashboardService(app.state.scan_store, app.state.review)
+    app.state.investigations = InvestigationService(app.state.scan_store,
+                                                   app.state.auth)
     errors.install(app)
     app.include_router(auth.router)
     app.include_router(accounts.router)
@@ -128,6 +131,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(review.router)
     app.include_router(dashboard.router)
     app.include_router(rules.router)
+    app.include_router(investigations.router)
     if s.desktop_mode:                 # never part of the deployed API
         app.include_router(pairing.router)
     pack = health.boot(s.rulepack_path)   # fail-fast before the first request

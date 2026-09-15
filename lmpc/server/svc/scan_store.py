@@ -60,7 +60,8 @@ class DbStore(ReportStoreMixin):
                images: list[EvidenceImage],
                metadata: dict[str, Any] | None = None,
                officer_id: str | None = None,
-               jurisdiction_id: str | None = None) -> tuple[ScanRecord, bool]:
+               jurisdiction_id: str | None = None,
+               investigation_id: str | None = None) -> tuple[ScanRecord, bool]:
         validate(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                  category=category, coverage_asserted=coverage_asserted, panels=panels,
                  n_images=len(images))
@@ -72,6 +73,7 @@ class DbStore(ReportStoreMixin):
                             panels_captured=panels,
                             officer_id=officer_id or self.officer_id,
                             jurisdiction_id=jurisdiction_id or self.jurisdiction_id,
+                            investigation_id=investigation_id,
                             **(metadata or {})),
                 index_elements=[Scan.client_uuid], returning=Scan.id)
             if row is None:                       # the race lost: return the winner
@@ -95,7 +97,8 @@ class DbStore(ReportStoreMixin):
               coverage_asserted: bool, panels: list[str],
               metadata: dict[str, Any] | None = None,
               officer_id: str | None = None,
-              jurisdiction_id: str | None = None) -> tuple[ScanRecord, bool]:
+              jurisdiction_id: str | None = None,
+              investigation_id: str | None = None) -> tuple[ScanRecord, bool]:
         validate_deferred(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
                           category=category, coverage_asserted=coverage_asserted,
                           panels=panels)
@@ -107,6 +110,7 @@ class DbStore(ReportStoreMixin):
                             panels_captured=panels,
                             officer_id=officer_id or self.officer_id,
                             jurisdiction_id=jurisdiction_id or self.jurisdiction_id,
+                            investigation_id=investigation_id,
                             **(metadata or {})),
                 index_elements=[Scan.client_uuid], returning=Scan.id)
             if row is None:                       # the race lost: return the winner
@@ -262,4 +266,6 @@ class DbStore(ReportStoreMixin):
                 rulepack_version=row.rulepack_version, rulepack_sha256=row.rulepack_sha256,
                 batch=batch, declarations=declarations, evaluations=evaluations,
                 metadata=scan_metadata(row), officer_id=str(row.officer_id),
-                jurisdiction_id=str(row.jurisdiction_id))
+                jurisdiction_id=str(row.jurisdiction_id),
+                investigation_id=(str(row.investigation_id)
+                                  if row.investigation_id else None))

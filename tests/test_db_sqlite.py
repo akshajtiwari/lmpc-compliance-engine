@@ -141,3 +141,34 @@ def test_timestamps_come_back_timezone_aware(sqlite_sessions):
         assert stored.tzinfo is not None
         assert stored > dt.datetime.now(dt.UTC)      # the comparison that used to raise
         assert abs((stored - expires).total_seconds()) < 1
+
+
+def test_the_api_string_shapes_are_accepted_on_both_engines(sqlite_sessions):
+    """psycopg parses a UUID or a date out of a string; SQLite refuses anything but the
+    object. The API carries both as strings — client_uuid off a multipart form,
+    captured_at beside it — so writing a scan the way the route does used to work on
+    PostgreSQL and fail on the desktop build. The coercion lives in the column type so
+    there is one write path, not two.
+    """
+    with sqlite_sessions() as session:
+        jurisdiction, officer = _seed(session)
+        session.add(Scan(client_uuid=str(uuid.uuid4()),      # str, not UUID
+                         captured_at="2026-09-15",           # str, not date
+                         mode="PHYSICAL_PACKAGE", category_code="FOOD",
+                         officer_id=str(officer.id),
+                         jurisdiction_id=str(jurisdiction.id)))
+        session.commit()
+        stored = session.scalar(select(Scan))
+        assert stored.captured_at == dt.date(2026, 9, 15)
+        assert isinstance(stored.client_uuid, uuid.UUID)
+
+
+def test_a_malformed_capture_date_is_refused_not_silently_replaced(sqlite_sessions):
+    """captured_at decides which version of the law judges the scan."""
+    with sqlite_sessions() as session:
+        jurisdiction, officer = _seed(session)
+        session.add(Scan(client_uuid=str(uuid.uuid4()), captured_at="15/09/2026",
+                         mode="PHYSICAL_PACKAGE", category_code="FOOD",
+                         officer_id=officer.id, jurisdiction_id=jurisdiction.id))
+        with pytest.raises(Exception):
+            session.commit()

@@ -5,21 +5,21 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (Boolean, ForeignKey, Index, Integer, LargeBinary,
-                        String, Text, Uuid, func, text)
+                        String, Text, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, CI_TEXT, INET, TREE_PATH, UtcDateTime
+from .base import Base, CI_TEXT, INET, TREE_PATH, UtcDateTime, UuidCol
 
 ROLES = ("FIELD_OFFICER", "REVIEWING_OFFICER", "ADMIN", "AUDITOR")
 
 
 class Jurisdiction(Base):
     __tablename__ = "jurisdictions"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(150))
     state: Mapped[str] = mapped_column(String(100))
     parent_jurisdiction_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("jurisdictions.id"))
+        UuidCol, ForeignKey("jurisdictions.id"))
     path: Mapped[str | None] = mapped_column(TREE_PATH)
     __table_args__ = (Index("uq_jurisdiction_name_state", name, state, unique=True),
                       Index("idx_jurisdiction_path", path, postgresql_using="gist"))
@@ -28,14 +28,14 @@ class Jurisdiction(Base):
 class User(Base):
     """A local password is optional; OIDC-only users keep password_hash NULL."""
     __tablename__ = "users"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     full_name: Mapped[str] = mapped_column(String(200))
     email: Mapped[str] = mapped_column(CI_TEXT, unique=True)
     phone: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[str] = mapped_column(String(30))
     is_legal_reviewer: Mapped[bool] = mapped_column(Boolean, default=False)
     jurisdiction_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("jurisdictions.id"))
+        UuidCol, ForeignKey("jurisdictions.id"))
     department: Mapped[str | None] = mapped_column(String(150))
     external_subject: Mapped[str | None] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str | None] = mapped_column(Text)   # NULL when SSO-only
@@ -51,10 +51,10 @@ class User(Base):
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"))
-    family_id: Mapped[uuid.UUID] = mapped_column(Uuid, default=uuid.uuid4)
+        UuidCol, ForeignKey("users.id", ondelete="CASCADE"))
+    family_id: Mapped[uuid.UUID] = mapped_column(UuidCol, default=uuid.uuid4)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)  # sha256 only
     issued_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(UtcDateTime())
@@ -72,10 +72,10 @@ class RefreshToken(Base):
 class DeviceEnrollment(Base):
     """One-use invitation that binds a managed account to a mobile device."""
     __tablename__ = "device_enrollments"
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UuidCol, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"))
-    created_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+        UuidCol, ForeignKey("users.id", ondelete="CASCADE"))
+    created_by: Mapped[uuid.UUID] = mapped_column(UuidCol, ForeignKey("users.id"))
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     server_url: Mapped[str] = mapped_column(String(500))
     expires_at: Mapped[datetime] = mapped_column(UtcDateTime())

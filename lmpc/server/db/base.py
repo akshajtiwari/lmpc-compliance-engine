@@ -10,10 +10,13 @@ migrations — which only ever run against PostgreSQL — are unaffected.
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date as _date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import BigInteger, DateTime, Integer, JSON, Numeric, String
+import uuid as _uuid
+
+from sqlalchemy import (BigInteger, Date, DateTime, Integer, JSON, Numeric,
+                        String, Uuid)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.types import TypeDecorator, UserDefinedType
@@ -97,6 +100,39 @@ class UtcDateTime(TypeDecorator):
         if value is None or dialect.name == "postgresql":
             return value
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+class UuidCol(TypeDecorator):
+    """A UUID column that also accepts the string form of one.
+
+    psycopg adapts a string to a UUID on its own, so on PostgreSQL every write path could
+    hand this column either. SQLite's driver does not, and the API layer carries ids as
+    strings — `client_uuid` arrives on a multipart form, investigation ids arrive in JSON.
+    Coercing here keeps one write path working identically on both engines instead of
+    requiring every caller to remember which shape this particular column wants.
+    """
+
+    impl = Uuid
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return _uuid.UUID(value) if isinstance(value, str) else value
+
+
+class DateCol(TypeDecorator):
+    """A date column that also accepts the ISO string form.
+
+    The same leniency gap as UuidCol: psycopg parses '2026-09-15' for us, SQLite refuses
+    anything but a date object, and `captured_at` arrives as a string on a multipart form.
+    That date decides which version of the law judges the scan, so it is parsed strictly —
+    a malformed one must fail here, not silently become today.
+    """
+
+    impl = Date
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return _date.fromisoformat(value) if isinstance(value, str) else value
 
 
 #: JSONB on PostgreSQL, portable JSON text on SQLite. One shared instance: SQLAlchemy
