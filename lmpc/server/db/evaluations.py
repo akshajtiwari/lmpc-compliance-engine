@@ -5,11 +5,11 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import (Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index,
+from sqlalchemy import (Boolean, CheckConstraint, Date, ForeignKey, Index,
                         Integer, String, UniqueConstraint, Uuid, func)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, JSONB, ScaledNumeric
+from .base import Base, JSONB, ScaledNumeric, UtcDateTime
 
 OUTCOMES = ("PASS", "FAIL", "INDETERMINATE", "NOT_APPLICABLE", "REVIEW_REQUIRED",
             "SYSTEM_ERROR")
@@ -45,7 +45,7 @@ class ExtractedDeclaration(Base):
     glyph_height_mm: Mapped[Decimal | None] = mapped_column(ScaledNumeric(6, 2))
     is_on_pdp: Mapped[bool | None] = mapped_column(Boolean)
     corrected_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (Index("idx_extracted_scan", scan_id, batch),)
 
 
@@ -71,7 +71,7 @@ class RuleEvaluation(Base):
         Uuid, ForeignKey("rule_evaluations.id"))
     override_reason: Mapped[str | None] = mapped_column(String)
     overridden_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
-    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    evaluated_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (
         CheckConstraint("outcome IN " + _in(OUTCOMES), name="ck_eval_outcome"),
         CheckConstraint("NOT is_override OR (override_reason IS NOT NULL"

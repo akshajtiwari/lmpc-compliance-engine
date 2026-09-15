@@ -10,9 +10,10 @@ migrations — which only ever run against PostgreSQL — are unaffected.
 """
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import BigInteger, Integer, JSON, Numeric, String
+from sqlalchemy import BigInteger, DateTime, Integer, JSON, Numeric, String
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.types import TypeDecorator, UserDefinedType
@@ -66,6 +67,36 @@ class ScaledNumeric(TypeDecorator):
         if value is None or dialect.name == "postgresql":
             return value
         return Decimal(str(value)).quantize(self._quantum, rounding=ROUND_HALF_UP)
+
+
+class UtcDateTime(TypeDecorator):
+    """A timestamp that comes back timezone-aware on both engines.
+
+    PostgreSQL's TIMESTAMPTZ returns an aware datetime. SQLite has no such type, so
+    SQLAlchemy hands back a naive one, and comparing it against `datetime.now(UTC)`
+    raises TypeError rather than returning a wrong answer — which is how this was found:
+    device enrollment could not check its own expiry on the desktop build.
+
+    Everything is normalised to UTC on the way in, so what is stored is unambiguous.
+    """
+
+    impl = DateTime
+    cache_ok = True
+
+    def __init__(self, **kw):
+        super().__init__(timezone=True, **kw)
+
+    def process_bind_param(self, value, dialect):
+        if value is None or dialect.name == "postgresql":
+            return value
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(UTC).replace(tzinfo=None)
+
+    def process_result_value(self, value, dialect):
+        if value is None or dialect.name == "postgresql":
+            return value
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 #: JSONB on PostgreSQL, portable JSON text on SQLite. One shared instance: SQLAlchemy

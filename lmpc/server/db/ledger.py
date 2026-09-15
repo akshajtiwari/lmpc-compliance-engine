@@ -4,11 +4,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (Boolean, CheckConstraint, DateTime, ForeignKey,
+from sqlalchemy import (Boolean, CheckConstraint, ForeignKey,
                         Index, Integer, String, UniqueConstraint, Uuid, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import BIGSERIAL, Base, INET, JSONB
+from .base import BIGSERIAL, Base, INET, JSONB, UtcDateTime
 
 RULEPACK_STATES = ("CANDIDATE", "ACTIVE", "ARCHIVED")
 LEDGER_STATUSES = ("QUARANTINED", "APPROVED", "REJECTED")
@@ -30,7 +30,7 @@ class ComplianceReport(Base):
     manifest: Mapped[dict] = mapped_column(JSONB)             # Part 11.2
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
     review_notes: Mapped[str | None] = mapped_column(String)
-    finalized_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    finalized_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (UniqueConstraint(scan_id, version, name="uq_report_version"),)
 
 
@@ -44,8 +44,8 @@ class Rulepack(Base):
     chain_complete: Mapped[bool | None] = mapped_column(Boolean)
     disclosures: Mapped[dict | None] = mapped_column(JSONB)
     payload: Mapped[dict] = mapped_column(JSONB)
-    built_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    built_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    published_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
     approval_confirmations: Mapped[dict | None] = mapped_column(JSONB)
     __table_args__ = (
@@ -73,7 +73,7 @@ class AmendmentLedger(Base):
     page: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default="QUARANTINED")
     approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
-    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approved_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     reject_reason: Mapped[str | None] = mapped_column(String)
     __table_args__ = (
         CheckConstraint("status IN " + _in(LEDGER_STATUSES), name="ck_ledger_status"),
@@ -94,7 +94,7 @@ class AuditLog(Base):
     diff: Mapped[dict | None] = mapped_column(JSONB)
     ip: Mapped[str | None] = mapped_column(INET)
     user_agent: Mapped[str | None] = mapped_column(String)
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    occurred_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (
         Index("idx_audit_entity", entity_type, entity_id),
         Index("idx_audit_time", occurred_at.desc()),

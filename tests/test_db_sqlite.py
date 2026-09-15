@@ -18,8 +18,8 @@ from sqlalchemy.orm import sessionmaker
 
 from lmpc.server.db import _tune_sqlite
 from lmpc.server.db.base import Base, ScaledNumeric
-from lmpc.server.db.models import (AuditLog, CommodityCategory, Jurisdiction, Scan,
-                                   ScanImage, User)
+from lmpc.server.db.models import (AuditLog, CommodityCategory, DeviceEnrollment,
+                                   Jurisdiction, Scan, ScanImage, User)
 from lmpc.server.db.paths import contains
 
 
@@ -123,3 +123,21 @@ def test_scaled_numeric_leaves_postgresql_values_untouched():
     column = ScaledNumeric(8, 3)
     postgres = type("D", (), {"name": "postgresql"})()
     assert column.process_bind_param(Decimal("9.9995"), postgres) == Decimal("9.9995")
+
+
+def test_timestamps_come_back_timezone_aware(sqlite_sessions):
+    """PostgreSQL's TIMESTAMPTZ returns an aware datetime; SQLite has no such type and
+    hands back a naive one. Comparing that against datetime.now(UTC) raises TypeError,
+    which is how this was found — device enrollment could not check its own expiry.
+    """
+    expires = dt.datetime.now(dt.UTC) + dt.timedelta(minutes=15)
+    with sqlite_sessions() as session:
+        _, officer = _seed(session)
+        session.add(DeviceEnrollment(user_id=officer.id, created_by=officer.id,
+                                     token_hash="b" * 64, server_url="http://x:8000",
+                                     expires_at=expires))
+        session.commit()
+        stored = session.scalar(select(DeviceEnrollment.expires_at))
+        assert stored.tzinfo is not None
+        assert stored > dt.datetime.now(dt.UTC)      # the comparison that used to raise
+        assert abs((stored - expires).total_seconds()) < 1

@@ -113,10 +113,12 @@ make dev-lan
 cd apps/web && npm ci && npm run dev -- --hostname 0.0.0.0
 ```
 
-The portable Windows build can also expose the guided capture app on the LAN — run
-`LMPC-Compliance.exe --host 0.0.0.0 --port 8000` — but it runs with auth disabled and
-cannot issue Field-app enrollment QRs; phone enrollment always needs the Workbench stack
-above.
+The portable Windows build pairs a phone on its own — no Docker, no npm, no Workbench.
+Run `LMPC-Compliance.exe`; it opens a **Connect a phone** page showing the QR, the LAN
+address and a typed fallback. Nothing outside the computer is answered until you click
+**Allow phone connections**, and the pairing page itself is refused to everything except
+this machine. The Workbench route below remains available for departmental deployments
+that manage many officers.
 
 Open Workbench at `http://<computer-lan-ip>:3000`, sign in with the bootstrap administrator,
 create a field-officer account, and show its one-time enrollment QR. Install/open **LMPC
@@ -145,9 +147,9 @@ bucket is available and `LMPC_S3_BUCKET` is intentionally configured.
 The `Windows portable release` GitHub Actions workflow builds a ZIP containing
 `LMPC-Compliance.exe`. Extract the entire ZIP and run the EXE; it opens the app on
 `http://127.0.0.1:8000`, uses no S3 or Docker, and stores immutable images and reports
-under `%LOCALAPPDATA%\LMPC Compliance\objects`. The portable preview keeps scan metadata
-for the current server session. Use the PostgreSQL development stack above when durable,
-multi-user history is required.
+under `%LOCALAPPDATA%\LMPC Compliance\objects`. Scans, investigations and reports persist
+in a SQLite database beside them and survive a restart. Use the PostgreSQL deployment when
+several officers share one repository.
 
 Every release build must pass the Python suite, a frozen-bundle OCR/PDF/DOCX self-test,
 and a real localhost readiness smoke test before the workflow publishes it. You can run

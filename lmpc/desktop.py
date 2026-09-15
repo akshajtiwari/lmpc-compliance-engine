@@ -147,6 +147,16 @@ def _self_test() -> int:
     return 0
 
 
+def _attach_pairing(app, data_root: Path, port: int):
+    """Give the running app the state behind /pair: identities, QR, and the LAN switch."""
+    from lmpc.server.db.desktop_bootstrap import credentials_path
+    from lmpc.server.svc.pairing import PairingService
+
+    record = json.loads(credentials_path(data_root).read_text(encoding="utf-8"))
+    app.state.pairing = PairingService(app.state.accounts, app.state.auth, record, port)
+    return app.state.pairing
+
+
 def _serve(host: str, port: int, open_browser: bool) -> int:
     data_root = _configure_environment()
     if not _port_available(host, port):
@@ -157,22 +167,53 @@ def _serve(host: str, port: int, open_browser: bool) -> int:
     from lmpc.server.main import app
     import uvicorn
 
-    url = f"http://{host}:{port}/"
+    pairing = _attach_pairing(app, data_root, port)
+    local = f"http://127.0.0.1:{port}/"
+    pair_url = f"{local}pair"
     print("LMPC Compliance portable mode")
-    print(f"Open: {url}")
+    print(f"Open: {local}")
+    print(f"Connect a phone: {pair_url}")
     print(f"Local files: {data_root}")
+    _print_pairing_banner(pairing, host)
     print("This window is the local server. Press Ctrl+C to stop it.")
     if open_browser:
         threading.Thread(
-            target=_open_when_ready, args=(url, host, port), daemon=True).start()
+            target=_open_when_ready, args=(pair_url, "127.0.0.1", port),
+            daemon=True).start()
     uvicorn.run(app, host=host, port=port, log_level="info")
     return 0
 
 
+def _print_pairing_banner(pairing, host: str) -> None:
+    """Print the QR into this console too.
+
+    The browser may not open — a headless machine, a locked-down default browser, a
+    remote session. The console is the one surface that is definitely there.
+    """
+    lan = pairing.lan_url()
+    if host == "127.0.0.1":
+        print("Loopback only: phones cannot reach this computer. "
+              "Restart without --loopback-only to pair one.")
+        return
+    if not lan:
+        print("No private network address found. Join the same Wi-Fi as the phone, "
+              "then restart.")
+        return
+    print(f"\nPhone address: {lan}")
+    print("Open the page above and click 'Allow phone connections', then scan:\n")
+    try:
+        print(pairing.qr_terminal())
+    except Exception:                       # pragma: no cover - console encoding
+        print("(This console cannot draw the code — use the page in the browser.)")
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run LMPC Compliance on this computer")
-    parser.add_argument("--host", default="127.0.0.1",
-                        help="bind address (default: loopback only)")
+    parser.add_argument("--loopback-only", action="store_true",
+                        help="refuse phone connections entirely (no pairing)")
+    parser.add_argument("--host", default=None,
+                        help="bind address (default: all interfaces, gated until you "
+                             "allow phone connections on the pairing page)")
     parser.add_argument("--port", type=int, default=8000,
                         help="local HTTP port (default: 8000)")
     parser.add_argument("--no-browser", action="store_true",
@@ -189,7 +230,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.self_test:
         return _self_test()
-    return _serve(args.host, args.port, not args.no_browser)
+    # Bind every interface by default so pairing needs no restart, but answer nothing
+    # from the network until the officer allows it on the pairing page.
+    host = args.host or ("127.0.0.1" if args.loopback_only else "0.0.0.0")
+    return _serve(host, args.port, not args.no_browser)
 
 
 if __name__ == "__main__":

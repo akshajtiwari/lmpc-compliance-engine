@@ -5,11 +5,11 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import (Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index,
+from sqlalchemy import (Boolean, CheckConstraint, Date, ForeignKey, Index,
                         Integer, String, UniqueConstraint, Uuid, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import ARRAY, Base, JSONB, ScaledNumeric
+from .base import ARRAY, Base, JSONB, ScaledNumeric, UtcDateTime
 
 STATUSES = ("RECEIVED", "OCR_IN_PROGRESS", "OCR_COMPLETE", "EXTRACTION_COMPLETE",
             "EVALUATION_COMPLETE", "UNDER_REVIEW", "FINALIZED", "SYNC_CONFLICT",
@@ -65,9 +65,9 @@ class Scan(Base):
     rulepack_sha256: Mapped[str | None] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(30), default="RECEIVED")
     overall: Mapped[str | None] = mapped_column(String(24))
-    synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    synced_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (
         CheckConstraint("status IN " + _in(STATUSES), name="ck_scans_status"),
         CheckConstraint("mode IN " + _in(MODES), name="ck_scans_mode"),
@@ -94,7 +94,7 @@ class ScanImage(Base):
     max_edge_used: Mapped[int | None] = mapped_column(Integer)
     quality: Mapped[dict | None] = mapped_column(JSONB)
     upload_status: Mapped[str] = mapped_column(String(20), default="PENDING")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     __table_args__ = (
         UniqueConstraint(scan_id, panel_label, sha256, name="uq_scan_image"),
         CheckConstraint("upload_status IN " + _in(UPLOAD_STATUSES),

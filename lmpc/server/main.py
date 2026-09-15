@@ -9,9 +9,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
-from .api import (accounts, auth, dashboard, errors, health, reports, review, rules,
-                  scan_intake, scans)
+from .api import (accounts, auth, dashboard, errors, health, pairing, reports, review,
+                  rules, scan_intake, scans)
 from .config import Settings
+from .net import is_loopback
 from .svc.object_store import open_object_store
 from .svc.accounts import AccountService
 from .svc.auth import AuthManager
@@ -20,6 +21,7 @@ from .svc.pipeline import Pipeline
 from .svc.reporting import ReportService
 from .svc.review import ReviewService
 from .svc.scan_store import open_store
+from .svc.pairing import PairingService
 from .svc.rate_limit import RateLimiter
 from .obs.logging import setup as setup_logging, trace_id
 
@@ -73,6 +75,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             trace_id.reset(context)
 
+    if s.desktop_mode:
+        @app.middleware("http")
+        async def network_gate(request, call_next):
+            """Refuse everything that is not from this computer until pairing is armed.
+
+            The socket is bound to every interface so arming is instant and needs no
+            restart, but a closed gate must look shut from outside: until the officer
+            clicks "Allow phone connections", the only thing the network can see is a
+            403."""
+            opened = getattr(app.state, "pairing", None)
+            if not is_loopback(request.client.host if request.client else None) \
+                    and not (opened and opened.network_open):
+                return JSONResponse(
+                    {"error": {"code": "E_FORBIDDEN",
+                               "message": "this computer is not accepting phone "
+                                          "connections yet", "details": []}},
+                    status_code=403)
+            return await call_next(request)
+
     @app.middleware("http")
     async def browser_security_headers(request, call_next):
         response = await call_next(request)
@@ -107,6 +128,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(review.router)
     app.include_router(dashboard.router)
     app.include_router(rules.router)
+    if s.desktop_mode:                 # never part of the deployed API
+        app.include_router(pairing.router)
     pack = health.boot(s.rulepack_path)   # fail-fast before the first request
     app.state.pipeline = Pipeline(
         app.state.scan_store, app.state.object_store, pack, s.ocr_max_edge,

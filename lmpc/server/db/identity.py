@@ -4,11 +4,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (Boolean, DateTime, ForeignKey, Index, Integer, LargeBinary,
+from sqlalchemy import (Boolean, ForeignKey, Index, Integer, LargeBinary,
                         String, Text, Uuid, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, CI_TEXT, INET, TREE_PATH
+from .base import Base, CI_TEXT, INET, TREE_PATH, UtcDateTime
 
 ROLES = ("FIELD_OFFICER", "REVIEWING_OFFICER", "ADMIN", "AUDITOR")
 
@@ -41,12 +41,12 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(Text)   # NULL when SSO-only
     mfa_secret_enc: Mapped[bytes | None] = mapped_column(LargeBinary)
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0)
-    failed_login_window_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_login_window_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    locked_until: Mapped[datetime | None] = mapped_column(UtcDateTime())
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_login_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
 
 
 class RefreshToken(Base):
@@ -56,9 +56,9 @@ class RefreshToken(Base):
         Uuid, ForeignKey("users.id", ondelete="CASCADE"))
     family_id: Mapped[uuid.UUID] = mapped_column(Uuid, default=uuid.uuid4)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)  # sha256 only
-    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    issued_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(UtcDateTime())
+    revoked_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     user_agent: Mapped[str | None] = mapped_column(Text)
     ip: Mapped[str | None] = mapped_column(INET)
     __table_args__ = (
@@ -78,11 +78,11 @@ class DeviceEnrollment(Base):
     created_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     server_url: Mapped[str] = mapped_column(String(500))
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(UtcDateTime())
+    used_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     device_name: Mapped[str | None] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now())
+        UtcDateTime(), server_default=func.now())
     __table_args__ = (
         Index("idx_device_enrollment_user", user_id),
         Index("idx_device_enrollment_expiry", expires_at),

@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, Computed, DateTime, ForeignKey, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, JSONB
+from .base import Base, JSONB, UtcDateTime
 
 
 class CommodityCategory(Base):
@@ -24,7 +24,7 @@ class Manufacturer(Base):
     name: Mapped[str] = mapped_column(String(255))
     registered_address: Mapped[str | None] = mapped_column(String)
     external_registry_ref: Mapped[str | None] = mapped_column(String(100))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
 
 
 class Product(Base):
@@ -39,7 +39,7 @@ class Product(Base):
         String(50), ForeignKey("commodity_categories.code"))
     barcode: Mapped[str | None] = mapped_column(String(50))
     declared_net_quantity: Mapped[str | None] = mapped_column(String(50))
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    first_seen_at: Mapped[datetime] = mapped_column(UtcDateTime(), server_default=func.now())
     # CAST(... AS TEXT) rather than PostgreSQL's ::text, so the same generated column
     # compiles on SQLite for the desktop build. Semantically identical on PostgreSQL;
     # the Alembic DDL that already shipped is left alone.
