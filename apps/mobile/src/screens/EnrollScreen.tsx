@@ -1,0 +1,20 @@
+/* Moved verbatim from App.tsx; only the imports are new. */
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Linking from "expo-linking";
+import { StatusBar } from "expo-status-bar";
+import { enrollFromUri, passwordLogin } from "../api";
+import { Field, Logo, Primary } from "../ui/primitives";
+import { styles } from "../theme";
+import type { Session } from "../types";
+
+export function EnrollmentScreen({onComplete}:{onComplete:(session:Session)=>Promise<void>}) {
+  const [permission,requestPermission]=useCameraPermissions();const [manual,setManual]=useState(false);const [scanning,setScanning]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState("");
+  const [server,setServer]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");
+  const enroll=useCallback(async(uri:string)=>{if(busy)return;setBusy(true);setScanning(false);setError("");try{await onComplete(await enrollFromUri(uri));}catch(cause){setError(cause instanceof Error?cause.message:"Enrollment failed");setScanning(true);}finally{setBusy(false);}},[busy,onComplete]);
+  useEffect(()=>{Linking.getInitialURL().then(uri=>{if(uri?.startsWith("lmpc://enroll"))enroll(uri);});const sub=Linking.addEventListener("url",({url})=>{if(url.startsWith("lmpc://enroll"))enroll(url);});return()=>sub.remove();},[enroll]);
+  async function signIn(){setBusy(true);setError("");try{await onComplete(await passwordLogin(server,email,password));}catch(cause){setError(cause instanceof Error?cause.message:"Sign in failed");}finally{setBusy(false);}}
+  if(!manual&&permission&&!permission.granted)return <SafeAreaView style={styles.safe}><View style={styles.center}><Logo/><Text style={styles.h1}>Connect this field device</Text><Text style={styles.bodyCenter}>An administrator creates your account in Workbench. Allow camera access, then scan the one-time enrollment QR.</Text><Primary label="Allow camera" onPress={requestPermission}/><Pressable onPress={()=>setManual(true)}><Text style={styles.link}>Use server sign-in instead</Text></Pressable></View></SafeAreaView>;
+  return <SafeAreaView style={styles.safe}><StatusBar style="light"/><KeyboardAvoidingView behavior={Platform.OS==="ios"?"padding":undefined} style={styles.flex}>{!manual?<View style={styles.flex}><View style={styles.cameraHeader}><Logo light/><Text style={styles.cameraTitle}>Scan Workbench QR</Text><Text style={styles.cameraHint}>QR expires after 15 minutes and can be used once.</Text></View>{permission?.granted&&<CameraView style={styles.qrCamera} facing="back" barcodeScannerSettings={{barcodeTypes:["qr"]}} onBarcodeScanned={scanning?({data})=>enroll(data):undefined}><View style={styles.qrFrame}/></CameraView>}<View style={styles.enrollFooter}>{busy&&<ActivityIndicator color="#1e6647"/>}{error&&<Text style={styles.error}>{error}</Text>}<Pressable onPress={()=>setManual(true)}><Text style={styles.link}>Can&apos;t scan? Use server sign-in</Text></Pressable></View></View>:<ScrollView contentContainerStyle={styles.formPage}><Logo/><Text style={styles.h1}>Server sign-in</Text><Text style={styles.body}>Development fallback. QR enrollment is preferred because it verifies the server identity.</Text><Field label="Local server address" value={server} onChangeText={setServer} autoCapitalize="none" placeholder="http://192.168.1.20:8000"/><Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none"/><Field label="Password" value={password} onChangeText={setPassword} secureTextEntry/><Primary label={busy?"Connecting…":"Connect"} onPress={signIn} disabled={busy||!server||!email||!password}/>{error&&<Text style={styles.error}>{error}</Text>}<Pressable onPress={()=>setManual(false)}><Text style={styles.link}>Back to QR scanner</Text></Pressable></ScrollView>}</KeyboardAvoidingView></SafeAreaView>;
+}

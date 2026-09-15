@@ -72,6 +72,7 @@ export type Finding = {
 
 export type ScanResult = {
   scan_id: string;
+  client_uuid: string;
   status: string;
   overall: string | null;
   captured_at: string;
@@ -123,4 +124,86 @@ export type LocalInspection = {
   account_id: string | null;
   server_fingerprint: string | null;
   updated_at: string;
+  investigation_id: string | null;
+  captured_ts: string | null;
+  result_json: string | null;
+  result_fetched_at: string | null;
+  remarks: string | null;
 };
+
+export type LocalInvestigation = {
+  client_uuid: string;
+  server_id: string | null;
+  name: string;
+  subject_brand: string | null;
+  investigation_type: string;
+  location_text: string | null;
+  status: "OPEN" | "CLOSED";
+  sync_state: "QUEUED" | "SYNCING" | "SYNCED" | "FAILED";
+  error: string | null;
+  attempts: number;
+  next_attempt_at: string | null;
+  last_attempt_at: string | null;
+  synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+  account_id: string;
+  server_fingerprint: string;
+};
+
+export type InvestigationDraft = {
+  clientUuid: string;
+  name: string;
+  subjectBrand?: string;
+  investigationType: string;
+  locationText?: string;
+};
+
+export type FolderRow = LocalInvestigation & {
+  scan_count: number;
+  failed_count: number;
+  pending_count: number;
+};
+
+export type InvestigationStats = {
+  investigation_id: string;
+  scan_count: number;
+  evaluated_count: number;
+  pending_count: number;
+  by_overall: Record<string, number>;
+  top_violations: {check: string; count: number}[];
+};
+
+export type ServerInvestigation = {
+  id: string;
+  client_uuid: string | null;
+  name: string;
+  subject_brand: string | null;
+  investigation_type: string;
+  location_text: string | null;
+  status: "OPEN" | "CLOSED";
+  opened_at: string | null;
+  closed_at: string | null;
+  scan_count?: number;
+  failed_count?: number;
+};
+
+export type ScanSummary = {
+  id: string;
+  client_uuid: string;
+  captured_at: string;
+  created_at: string;
+  category: string;
+  status: string;
+  overall: string | null;
+  investigation_id: string | null;
+};
+
+export type InvestigationNote = {
+  id: string;
+  body: string;
+  author: string | null;
+  created_at: string | null;
+};
+
+export type { RootParamList } from "./navigation/routes";

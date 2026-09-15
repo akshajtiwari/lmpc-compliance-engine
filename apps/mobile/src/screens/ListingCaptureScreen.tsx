@@ -1,3 +1,9 @@
+/* Moved from src/ListingCapture.tsx; only the imports and the route adapter are new. */
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+
+import { useSession } from "../session";
+import type { RootParamList } from "../navigation/routes";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 // E-commerce listing capture (plan §6.4). A third-party listing is judged by
 // Rule 6(10): what the shopper can see. The officer pastes the shopper-visible
 // text, optionally the source URL, and attaches up to six screenshots. Screenshots
@@ -9,17 +15,18 @@ import {
   ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text,
   TextInput, View,
 } from "react-native";
-import { ApiClient } from "./api";
-import { listingPanels } from "./quad";
-import { queueDraft } from "./storage";
-import { syncDraft } from "./sync";
-import type { AccountScope, CapturedPanel, Draft, ScanResult } from "./types";
+import { ApiClient } from "../api";
+import { listingPanels } from "../quad";
+import { queueDraft } from "../storage";
+import { syncDraft } from "../sync";
+import type { AccountScope, CapturedPanel, Draft, ScanResult } from "../types";
 
 const CATEGORIES = ["FOOD", "COSMETIC", "GENERIC", "CEMENT", "FERTILIZER",
   "FARM_PRODUCE", "TOBACCO", "DRUG_FORMULATION", "MEDICAL_DEVICE"];
 const MAX_SCREENSHOTS = 6;
 
-export function ListingCapture({scope, client, cancel, complete}: {
+function ListingForm({scope, client, investigationId, cancel, complete}: {
+  investigationId: string;
   scope: AccountScope;
   client: ApiClient;
   cancel: () => void;
@@ -57,8 +64,8 @@ export function ListingCapture({scope, client, cancel, complete}: {
     };
     setUploading(true); setError("");
     try {
-      await queueDraft(draft, scope);
-      complete(await syncDraft(client, scope, draft));
+      await queueDraft(draft, scope, investigationId);
+      complete(await syncDraft(client, scope, draft, investigationId));
     } catch (cause) {
       if (cause instanceof Error && cause.message.includes("no longer available")) {
         setError(cause.message);
@@ -172,3 +179,15 @@ const styles = StyleSheet.create({
   primaryText: {color: "white", fontSize: 15, fontWeight: "800"},
   disabled: {opacity: .45},
 });
+
+export function ListingCaptureScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootParamList>>();
+  const route = useRoute<RouteProp<RootParamList, "ListingCapture">>();
+  const {client, scope} = useSession();
+  return <ListingForm
+    scope={scope} client={client}
+    investigationId={route.params.investigationId}
+    cancel={() => navigation.goBack()}
+    complete={(result) => navigation.replace("ScanReport",
+      {clientUuid: result.client_uuid, scanId: result.scan_id})} />;
+}

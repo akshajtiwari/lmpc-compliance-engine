@@ -1,6 +1,8 @@
 import { CryptoDigestAlgorithm, digest } from "expo-crypto";
 import { Directory, File, Paths } from "expo-file-system";
-import type { Draft, Principal, ReportSummary, RuleDetail, ScanResult, Session } from "./types";
+import type {
+  Draft, InvestigationNote, InvestigationStats, Principal, ReportSummary, RuleDetail, ScanResult, ScanSummary, ServerInvestigation, Session,
+} from "./types";
 import { saveSession } from "./storage";
 
 type AuthBody = { access_token: string; refresh_token: string; user: Principal; server_fingerprint?: string };
@@ -103,12 +105,29 @@ export class ApiClient {
     if(!response.ok){await saveSession(null);this.changed(null);throw new Error("Your device session expired. Ask an administrator for a new enrollment QR.");}
     const body=await response.json() as AuthBody; this.session={...this.session,accessToken:body.access_token,refreshToken:body.refresh_token,user:body.user}; await saveSession(this.session);this.changed(this.session);
   }
-  async upload(draft: Draft): Promise<ScanResult> {
+  createInvestigation(values:{client_uuid:string;name:string;subject_brand:string|null;investigation_type:string;location_text:string|null}){
+    // Idempotent on client_uuid: a folder opened with no signal and retried for an hour
+    // comes back as one investigation, not five.
+    return this.request<ServerInvestigation>("/investigations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(values)});
+  }
+  investigations(params:{q?:string;status?:string;sort?:string}={}){
+    const query=new URLSearchParams();
+    for(const [key,value] of Object.entries(params))if(value)query.set(key,String(value));
+    const suffix=query.toString();
+    return this.request<{items:ServerInvestigation[];total:number}>(`/investigations${suffix?`?${suffix}`:""}`);
+  }
+  investigationStats(id:string){return this.request<InvestigationStats>(`/investigations/${id}/stats`);}
+  investigationScans(id:string,page=1){return this.request<{items:ScanSummary[];total:number;pages:number}>(`/investigations/${id}/scans?page=${page}&page_size=50`);}
+  investigationNotes(id:string){return this.request<{items:InvestigationNote[]}>(`/investigations/${id}/notes`);}
+  addInvestigationNote(id:string,body:string){return this.request<InvestigationNote>(`/investigations/${id}/notes`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({body})});}
+  closeInvestigation(id:string,status:"OPEN"|"CLOSED"){return this.request<ServerInvestigation>(`/investigations/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});}
+  async upload(draft: Draft, investigationId: string | null = null): Promise<ScanResult> {
     // Deferred intake (plan §8 item 9): declare the inspection, then upload each
     // panel on its own request so a flaky network resumes instead of restarting.
     const mode=draft.mode??"PHYSICAL_PACKAGE";
     const form=new FormData();
     form.append("client_uuid",draft.clientUuid);form.append("captured_at",draft.capturedAt);form.append("mode",mode);form.append("category",draft.category);form.append("coverage_asserted",String(draft.coverageAsserted));form.append("buyer_type",draft.buyerType);form.append("package_shape",draft.packageShape);form.append("scale_reference",JSON.stringify(draft.scaleReference??{type:"NONE"}));form.append("flags",JSON.stringify({}));
+    if(investigationId)form.append("investigation_id",investigationId);
     if(draft.listing)form.append("ecommerce",JSON.stringify({listing_text:draft.listing.text,url:draft.listing.url}));
     for(const item of draft.panels)form.append("panels",item.panel);
     // begin is idempotent: the retry that timed out gets the scan that already exists.

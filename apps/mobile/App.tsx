@@ -1,162 +1,71 @@
+/* The root: open the device session, then hand over to the navigator.
+ *
+ * This file used to hold every screen, the styles and the navigation state in 162
+ * deliberately dense lines. It could not absorb a folder list, a folder, and a report
+ * screen on top of that, so those now live under src/screens and this is the shell. */
+import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { StatusBar } from "expo-status-bar";
-import NetInfo from "@react-native-community/netinfo";
-import { CameraView, useCameraPermissions, type CameraCapturedPicture } from "expo-camera";
-import { randomUUID } from "expo-crypto";
-import { Directory, File, Paths } from "expo-file-system";
-import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import * as ImagePicker from "expo-image-picker";
-import * as Linking from "expo-linking";
-import * as Sharing from "expo-sharing";
-import { Component, useCallback, useEffect, useMemo, useRef, useState,
-  type ErrorInfo, type ReactNode } from "react";
-import {
-  ActivityIndicator, Alert, AppState, Image, KeyboardAvoidingView, Modal, Platform, Pressable,
-  RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View,
-} from "react-native";
-import { ApiClient, enrollFromUri, passwordLogin } from "./src/api";
-import { ListingCapture } from "./src/ListingCapture";
-import { analyzeFrame, decodeBase64, decodeJpeg, qualityMessages } from "./src/quality";
-import { accountScope, loadSession, queueDraft, recentInspections, saveSession } from "./src/storage";
-import { ScaleMark } from "./src/ScaleMark";
-import { syncDraft, syncOutbox, type SyncSummary } from "./src/sync";
-import type { AccountScope, CapturedPanel, Draft, FrameQualityReport, LocalInspection, ReportSummary, RuleDetail, ScanResult, ScaleReference, Session } from "./src/types";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-type Screen = {name:"home"}|{name:"capture"}|{name:"listing"}|{name:"result";result:ScanResult}|{name:"settings"};
-const CATEGORIES=["FOOD","COSMETIC","GENERIC","CEMENT","FERTILIZER","FARM_PRODUCE","TOBACCO","DRUG_FORMULATION","MEDICAL_DEVICE"];
-const PANELS: CapturedPanel["panel"][]=["FRONT","BACK","SIDE_1","SIDE_2"];
+import { RootNavigator } from "./src/navigation/RootNavigator";
+import { EnrollmentScreen } from "./src/screens/EnrollScreen";
+import { SessionProvider } from "./src/session";
+import { loadSession, saveSession } from "./src/storage";
+import { FatalScreen, Loading } from "./src/ui/primitives";
+import type { Session } from "./src/types";
 
 export default function App() {
-  return <AppErrorBoundary><FieldApp/></AppErrorBoundary>;
+  return <AppErrorBoundary><SafeAreaProvider><FieldApp /></SafeAreaProvider></AppErrorBoundary>;
 }
 
-class AppErrorBoundary extends Component<{children:ReactNode},{error:Error|null}> {
-  state:{error:Error|null}={error:null};
-  static getDerivedStateFromError(error:Error){return {error};}
-  componentDidCatch(error:Error,info:ErrorInfo){console.error("LMPC Field render failed",error,info.componentStack);}
-  render(){
-    if(this.state.error)return <FatalScreen message={this.state.error.message} retry={()=>this.setState({error:null})}/>;
+class AppErrorBoundary extends Component<{children: ReactNode}, {error: Error | null}> {
+  state: {error: Error | null} = {error: null};
+  static getDerivedStateFromError(error: Error) { return {error}; }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("LMPC Field render failed", error, info.componentStack);
+  }
+  render() {
+    if (this.state.error) {
+      return <FatalScreen message={this.state.error.message}
+                          retry={() => this.setState({error: null})} />;
+    }
     return this.props.children;
   }
 }
 
 function FieldApp() {
-  const [session,setSession]=useState<Session|null>(null);const [ready,setReady]=useState(false);const [startupError,setStartupError]=useState("");const [openAttempt,setOpenAttempt]=useState(0);const [screen,setScreen]=useState<Screen>({name:"home"});
-  useEffect(()=>{let active=true;setReady(false);setStartupError("");loadSession().then(value=>{if(active)setSession(value);}).catch(cause=>{if(active)setStartupError(cause instanceof Error?cause.message:"The encrypted device session could not be opened.");}).finally(()=>{if(active)setReady(true);});return()=>{active=false;};},[openAttempt]);
-  const client=useMemo(()=>session?new ApiClient(session,setSession):null,[session]);
-  const scope=useMemo(()=>session?accountScope(session):null,[session]);
-  if(!ready)return <Loading label="Opening encrypted device session…"/>;
-  if(startupError)return <FatalScreen title="Could not open device storage" message={startupError} retry={()=>setOpenAttempt(value=>value+1)}/>;
-  if(!session)return <EnrollmentScreen onComplete={async(value)=>{await saveSession(value);setSession(value);}}/>;
-  const home=()=>setScreen({name:"home"});
-  return <SafeAreaView style={styles.safe}><StatusBar style="dark"/>
-    {screen.name==="home"&&<HomeScreen session={session} scope={scope!} client={client!} capture={()=>setScreen({name:"capture"})} listing={()=>setScreen({name:"listing"})} openResult={(result)=>setScreen({name:"result",result})} settings={()=>setScreen({name:"settings"})}/>}
-    {screen.name==="capture"&&<CaptureScreen scope={scope!} client={client!} cancel={home} complete={(result)=>setScreen({name:"result",result})}/>}
-    {screen.name==="listing"&&<ListingCapture scope={scope!} client={client!} cancel={home} complete={(result)=>setScreen({name:"result",result})}/>}
-    {screen.name==="result"&&<ResultScreen result={screen.result} client={client!} close={home}/>}
-    {screen.name==="settings"&&<SettingsScreen session={session} close={home} logout={async()=>{await client!.logout();setScreen({name:"home"});}}/>}
-  </SafeAreaView>;
+  const [session, setSession] = useState<Session | null>(null);
+  const [ready, setReady] = useState(false);
+  const [startupError, setStartupError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setReady(false);
+    setStartupError("");
+    loadSession()
+      .then((stored) => { if (active) { setSession(stored); setReady(true); } })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setStartupError(cause instanceof Error ? cause.message : "Device storage is unavailable");
+        setReady(true);
+      });
+    return () => { active = false; };
+  }, []);
+
+  async function adopt(next: Session | null) {
+    await saveSession(next);
+    setSession(next);
+  }
+
+  if (!ready) return <Loading label="Opening encrypted device session…" />;
+  if (startupError) {
+    return <FatalScreen title="Could not open device storage" message={startupError}
+                        retry={() => setReady(false)} />;
+  }
+  if (!session) return <><StatusBar style="light" /><EnrollmentScreen onComplete={adopt} /></>;
+
+  return <SessionProvider session={session} setSession={(next) => { void adopt(next); }}>
+    <StatusBar style="dark" />
+    <RootNavigator />
+  </SessionProvider>;
 }
-
-function EnrollmentScreen({onComplete}:{onComplete:(session:Session)=>Promise<void>}) {
-  const [permission,requestPermission]=useCameraPermissions();const [manual,setManual]=useState(false);const [scanning,setScanning]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState("");
-  const [server,setServer]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");
-  const enroll=useCallback(async(uri:string)=>{if(busy)return;setBusy(true);setScanning(false);setError("");try{await onComplete(await enrollFromUri(uri));}catch(cause){setError(cause instanceof Error?cause.message:"Enrollment failed");setScanning(true);}finally{setBusy(false);}},[busy,onComplete]);
-  useEffect(()=>{Linking.getInitialURL().then(uri=>{if(uri?.startsWith("lmpc://enroll"))enroll(uri);});const sub=Linking.addEventListener("url",({url})=>{if(url.startsWith("lmpc://enroll"))enroll(url);});return()=>sub.remove();},[enroll]);
-  async function signIn(){setBusy(true);setError("");try{await onComplete(await passwordLogin(server,email,password));}catch(cause){setError(cause instanceof Error?cause.message:"Sign in failed");}finally{setBusy(false);}}
-  if(!manual&&permission&&!permission.granted)return <SafeAreaView style={styles.safe}><View style={styles.center}><Logo/><Text style={styles.h1}>Connect this field device</Text><Text style={styles.bodyCenter}>An administrator creates your account in Workbench. Allow camera access, then scan the one-time enrollment QR.</Text><Primary label="Allow camera" onPress={requestPermission}/><Pressable onPress={()=>setManual(true)}><Text style={styles.link}>Use server sign-in instead</Text></Pressable></View></SafeAreaView>;
-  return <SafeAreaView style={styles.safe}><StatusBar style="light"/><KeyboardAvoidingView behavior={Platform.OS==="ios"?"padding":undefined} style={styles.flex}>{!manual?<View style={styles.flex}><View style={styles.cameraHeader}><Logo light/><Text style={styles.cameraTitle}>Scan Workbench QR</Text><Text style={styles.cameraHint}>QR expires after 15 minutes and can be used once.</Text></View>{permission?.granted&&<CameraView style={styles.qrCamera} facing="back" barcodeScannerSettings={{barcodeTypes:["qr"]}} onBarcodeScanned={scanning?({data})=>enroll(data):undefined}><View style={styles.qrFrame}/></CameraView>}<View style={styles.enrollFooter}>{busy&&<ActivityIndicator color="#1e6647"/>}{error&&<Text style={styles.error}>{error}</Text>}<Pressable onPress={()=>setManual(true)}><Text style={styles.link}>Can&apos;t scan? Use server sign-in</Text></Pressable></View></View>:<ScrollView contentContainerStyle={styles.formPage}><Logo/><Text style={styles.h1}>Server sign-in</Text><Text style={styles.body}>Development fallback. QR enrollment is preferred because it verifies the server identity.</Text><Field label="Local server address" value={server} onChangeText={setServer} autoCapitalize="none" placeholder="http://192.168.1.20:8000"/><Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none"/><Field label="Password" value={password} onChangeText={setPassword} secureTextEntry/><Primary label={busy?"Connecting…":"Connect"} onPress={signIn} disabled={busy||!server||!email||!password}/>{error&&<Text style={styles.error}>{error}</Text>}<Pressable onPress={()=>setManual(false)}><Text style={styles.link}>Back to QR scanner</Text></Pressable></ScrollView>}</KeyboardAvoidingView></SafeAreaView>;
-}
-
-function HomeScreen({session,scope,client,capture,listing,openResult,settings}:{session:Session;scope:AccountScope;client:ApiClient;capture:()=>void;listing:()=>void;openResult:(result:ScanResult)=>void;settings:()=>void}) {
-  const [items,setItems]=useState<LocalInspection[]>([]);const [refreshing,setRefreshing]=useState(false);const [syncing,setSyncing]=useState(false);const mounted=useRef(true);
-  useEffect(()=>()=>{mounted.current=false;},[]);
-  const load=useCallback(async()=>{const rows=await recentInspections(scope);if(mounted.current)setItems(rows);},[scope]);
-  const reportManualSync=useCallback((summary:SyncSummary)=>{
-    if(summary.remaining===0)Alert.alert("Sync complete",`${summary.completed} inspection${summary.completed===1?"":"s"} uploaded.`);
-    else Alert.alert("Some inspections remain queued",summary.stoppedForConnection?"The local server is unreachable. Evidence remains safe on this phone and will retry automatically.":`${summary.remaining} inspection${summary.remaining===1?"":"s"} will retry automatically.`);
-  },[]);
-  const runSync=useCallback(async(manual=false)=>{if(mounted.current)setSyncing(true);try{const summary=await syncOutbox(client,scope,{includeDeferred:manual});await load();if(manual&&mounted.current)reportManualSync(summary);}catch(cause){if(manual&&mounted.current)Alert.alert("Sync could not start",cause instanceof Error?cause.message:"Try again shortly.");}finally{if(mounted.current)setSyncing(false);}},[client,load,reportManualSync,scope]);
-  useEffect(()=>{
-    void load();
-    const networkSubscription=NetInfo.addEventListener((state)=>{if(state.isConnected===true)void runSync(false);});
-    const appSubscription=AppState.addEventListener("change",(state)=>{if(state==="active")void NetInfo.fetch().then(network=>{if(network.isConnected===true)void runSync(false);});});
-    const interval=setInterval(()=>{if(AppState.currentState==="active")void NetInfo.fetch().then(network=>{if(network.isConnected===true)void runSync(false);});},5*60_000);
-    return()=>{networkSubscription();appSubscription.remove();clearInterval(interval);};
-  },[load,runSync]);
-  useEffect(()=>{const retryTimes=items.filter(item=>item.state==="FAILED"&&item.next_attempt_at).map(item=>Date.parse(item.next_attempt_at!)).filter(Number.isFinite);if(!retryTimes.length)return;const wait=Math.max(0,Math.min(...retryTimes)-Date.now());const timeout=setTimeout(()=>{if(AppState.currentState==="active")void NetInfo.fetch().then(network=>{if(network.isConnected===true)void runSync(false);});},Math.min(wait,2_147_483_647));return()=>clearTimeout(timeout);},[items,runSync]);
-  async function refresh(){setRefreshing(true);await load();setRefreshing(false);}
-  const queued=items.filter(item=>item.state==="QUEUED"||item.state==="FAILED"||item.state==="UPLOADING").length;
-  return <View style={styles.flex}><Header title="Field inspections" action="Account" onAction={settings}/><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh}/>} contentContainerStyle={styles.page}><Text style={styles.eyebrow}>SIGNED IN · {session.user.role.replaceAll("_"," ")}</Text><Text style={styles.h1}>Hello, {session.user.full_name.split(" ")[0]}</Text><Text style={styles.body}>Photograph the complete package, confirm its retail context, and receive an explainable rule-by-rule result.</Text><Primary label="＋ New package inspection" onPress={capture}/><Primary label="＋ New e-commerce listing" onPress={listing}/>{queued>0&&<Pressable accessibilityRole="button" accessibilityLabel={`Sync ${queued} waiting inspections now`} style={styles.syncCard} onPress={()=>runSync(true)} disabled={syncing}><View style={styles.flex}><Text style={styles.syncTitle}>{queued} inspection{queued===1?"":"s"} waiting</Text><Text style={styles.muted}>{syncing?"Syncing with the local server…":"Evidence is safe here. Automatic retry is on."}</Text></View>{syncing?<ActivityIndicator/>:<Text style={styles.link}>Sync now</Text>}</Pressable>}<View style={styles.sectionHead}><Text style={styles.h2}>Recent inspections</Text><Text style={styles.muted}>{items.length} on device</Text></View>{items.map(item=><Pressable key={item.client_uuid} style={styles.inspectionCard} onPress={async()=>{if(item.scan_id)try{openResult(await client.scan(item.scan_id));}catch(cause){Alert.alert("Could not open",cause instanceof Error?cause.message:"Request failed");}}}><View style={styles.cardTop}><Text style={styles.cardTitle}>{item.category.replaceAll("_"," ")}</Text><Outcome value={item.overall||item.state}/></View><Text style={styles.muted}>{new Date(item.captured_at).toLocaleDateString()} · {item.scan_id?.slice(0,8)||"Not uploaded"}{item.attempts?` · ${item.attempts} attempt${item.attempts===1?"":"s"}`:""}</Text>{item.state==="FAILED"&&item.next_attempt_at&&<Text style={styles.retryText}>Next automatic retry {new Date(item.next_attempt_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})}</Text>}{item.error&&<Text style={styles.errorSmall}>{item.error}</Text>}</Pressable>)}{!items.length&&<View style={styles.empty}><Text style={styles.emptyTitle}>No inspections yet</Text><Text style={styles.muted}>Your captured evidence and results will appear here.</Text></View>}</ScrollView></View>;
-}
-
-function CaptureScreen({scope,client,cancel,complete}:{scope:AccountScope;client:ApiClient;cancel:()=>void;complete:(result:ScanResult)=>void}) {
-  const [stage,setStage]=useState<"details"|"camera"|"review"|"upload">("details");const [category,setCategory]=useState("FOOD");const [buyerType,setBuyerType]=useState<Draft["buyerType"]>("RETAIL");const [shape,setShape]=useState<Draft["packageShape"]>("RECTANGULAR");const [panels,setPanels]=useState<CapturedPanel[]>([]);const [current,setCurrent]=useState<CapturedPanel["panel"]>("FRONT");const [coverage,setCoverage]=useState(false);const [error,setError]=useState("");
-  const [scaleRef,setScaleRef]=useState<ScaleReference|undefined>(undefined);const [markScale,setMarkScale]=useState(false);
-  const [permission,requestPermission]=useCameraPermissions();const camera=useRef<CameraView>(null);const [taking,setTaking]=useState(false);
-  function start(panel:CapturedPanel["panel"]){setCurrent(panel);setStage("camera");if(!permission?.granted)requestPermission();}
-  async function keepPicture(picture:CameraCapturedPicture,source:CapturedPanel["source"]){setTaking(true);try{const longest=Math.max(picture.width,picture.height);const actions=longest>3200?[{resize:picture.width>=picture.height?{width:3200}:{height:3200}}]:[];const processed=await manipulateAsync(picture.uri,actions,{compress:.9,format:SaveFormat.JPEG});const directory=new Directory(Paths.document,"evidence");if(!directory.exists)directory.create({intermediates:true});const target=new File(directory,`${randomUUID()}-${current}.jpg`);await new File(processed.uri).copy(target,{overwrite:true});
-    const quality=await measure(target.uri,source);
-    const proceed=(report:FrameQualityReport|undefined)=>{setPanels(previous=>[...previous.filter(item=>item.panel!==current),{panel:current,uri:target.uri,source,quality:report}]);if(source==="GALLERY")setCoverage(false);setStage("review");};
-    if(quality&&quality.warnings.length){
-      const messages=qualityMessages(quality.warnings).join("\n");
-      if(source==="CAMERA"){
-        Alert.alert("Check this photo",`${messages}\n\nRetake for stronger evidence.`,[
-          {text:"Keep anyway",onPress:()=>proceed(quality)},{text:"Retake",style:"cancel",onPress:()=>setStage("camera")}]);
-        return;
-      }
-      Alert.alert("Imported photo quality",`${messages}\nGallery evidence cannot establish coverage. Retake with the in-app camera before asserting coverage.`);
-      proceed(quality);
-      return;
-    }
-    proceed(quality);
-  }catch(cause){setError(cause instanceof Error?cause.message:"Could not save photo");}finally{setTaking(false);}}
-  async function measure(uri:string,source:CapturedPanel["source"]):Promise<FrameQualityReport|undefined>{try{const probe=await manipulateAsync(uri,[{resize:{width:256}}],{compress:.5,format:SaveFormat.JPEG});const encoded=await new File(probe.uri).base64();await new File(probe.uri).delete();return analyzeFrame(decodeJpeg(decodeBase64(encoded)),source);}catch{return undefined;}}
-  async function take(){if(!camera.current||taking)return;const picture=await camera.current.takePictureAsync({quality:.95,skipProcessing:false});await keepPicture(picture,"CAMERA");}
-  async function pick(){const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:["images"],quality:1});if(!result.canceled){const asset=result.assets[0];await keepPicture({uri:asset.uri,width:asset.width,height:asset.height,format:"jpg"},"GALLERY");}}
-  async function submit(){const hasRequired=panels.some(x=>x.panel==="FRONT")&&panels.some(x=>x.panel==="BACK");if(!hasRequired){setError("Front and back photographs are required before submission.");return;}const draft:Draft={clientUuid:randomUUID(),capturedAt:new Date().toISOString().slice(0,10),category,buyerType,packageShape:shape,coverageAsserted:coverage,panels,mode:"PHYSICAL_PACKAGE",scaleReference:scaleRef&&scaleRef.type==="ISO_ID1_CARD"?scaleRef:undefined};setStage("upload");setError("");try{await queueDraft(draft,scope);}catch(cause){setStage("review");setError(cause instanceof Error?`Could not save this inspection: ${cause.message}`:"Could not save this inspection for offline use.");return;}try{complete(await syncDraft(client,scope,draft));}catch{Alert.alert("Saved for retry","The evidence is safe on this phone. It will sync automatically when this account can reach the local server.");cancel();}}
-  if(stage==="upload")return <Loading label="Securing evidence and running compliance checks…"/>;
-  if(stage==="camera")return <View style={styles.cameraPage}>{permission?.granted?<CameraView ref={camera} style={styles.flex} facing="back" mode="picture"><View style={styles.captureOverlay}><View><Text style={styles.cameraPanel}>{current.replaceAll("_"," ")} PANEL</Text><Text style={styles.cameraInstruction}>Keep the label square, fill the frame, avoid glare.</Text></View><View style={styles.guideFrame}/><View style={styles.captureActions}><Pressable onPress={()=>setStage("review")}><Text style={styles.cameraLink}>Cancel</Text></Pressable><Pressable style={styles.shutter} onPress={take} disabled={taking}><View style={styles.shutterInner}/></Pressable><Pressable onPress={pick}><Text style={styles.cameraLink}>Gallery</Text></Pressable></View></View></CameraView>:<View style={styles.center}><Text style={styles.h2}>Camera permission is required</Text><Primary label="Allow camera" onPress={requestPermission}/><Pressable onPress={()=>setStage("review")}><Text style={styles.link}>Cancel</Text></Pressable></View>}</View>;
-  if(stage==="details")return <View style={styles.flex}><Header title="New inspection" action="Cancel" onAction={cancel}/><ScrollView contentContainerStyle={styles.page}><Text style={styles.eyebrow}>STEP 1 OF 3</Text><Text style={styles.h1}>Package context</Text><Text style={styles.label}>BUYER TYPE</Text><ChoiceRow values={["RETAIL","INDUSTRIAL","INSTITUTIONAL"]} selected={buyerType} select={value=>setBuyerType(value as Draft["buyerType"])}/>{buyerType!=="RETAIL"&&<View style={styles.warning}><Text style={styles.warningTitle}>This will normally be out of scope</Text><Text style={styles.warningText}>Industrial and institutional packages are stopped at the applicability gate under Rule 3. Select Retail when this package is sold to an individual consumer.</Text></View>}<Text style={styles.label}>COMMODITY CATEGORY</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.choiceScroll}>{CATEGORIES.map(value=><Choice key={value} value={value} selected={category===value} onPress={()=>setCategory(value)}/>)}</ScrollView><Text style={styles.label}>PACKAGE SHAPE</Text><ChoiceRow values={["RECTANGULAR","CYLINDRICAL","IRREGULAR"]} selected={shape} select={value=>setShape(value as Draft["packageShape"])}/><Primary label="Start photographs" onPress={()=>start("FRONT")}/></ScrollView></View>;
-  const hasFront=panels.some(x=>x.panel==="FRONT"),hasBack=panels.some(x=>x.panel==="BACK");const canAssert=hasFront&&hasBack&&panels.every(item=>item.source==="CAMERA");
-  return <View style={styles.flex}><Header title="Photographs" action="Cancel" onAction={cancel}/><ScrollView contentContainerStyle={styles.page}><Text style={styles.eyebrow}>STEP 2 OF 3</Text><Text style={styles.h1}>Package surfaces</Text><Text style={styles.body}>Front and back are required. Add side panels when declarations continue around the package.</Text><View style={styles.panelGrid}>{PANELS.map(panel=>{const photo=panels.find(item=>item.panel===panel);return <Pressable key={panel} style={styles.panelCard} onPress={()=>start(panel)}>{photo?<Image source={{uri:photo.uri}} style={styles.thumbnail}/>:<View style={styles.panelEmpty}><Text style={styles.plus}>＋</Text></View>}<Text style={styles.panelLabel}>{panel.replaceAll("_"," ")}</Text><Text style={styles.muted}>{photo?`${photo.source==="GALLERY"?"Gallery evidence":"Camera evidence"} · tap to retake`:panel==="FRONT"||panel==="BACK"?"Required":"Optional"}</Text></Pressable>;})}</View><Pressable style={[styles.checkRow,!canAssert&&styles.disabled]} disabled={!canAssert} onPress={()=>setCoverage(!coverage)}><View style={[styles.checkbox,coverage&&styles.checkboxOn]}>{coverage&&<Text style={styles.checkmark}>✓</Text>}</View><View style={styles.flex}><Text style={styles.checkTitle}>I photographed every declaration-bearing surface</Text><Text style={styles.muted}>This allows the engine to distinguish proven absence from missing evidence.</Text></View></Pressable><Pressable style={[styles.checkRow,!hasFront&&styles.disabled]} disabled={!hasFront} onPress={()=>setMarkScale(true)}><View style={[styles.checkbox,!!scaleRef&&scaleRef.type==="ISO_ID1_CARD"&&styles.checkboxOn]}>{scaleRef&&scaleRef.type==="ISO_ID1_CARD"&&<Text style={styles.checkmark}>✓</Text>}</View><View style={styles.flex}><Text style={styles.checkTitle}>Mark a scale reference (optional)</Text><Text style={styles.muted}>{scaleRef&&scaleRef.type==="ISO_ID1_CARD"?"Card and panel corner marks will travel with this inspection.":"Lay an ID-1 card on the front face and mark its corners so millimetre checks can run."}</Text></View></Pressable>{hasFront&&hasBack&&!canAssert&&<View style={styles.warning}><Text style={styles.warningTitle}>Gallery evidence cannot establish coverage</Text><Text style={styles.warningText}>Retake imported panels with the in-app camera before asserting that every surface was photographed.</Text></View>}{!coverage&&hasFront&&hasBack&&canAssert&&<View style={styles.info}><Text style={styles.infoText}>You can submit without this assertion, but missing declarations will be reported as “cannot determine,” not violations.</Text></View>}{error&&<Text style={styles.error}>{error}</Text>}<Primary label="Submit and analyse" onPress={submit} disabled={!hasFront||!hasBack}/></ScrollView><Modal visible={markScale} animationType="slide" onRequestClose={()=>setMarkScale(false)}><SafeAreaView style={styles.safe}>{panels.some(x=>x.panel==="FRONT")&&<ScaleMark imageUri={panels.find(x=>x.panel==="FRONT")!.uri} onDone={(reference)=>{setScaleRef(reference.type==="ISO_ID1_CARD"?reference:undefined);setMarkScale(false);}} onCancel={()=>setMarkScale(false)}/>}</SafeAreaView></Modal></View>;
-}
-
-function ResultScreen({result,client,close}:{result:ScanResult;client:ApiClient;close:()=>void}) {
-  const [rule,setRule]=useState<RuleDetail|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState("");
-  const [reports,setReports]=useState<ReportSummary[]>([]);const [exporting,setExporting]=useState(false);
-  useEffect(()=>{let alive=true;client.reports(result.scan_id).then(body=>{if(alive)setReports(body.items);}).catch(()=>{});return()=>{alive=false;};},[client,result.scan_id]);
-  async function explain(check:string){setBusy(true);setError("");try{setRule(await client.rule(check));}catch(cause){setError(cause instanceof Error?cause.message:"Could not load rule");}finally{setBusy(false);}}
-  async function share(report:ReportSummary){setExporting(true);setError("");try{const file=await client.downloadReport(report.id);await Sharing.shareAsync(file.uri,{mimeType:"application/pdf",dialogTitle:"Share compliance report"});}catch(cause){setError(cause instanceof Error?cause.message:"Could not export the report");}finally{setExporting(false);}}
-  return <View style={styles.flex}><Header title="Inspection result" action="Done" onAction={close}/><ScrollView contentContainerStyle={styles.page}><Text style={styles.eyebrow}>INSPECTION · {result.scan_id.slice(0,8)}</Text><View style={styles.resultHero}><Outcome value={result.overall||result.status}/><Text style={styles.resultTitle}>{(result.overall||result.status).replaceAll("_"," ")}</Text><Text style={styles.resultSummary}>{result.decision_explanation?.summary||"The inspection is still processing."}</Text></View>{result.decision_explanation&&<View style={styles.nextCard}><Text style={styles.nextLabel}>WHAT HAPPENED</Text><Text style={styles.nextText}>{result.decision_explanation.next_step}</Text><Text style={styles.muted}>Stage: {result.decision_explanation.processing_stage} · OCR {result.decision_explanation.ocr_ran?"ran":"did not run"}</Text></View>}{reports.length>0&&<View style={styles.nextCard}><Text style={styles.nextLabel}>FINALIZED REPORT</Text>{reports.map(report=><Pressable key={report.id} accessibilityRole="button" accessibilityLabel={`Download report version ${report.version}`} style={styles.reportRow} disabled={exporting} onPress={()=>share(report)}><Text style={styles.reportText}>Version {report.version} · {new Date(report.finalized_at).toLocaleDateString()}</Text>{exporting?<ActivityIndicator/>:<Text style={styles.link}>Download PDF</Text>}</Pressable>)}</View>}<View style={styles.sectionHead}><Text style={styles.h2}>Rule-by-rule review</Text><Text style={styles.muted}>{result.evaluations.length} checks</Text></View><Text style={styles.body}>Tap the info button on any rule to understand the requirement, this decision, and the evidence needed.</Text>{result.evaluations.map(item=><View key={item.check} style={styles.finding}><View style={styles.findingHead}><View style={styles.flex}><Text style={styles.findingClause}>{item.clause}</Text><Outcome value={item.outcome}/></View><Pressable accessibilityRole="button" accessibilityLabel={`Explain ${item.clause}`} style={styles.infoButton} onPress={()=>explain(item.check)}><Text style={styles.infoButtonText}>i</Text></Pressable></View><Text style={styles.findingReason}>{item.reason}</Text></View>)}{busy&&<ActivityIndicator/>}{error&&<Text style={styles.error}>{error}</Text>}</ScrollView><RuleModal rule={rule} close={()=>setRule(null)}/></View>;
-}
-
-function RuleModal({rule,close}:{rule:RuleDetail|null;close:()=>void}) {return <Modal visible={!!rule} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}><SafeAreaView style={styles.safe}>{rule&&<ScrollView contentContainerStyle={styles.modalPage}><View style={styles.sectionHead}><Text style={styles.eyebrow}>{rule.clause}</Text><Pressable onPress={close}><Text style={styles.link}>Close</Text></Pressable></View><Text style={styles.h1}>{rule.title}</Text><RuleSection title="What the rule requires" text={rule.requirement}/><RuleSection title="What the system did" text={rule.method}/><RuleSection title="Evidence needed" text={rule.evidence_needed}/>{rule.important_limits.length>0&&<RuleSection title="Important limits" text={rule.important_limits.join("\n")}/>}<View style={styles.info}><Text style={styles.infoText}>{rule.non_normative_notice}</Text></View></ScrollView>}</SafeAreaView></Modal>;}
-function RuleSection({title,text}:{title:string;text:string}){return <View style={styles.ruleSection}><Text style={styles.nextLabel}>{title}</Text><Text style={styles.nextText}>{text}</Text></View>;}
-
-function SettingsScreen({session,close,logout}:{session:Session;close:()=>void;logout:()=>void}) {return <View style={styles.flex}><Header title="Account & server" action="Done" onAction={close}/><ScrollView contentContainerStyle={styles.page}><Logo/><Text style={styles.h1}>{session.user.full_name}</Text><Text style={styles.body}>{session.user.email} · {session.user.role.replaceAll("_"," ")}</Text><View style={styles.nextCard}><Text style={styles.nextLabel}>LOCAL SERVER</Text><Text style={styles.mono}>{session.serverUrl}</Text><Text style={styles.nextLabel}>SERVER FINGERPRINT</Text><Text style={styles.fingerprint}>{session.fingerprint}</Text></View><View style={styles.warning}><Text style={styles.warningTitle}>Local preview security</Text><Text style={styles.warningText}>This preview permits HTTP on the local network. Use HTTPS and managed device policy before a production rollout.</Text></View><Pressable style={styles.dangerButton} onPress={()=>Alert.alert("Remove this device?","A new Workbench enrollment QR will be required.",[{text:"Cancel",style:"cancel"},{text:"Remove",style:"destructive",onPress:logout}])}><Text style={styles.dangerText}>Remove account from this device</Text></Pressable></ScrollView></View>;}
-
-function Header({title,action,onAction}:{title:string;action:string;onAction:()=>void}){return <View style={styles.header}><Logo compact/><Text style={styles.headerTitle}>{title}</Text><Pressable onPress={onAction}><Text style={styles.link}>{action}</Text></Pressable></View>;}
-function Logo({light=false,compact=false}:{light?:boolean;compact?:boolean}){return <View style={[styles.logo,light&&styles.logoLight,compact&&styles.logoCompact]}><Text style={[styles.logoText,light&&styles.logoTextLight]}>LM</Text></View>;}
-function Primary({label,onPress,disabled=false}:{label:string;onPress:()=>void;disabled?:boolean}){return <Pressable accessibilityRole="button" style={[styles.primary,disabled&&styles.disabled]} disabled={disabled} onPress={onPress}><Text style={styles.primaryText}>{label}</Text></Pressable>;}
-function Field(props:React.ComponentProps<typeof TextInput>&{label:string}){const {label,...input}=props;return <View><Text style={styles.label}>{label}</Text><TextInput style={styles.input} placeholderTextColor="#839087" {...input}/></View>;}
-function ChoiceRow({values,selected,select}:{values:string[];selected:string;select:(value:string)=>void}){return <View style={styles.choiceRow}>{values.map(value=><Choice key={value} value={value} selected={selected===value} onPress={()=>select(value)}/>)}</View>;}
-function Choice({value,selected,onPress}:{value:string;selected:boolean;onPress:()=>void}){return <Pressable style={[styles.choice,selected&&styles.choiceOn]} onPress={onPress}><Text style={[styles.choiceText,selected&&styles.choiceTextOn]}>{value.replaceAll("_"," ")}</Text></Pressable>;}
-function Outcome({value}:{value:string}){const tone=value==="COMPLIANT"||value==="PASS"||value==="COMPLETE"?styles.pillPass:value==="NON_COMPLIANT"||value==="FAIL"||value==="FAILED"||value==="SYSTEM_ERROR"?styles.pillFail:value==="REVIEW_REQUIRED"||value==="INCOMPLETE_EVIDENCE"?styles.pillWarn:styles.pillInfo;return <View style={[styles.pill,tone]}><Text style={styles.pillText}>{value.replaceAll("_"," ")}</Text></View>;}
-function Loading({label}:{label:string}){return <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator size="large" color="#1e6647"/><Text style={styles.bodyCenter}>{label}</Text></View></SafeAreaView>;}
-function FatalScreen({title="LMPC Field could not start",message,retry}:{title?:string;message:string;retry:()=>void}){return <SafeAreaView style={styles.safe}><View style={styles.center}><Logo/><Text style={styles.h1}>{title}</Text><Text style={styles.bodyCenter}>Your captured evidence has not been removed. Try opening the app again; if this continues, share the diagnostic below with support.</Text><Text selectable style={styles.fatalCode}>{message||"Unknown startup error"}</Text><Primary label="Try again" onPress={retry}/></View></SafeAreaView>;}
-
-const styles=StyleSheet.create({
-  flex:{flex:1},safe:{flex:1,backgroundColor:"#fafbf7"},page:{padding:20,paddingBottom:54},formPage:{padding:28,gap:17},center:{flex:1,padding:34,alignItems:"center",justifyContent:"center",gap:20},
-  logo:{width:50,height:50,borderRadius:14,backgroundColor:"#153e2d",alignItems:"center",justifyContent:"center"},logoCompact:{width:34,height:34,borderRadius:10},logoLight:{backgroundColor:"#f2f5ed"},logoText:{color:"white",fontSize:15,fontWeight:"900",letterSpacing:1},logoTextLight:{color:"#153e2d"},
-  header:{height:62,paddingHorizontal:18,borderBottomWidth:1,borderBottomColor:"#dae0da",flexDirection:"row",alignItems:"center",gap:12,backgroundColor:"#fafbf7"},headerTitle:{flex:1,fontWeight:"700",fontSize:16,color:"#17231d"},
-  eyebrow:{fontSize:11,fontWeight:"700",letterSpacing:1.1,color:"#327052",marginBottom:8},h1:{fontSize:32,lineHeight:38,fontWeight:"800",letterSpacing:-1.2,color:"#17231d",marginBottom:8},h2:{fontSize:20,fontWeight:"800",letterSpacing:-.5,color:"#17231d"},body:{fontSize:15,lineHeight:23,color:"#627068",marginBottom:22},bodyCenter:{fontSize:15,lineHeight:23,color:"#627068",textAlign:"center"},muted:{fontSize:12,lineHeight:18,color:"#6c7971"},mono:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:13,color:"#27382e"},fingerprint:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:11,lineHeight:17,color:"#27382e"},fatalCode:{fontFamily:Platform.select({ios:"Menlo",android:"monospace"}),fontSize:12,lineHeight:18,color:"#7b302d",backgroundColor:"#fff0ef",borderRadius:8,padding:12,width:"100%"},label:{fontSize:11,fontWeight:"700",letterSpacing:.8,color:"#637169",marginTop:17,marginBottom:8,textTransform:"uppercase"},input:{borderWidth:1,borderColor:"#cbd5cd",backgroundColor:"white",color:"#17231d",borderRadius:10,paddingHorizontal:13,paddingVertical:12,fontSize:15},link:{color:"#1e6647",fontWeight:"700",fontSize:14},error:{color:"#a72e2e",backgroundColor:"#fff0ef",borderRadius:8,padding:11,fontSize:13},errorSmall:{color:"#a72e2e",fontSize:11,marginTop:6},
-  primary:{minHeight:50,borderRadius:11,backgroundColor:"#1e6647",alignItems:"center",justifyContent:"center",paddingHorizontal:18,marginTop:18},primaryText:{color:"white",fontSize:15,fontWeight:"800"},disabled:{opacity:.45},dangerButton:{borderWidth:1,borderColor:"#e4bdb8",backgroundColor:"#fff6f5",borderRadius:10,padding:14,alignItems:"center",marginTop:22},dangerText:{color:"#972f2b",fontWeight:"700"},
-  choiceRow:{flexDirection:"row",flexWrap:"wrap",gap:8},choiceScroll:{gap:8,paddingRight:20},choice:{borderWidth:1,borderColor:"#cad5cc",borderRadius:20,paddingHorizontal:12,paddingVertical:9,backgroundColor:"white"},choiceOn:{backgroundColor:"#153e2d",borderColor:"#153e2d"},choiceText:{color:"#536159",fontSize:11,fontWeight:"700"},choiceTextOn:{color:"white"},
-  warning:{padding:14,borderRadius:10,backgroundColor:"#fff3df",borderLeftWidth:3,borderLeftColor:"#d68223",marginTop:14},warningTitle:{fontWeight:"800",color:"#784810",marginBottom:4},warningText:{fontSize:13,lineHeight:19,color:"#795724"},info:{padding:14,borderRadius:10,backgroundColor:"#edf4ef",borderLeftWidth:3,borderLeftColor:"#498768",marginTop:14},infoText:{fontSize:13,lineHeight:19,color:"#365344"},
-  syncCard:{marginTop:20,borderRadius:12,padding:16,backgroundColor:"#edf4ef",borderWidth:1,borderColor:"#c9d9ce",flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:12},syncTitle:{fontWeight:"800",color:"#234936"},retryText:{fontSize:11,color:"#795724",marginTop:6},sectionHead:{marginTop:28,marginBottom:12,flexDirection:"row",alignItems:"center",justifyContent:"space-between",gap:10},inspectionCard:{borderRadius:12,borderWidth:1,borderColor:"#d7ded8",backgroundColor:"white",padding:15,marginBottom:10},cardTop:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:8},cardTitle:{fontSize:15,fontWeight:"800",color:"#1a2b21"},empty:{padding:32,alignItems:"center",backgroundColor:"white",borderRadius:12,borderWidth:1,borderColor:"#d7ded8"},emptyTitle:{fontWeight:"800",fontSize:17,color:"#21342a",marginBottom:6},
-  pill:{alignSelf:"flex-start",paddingHorizontal:8,paddingVertical:5,borderRadius:12,backgroundColor:"#e8efea"},pillPass:{backgroundColor:"#dff1e5"},pillFail:{backgroundColor:"#fae2e1"},pillWarn:{backgroundColor:"#ffedcd"},pillInfo:{backgroundColor:"#e2edf5"},pillText:{fontSize:9,fontWeight:"900",letterSpacing:.45,color:"#293d32"},
-  cameraHeader:{padding:22,paddingTop:34,backgroundColor:"#143d2c",gap:8},cameraTitle:{fontSize:27,color:"white",fontWeight:"800",marginTop:7},cameraHint:{fontSize:13,color:"#bfd1c5"},qrCamera:{flex:1,alignItems:"center",justifyContent:"center"},qrFrame:{width:250,height:250,borderWidth:3,borderColor:"white",borderRadius:20,backgroundColor:"transparent"},enrollFooter:{padding:20,gap:12,alignItems:"center",backgroundColor:"#fafbf7"},cameraPage:{flex:1,backgroundColor:"#101713"},captureOverlay:{flex:1,justifyContent:"space-between",padding:24,paddingTop:44},cameraPanel:{color:"white",fontSize:12,fontWeight:"900",letterSpacing:1.3,textAlign:"center"},cameraInstruction:{color:"white",fontSize:14,textAlign:"center",marginTop:7},guideFrame:{alignSelf:"center",width:"92%",height:"57%",borderWidth:2,borderColor:"rgba(255,255,255,.8)",borderRadius:18},captureActions:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},cameraLink:{color:"white",fontWeight:"800",width:65,textAlign:"center"},shutter:{width:74,height:74,borderRadius:37,borderWidth:4,borderColor:"white",alignItems:"center",justifyContent:"center"},shutterInner:{width:58,height:58,borderRadius:29,backgroundColor:"white"},
-  panelGrid:{flexDirection:"row",flexWrap:"wrap",gap:10},panelCard:{width:"48%",backgroundColor:"white",borderWidth:1,borderColor:"#d6ddd7",borderRadius:12,overflow:"hidden",paddingBottom:11},thumbnail:{width:"100%",height:140,resizeMode:"cover"},panelEmpty:{height:140,backgroundColor:"#eef2ed",alignItems:"center",justifyContent:"center"},plus:{fontSize:30,color:"#59806a"},panelLabel:{fontSize:12,fontWeight:"800",color:"#21372a",marginHorizontal:11,marginTop:10},
-  checkRow:{flexDirection:"row",gap:12,alignItems:"flex-start",borderWidth:1,borderColor:"#cbd7cf",borderRadius:12,padding:14,marginTop:18,backgroundColor:"white"},checkbox:{width:24,height:24,borderRadius:6,borderWidth:2,borderColor:"#71907c",alignItems:"center",justifyContent:"center"},checkboxOn:{backgroundColor:"#1e6647",borderColor:"#1e6647"},checkmark:{color:"white",fontWeight:"900"},checkTitle:{fontSize:14,fontWeight:"800",color:"#203329",marginBottom:3},
-  resultHero:{padding:20,borderRadius:14,backgroundColor:"#153e2d",marginBottom:14},resultTitle:{fontSize:28,fontWeight:"800",color:"white",marginTop:14,letterSpacing:-.7},resultSummary:{fontSize:14,lineHeight:21,color:"#cfddd3",marginTop:7},nextCard:{padding:16,borderRadius:12,borderWidth:1,borderColor:"#d4ddd6",backgroundColor:"white",gap:8},nextLabel:{fontSize:10,fontWeight:"800",letterSpacing:.9,color:"#47705a",marginTop:5},nextText:{fontSize:14,lineHeight:21,color:"#304139"},finding:{padding:16,borderRadius:12,borderWidth:1,borderColor:"#d6ded8",backgroundColor:"white",marginBottom:11},findingHead:{flexDirection:"row",gap:13,alignItems:"flex-start"},findingClause:{fontSize:14,fontWeight:"800",color:"#21342a",marginBottom:7},findingReason:{fontSize:13,lineHeight:19,color:"#637068",marginTop:11},infoButton:{width:34,height:34,borderRadius:17,borderWidth:1,borderColor:"#91aa9a",alignItems:"center",justifyContent:"center"},infoButtonText:{fontFamily:"serif",fontWeight:"900",fontSize:16,color:"#1e6647"},reportRow:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",paddingVertical:10,gap:12},reportText:{fontSize:14,color:"#304139",fontWeight:"600"},modalPage:{padding:22,paddingBottom:50},ruleSection:{paddingVertical:17,borderTopWidth:1,borderTopColor:"#d9e0da",gap:7},
-});
