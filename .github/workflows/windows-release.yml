@@ -113,6 +113,17 @@ jobs:
             if (-not $version.version -or -not $version.rulepack_sha256) {
               throw "Packaged version endpoint did not return rulepack identity"
             }
+            # The pairing page is the only way to connect a phone, and its QR comes from
+            # a pure-Python dependency that PyInstaller has to resolve. A frozen build
+            # that cannot draw it is useless in the field, so fail the release here.
+            $pair = Invoke-WebRequest -Uri "http://127.0.0.1:8765/pair" -TimeoutSec 5
+            if ($pair.Content -notmatch '/pair/qr\.svg') {
+              throw "Packaged pairing page did not render the enrollment QR"
+            }
+            $qr = Invoke-WebRequest -Uri "http://127.0.0.1:8765/pair/qr.svg" -TimeoutSec 5
+            if ($qr.Content -notmatch '<svg') {
+              throw "Packaged build could not render a QR code"
+            }
           } finally {
             if (-not $server.HasExited) { Stop-Process -Id $server.Id -Force }
             if (Test-Path $stdout) { Get-Content $stdout }
