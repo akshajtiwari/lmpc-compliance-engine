@@ -111,3 +111,35 @@ export type RuleDetail = {
   outcomes: Record<string, string>;
   non_normative_notice: string;
 };
+
+export type Investigation = {
+  id: string;
+  client_uuid: string | null;
+  name: string;
+  subject_brand: string | null;
+  investigation_type: string;
+  location_text: string | null;
+  status: "OPEN" | "CLOSED";
+  created_by: string;
+  jurisdiction_id: string;
+  opened_at: string | null;
+  closed_at: string | null;
+  scan_count?: number;
+  failed_count?: number;
+};
+
+export type InvestigationStats = {
+  investigation_id: string;
+  scan_count: number;
+  evaluated_count: number;
+  pending_count: number;
+  by_overall: Record<string, number>;
+  top_violations: { check: string; count: number }[];
+};
+
+export type InvestigationNote = {
+  id: string;
+  body: string;
+  author: string | null;
+  created_at: string | null;
+};

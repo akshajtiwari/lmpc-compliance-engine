@@ -74,6 +74,13 @@ finding without it.
 **What the phone does not have:** any rule, any threshold, any legal text. It never decides
 anything. If the law changes, the phone app does not change.
 
+**What the phone does now control (changed 2026-09-15).** The officer runs the whole
+working day from it: create an investigation, walk into it, scan product after product,
+reopen the folder later, read any report and export it. That is a change of *control
+surface*, not of authority — every sentence above still holds. The server remains the only
+thing that reads a rule or issues a verdict, and the desktop Workbench remains the shared
+repository, the dashboard, and the only place a report is legally finalised.
+
 ---
 
 ## 4. The server, explained

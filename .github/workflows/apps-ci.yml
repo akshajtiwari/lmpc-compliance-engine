@@ -42,6 +42,11 @@ jobs:
           tests/test_rbac.py
           tests/test_db_models.py
           tests/test_import_graph.py
+          tests/test_db_sqlite.py
+          tests/test_desktop.py
+          tests/test_pairing.py
+          tests/test_investigations.py
+          tests/test_reports.py
 
   workbench:
     runs-on: ubuntu-latest

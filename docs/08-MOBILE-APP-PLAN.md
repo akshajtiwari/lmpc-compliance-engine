@@ -118,8 +118,9 @@ lmpc/                     existing Python engine and FastAPI server
 | Legal applicability and verdicts | — | **Only authority** | Review display |
 | Rule-info explanations | Display | **Source** | Display |
 | Own recent scans/results | Display | **Source** | Display |
-| Cross-officer repository/search | Limited | **Source** | **Primary** |
-| Corrections, overrides, finalization | Not in mobile v1 | **Authority** | **Primary** |
+| Investigations (create, browse, notes) | **Primary** | **Authority** | Supervisory view |
+| Cross-officer repository/search | Own folders and scans | **Source** | **Primary** |
+| Corrections, overrides, finalization | Field copy only | **Authority** | **Primary** |
 | Dashboards and administration | — | **Source** | **Primary** |
 | PDF/DOCX generation | Download/share | **Primary** | Download/manage |
 
@@ -393,7 +394,7 @@ Tagged mobile preview:
 | Gallery image falsely proves coverage | Capture-source tracking; gallery never asserts coverage |
 | App rewrite distracts from weak OCR | Keep OCR workstream and ≥90% declaration target separate |
 | Android works but iOS is assumed | Independent iOS gate and signing plan |
-| Mobile becomes an admin console | Keep mobile v1 focused on capture, own results, and sync |
+| Mobile becomes an admin console | **Reversed, deliberately (2026-09-15).** The phone is now the primary control surface: an officer creates investigations, scans into them, reads every report and exports PDF/DOCX without touching the laptop. What did *not* move is decision authority — OCR, the rulepack and every verdict stay on the server, so a rule change still needs no mobile release. The risk this row guarded against was the phone deciding things; that has not happened. |
 
 The mobile app does not solve the measured extraction gap by itself. The current engine is
 strong at avoiding false accusations but identifies mandatory declarations on only about

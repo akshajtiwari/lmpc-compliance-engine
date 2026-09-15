@@ -126,13 +126,18 @@ Field** on Android, then scan that QR. The QR binds the officer account to the a
 server fingerprint and expires after 15 minutes. Captured evidence is queued on the phone
 when the server is unreachable and retried with the same idempotency UUID.
 
-Workbench also provides **Inspections → New inspection** for non-guided physical evidence
+Workbench also provides **Investigations** — the shared case files officers open on the
+phone, with their products, running totals, notes and consolidated reports — and
+**Inspections → New inspection** for non-guided physical evidence
 and e-commerce product listings. The listing path retains pasted shopper-visible text, an
 optional HTTP(S) source URL, and up to six hash-verified screenshots; it never asserts
 physical-package coverage.
 
 `apps/web` contains the separate desktop Workbench; `apps/mobile` contains the Expo/React
-Native Field app. The `Android Field preview release` workflow publishes an installable,
+Native Field app. The Field app is the officer's primary control surface: investigations
+are created, filled and read there, and a report can be exported without opening a
+browser. Workbench remains the shared repository, the dashboards, and the only place a
+report is legally finalised. The `Android Field preview release` workflow publishes an installable,
 debug-signed APK for LAN testing. Preview builds permit local HTTP; production deployment
 requires HTTPS. The Field app syncs offline evidence through a resumable per-panel upload
 contract, gates blurry or glare-washed captures with retake prompts, and can download

@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!ready || !user) return <div className="empty">Opening secure workbench…</div>;
   const links = [
     ["/dashboard", "Overview", "⌂"],
+    ["/investigations", "Investigations", "🗂"],
     ["/scans", "Inspections", "▦"],
     ...(user.permissions.includes("users:read") ? [["/accounts", "Accounts", "◎"]] : []),
   ];
