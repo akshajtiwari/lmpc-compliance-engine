@@ -6,10 +6,9 @@ from datetime import datetime
 
 from sqlalchemy import (Boolean, DateTime, ForeignKey, Index, Integer, LargeBinary,
                         String, Text, Uuid, func, text)
-from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, CITEXT, LTREE
+from .base import Base, CI_TEXT, INET, TREE_PATH
 
 ROLES = ("FIELD_OFFICER", "REVIEWING_OFFICER", "ADMIN", "AUDITOR")
 
@@ -21,7 +20,7 @@ class Jurisdiction(Base):
     state: Mapped[str] = mapped_column(String(100))
     parent_jurisdiction_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("jurisdictions.id"))
-    path: Mapped[str | None] = mapped_column(LTREE)
+    path: Mapped[str | None] = mapped_column(TREE_PATH)
     __table_args__ = (Index("uq_jurisdiction_name_state", name, state, unique=True),
                       Index("idx_jurisdiction_path", path, postgresql_using="gist"))
 
@@ -31,7 +30,7 @@ class User(Base):
     __tablename__ = "users"
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     full_name: Mapped[str] = mapped_column(String(200))
-    email: Mapped[str] = mapped_column(CITEXT, unique=True)
+    email: Mapped[str] = mapped_column(CI_TEXT, unique=True)
     phone: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[str] = mapped_column(String(30))
     is_legal_reviewer: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -64,7 +63,8 @@ class RefreshToken(Base):
     ip: Mapped[str | None] = mapped_column(INET)
     __table_args__ = (
         Index("idx_refresh_user", user_id,
-              postgresql_where=text("revoked_at IS NULL")),
+              postgresql_where=text("revoked_at IS NULL"),
+              sqlite_where=text("revoked_at IS NULL")),
         Index("idx_refresh_family", family_id),
     )
 

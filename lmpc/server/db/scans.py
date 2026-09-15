@@ -6,10 +6,10 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index,
-                        Integer, Numeric, String, UniqueConstraint, Uuid, func, text)
+                        Integer, String, UniqueConstraint, Uuid, func, text)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import ARRAY, Base, JSONB
+from .base import ARRAY, Base, JSONB, ScaledNumeric
 
 STATUSES = ("RECEIVED", "OCR_IN_PROGRESS", "OCR_COMPLETE", "EXTRACTION_COMPLETE",
             "EVALUATION_COMPLETE", "UNDER_REVIEW", "FINALIZED", "SYNC_CONFLICT",
@@ -45,21 +45,21 @@ class Scan(Base):
 
     scale_reference_type: Mapped[str | None] = mapped_column(String(20))
     scale_reference_data: Mapped[dict | None] = mapped_column(JSONB)
-    px_per_mm: Mapped[Decimal | None] = mapped_column(Numeric(8, 3))
-    pdp_h_cm: Mapped[Decimal | None] = mapped_column(Numeric(7, 2))
-    pdp_w_cm: Mapped[Decimal | None] = mapped_column(Numeric(7, 2))
-    pdp_area_cm2: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    capacity_cm3: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    net_quantity_g: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
-    net_quantity_ml: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    px_per_mm: Mapped[Decimal | None] = mapped_column(ScaledNumeric(8, 3))
+    pdp_h_cm: Mapped[Decimal | None] = mapped_column(ScaledNumeric(7, 2))
+    pdp_w_cm: Mapped[Decimal | None] = mapped_column(ScaledNumeric(7, 2))
+    pdp_area_cm2: Mapped[Decimal | None] = mapped_column(ScaledNumeric(10, 2))
+    capacity_cm3: Mapped[Decimal | None] = mapped_column(ScaledNumeric(10, 2))
+    net_quantity_g: Mapped[Decimal | None] = mapped_column(ScaledNumeric(12, 3))
+    net_quantity_ml: Mapped[Decimal | None] = mapped_column(ScaledNumeric(12, 3))
     is_imported: Mapped[bool] = mapped_column(Boolean, default=False)
     is_molded: Mapped[bool] = mapped_column(Boolean, default=False)
     other_law_requires_same_info: Mapped[bool] = mapped_column(Boolean, default=False)
 
     ecommerce_url: Mapped[str | None] = mapped_column(String)
     ecommerce_text: Mapped[str | None] = mapped_column(String)
-    geo_lat: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
-    geo_lng: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    geo_lat: Mapped[Decimal | None] = mapped_column(ScaledNumeric(9, 6))
+    geo_lng: Mapped[Decimal | None] = mapped_column(ScaledNumeric(9, 6))
 
     rulepack_version: Mapped[str | None] = mapped_column(String(60))
     rulepack_sha256: Mapped[str | None] = mapped_column(String(64))
@@ -73,7 +73,9 @@ class Scan(Base):
         CheckConstraint("mode IN " + _in(MODES), name="ck_scans_mode"),
         CheckConstraint("buyer_type IN " + _in(BUYER_TYPES), name="ck_scans_buyer"),
         Index("idx_scans_jur_date", jurisdiction_id, captured_at.desc()),
-        Index("idx_scans_status", status, postgresql_where=text("status <> 'FINALIZED'")),
+        Index("idx_scans_status", status,
+              postgresql_where=text("status <> 'FINALIZED'"),
+              sqlite_where=text("status <> 'FINALIZED'")),
         Index("idx_scans_officer", officer_id, created_at.desc()),
         Index("idx_scans_product", product_id),
     )

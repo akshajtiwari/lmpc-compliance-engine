@@ -13,12 +13,13 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
-from sqlalchemy import select, text, update
+from sqlalchemy import select, update
 
 from ..api.errors import ApiError
 from ..config import Settings
 from ..db import sessionmaker_of
 from ..db.models import AuditLog, DeviceEnrollment, RefreshToken, User
+from ..db.paths import jurisdiction_contains
 from .auth_core import (ALL_PERMISSIONS, ROLE_PERMISSIONS, Principal,
                         load_or_create_keys, password_hasher)
 
@@ -224,14 +225,11 @@ class AuthManager:
             session.commit()
 
     def _jurisdiction_contains(self, root: str | None, target: str | None) -> bool:
-        if not root or not target:
-            return False
+        """One containment rule, shared with the repository scoping in review_db. An
+        access-control predicate that disagrees between two backends is a security
+        bug, not a portability detail."""
         with self.sessions() as session:  # type: ignore[operator]
-            return bool(session.scalar(text(
-                "SELECT target.path <@ root.path FROM jurisdictions AS target "
-                "CROSS JOIN jurisdictions AS root "
-                "WHERE target.id = :target AND root.id = :root"),
-                {"target": uuid.UUID(target), "root": uuid.UUID(root)}))
+            return jurisdiction_contains(session, root, target)
 
     def _access(self, principal: Principal, now: datetime) -> str:
         claims = {

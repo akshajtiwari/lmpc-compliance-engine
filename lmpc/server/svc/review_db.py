@@ -10,6 +10,7 @@ from ..api.errors import ApiError
 from ..db.models import (AuditLog, CommodityCategory, ExtractedDeclaration,
                          Jurisdiction, Manufacturer, Product, RuleEvaluation, Scan,
                          ScanImage)
+from ..db.paths import contains
 from .store_records import declaration_dict, evaluation_dict
 
 
@@ -17,6 +18,7 @@ class ReviewDb:
     def __init__(self, scan_store):
         self.scans = scan_store
         self.sessions = scan_store.sessions
+        self.dialect = self.sessions.kw["bind"].dialect.name
 
     def list_scans(self, principal, filters: dict, page: int,
                    page_size: int, sort: str) -> dict:
@@ -192,7 +194,8 @@ class ReviewDb:
             return statement.where(Scan.officer_id == uuid.UUID(principal.id))
         root_path = select(Jurisdiction.path).where(
             Jurisdiction.id == uuid.UUID(principal.jurisdiction_id)).scalar_subquery()
-        descendants = select(Jurisdiction.id).where(Jurisdiction.path.op("<@")(root_path))
+        descendants = select(Jurisdiction.id).where(
+            contains(self.dialect, Jurisdiction.path, root_path))
         return statement.where(Scan.jurisdiction_id.in_(descendants))
 
     def _filters(self, statement, values: dict):

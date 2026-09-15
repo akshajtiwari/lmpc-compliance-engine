@@ -9,12 +9,12 @@ import uuid
 from typing import Any
 
 from sqlalchemy import func, select, text
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm.exc import NoResultFound
 
 from ..api.errors import ApiError
 from ..config import Settings
 from ..db import sessionmaker_of
+from ..db.upsert import insert_ignore
 from ..db.models import (ExtractedDeclaration, RuleEvaluation, Scan,
                          ScanImage)
 from .evidence import EvidenceImage
@@ -65,15 +65,15 @@ class DbStore(ReportStoreMixin):
                  category=category, coverage_asserted=coverage_asserted, panels=panels,
                  n_images=len(images))
         with self.sessions() as s:
-            row = s.execute(
-                insert(Scan)
-                .values(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
-                        category_code=category, coverage_asserted=coverage_asserted,
-                        panels_captured=panels, officer_id=officer_id or self.officer_id,
-                        jurisdiction_id=jurisdiction_id or self.jurisdiction_id,
-                        **(metadata or {}))
-                .on_conflict_do_nothing(index_elements=[Scan.client_uuid])
-                .returning(Scan.id)).first()
+            row = insert_ignore(
+                s, Scan,
+                values=dict(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                            category_code=category, coverage_asserted=coverage_asserted,
+                            panels_captured=panels,
+                            officer_id=officer_id or self.officer_id,
+                            jurisdiction_id=jurisdiction_id or self.jurisdiction_id,
+                            **(metadata or {})),
+                index_elements=[Scan.client_uuid], returning=Scan.id)
             if row is None:                       # the race lost: return the winner
                 s.commit()
                 return self._rec(client_uuid=client_uuid), False
@@ -100,15 +100,15 @@ class DbStore(ReportStoreMixin):
                           category=category, coverage_asserted=coverage_asserted,
                           panels=panels)
         with self.sessions() as s:
-            row = s.execute(
-                insert(Scan)
-                .values(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
-                        category_code=category, coverage_asserted=coverage_asserted,
-                        panels_captured=panels, officer_id=officer_id or self.officer_id,
-                        jurisdiction_id=jurisdiction_id or self.jurisdiction_id,
-                        **(metadata or {}))
-                .on_conflict_do_nothing(index_elements=[Scan.client_uuid])
-                .returning(Scan.id)).first()
+            row = insert_ignore(
+                s, Scan,
+                values=dict(client_uuid=client_uuid, captured_at=captured_at, mode=mode,
+                            category_code=category, coverage_asserted=coverage_asserted,
+                            panels_captured=panels,
+                            officer_id=officer_id or self.officer_id,
+                            jurisdiction_id=jurisdiction_id or self.jurisdiction_id,
+                            **(metadata or {})),
+                index_elements=[Scan.client_uuid], returning=Scan.id)
             if row is None:                       # the race lost: return the winner
                 s.commit()
                 return self._rec(client_uuid=client_uuid), False

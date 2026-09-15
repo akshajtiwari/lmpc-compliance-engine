@@ -40,7 +40,11 @@ class Product(Base):
     barcode: Mapped[str | None] = mapped_column(String(50))
     declared_net_quantity: Mapped[str | None] = mapped_column(String(50))
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # CAST(... AS TEXT) rather than PostgreSQL's ::text, so the same generated column
+    # compiles on SQLite for the desktop build. Semantically identical on PostgreSQL;
+    # the Alembic DDL that already shipped is left alone.
     dedup_key: Mapped[str | None] = mapped_column(
         String(500), Computed(
-            "lower(coalesce(brand_name, '') || '|' || coalesce(manufacturer_id::text, '')"
+            "lower(coalesce(brand_name, '') || '|'"
+            " || coalesce(CAST(manufacturer_id AS TEXT), '')"
             " || '|' || coalesce(barcode, ''))", persisted=True), unique=True)

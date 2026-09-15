@@ -6,10 +6,10 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index,
-                        Integer, Numeric, String, UniqueConstraint, Uuid, func)
+                        Integer, String, UniqueConstraint, Uuid, func)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, JSONB
+from .base import Base, JSONB, ScaledNumeric
 
 OUTCOMES = ("PASS", "FAIL", "INDETERMINATE", "NOT_APPLICABLE", "REVIEW_REQUIRED",
             "SYSTEM_ERROR")
@@ -34,15 +34,15 @@ class ExtractedDeclaration(Base):
     bbox_y: Mapped[int | None] = mapped_column(Integer)
     bbox_w: Mapped[int | None] = mapped_column(Integer)
     bbox_h: Mapped[int | None] = mapped_column(Integer)
-    ocr_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
-    score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
-    runner_up_margin: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    ocr_confidence: Mapped[Decimal | None] = mapped_column(ScaledNumeric(4, 3))
+    score: Mapped[Decimal | None] = mapped_column(ScaledNumeric(6, 2))
+    runner_up_margin: Mapped[Decimal | None] = mapped_column(ScaledNumeric(6, 2))
     feature_weights: Mapped[dict | None] = mapped_column(JSONB)   # why this won (9.3)
     source_token_ids: Mapped[list | None] = mapped_column(JSONB)
     is_composite: Mapped[bool] = mapped_column(Boolean, default=False)
     is_repaired: Mapped[bool] = mapped_column(Boolean, default=False)     # P9
-    glyph_height_px: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
-    glyph_height_mm: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    glyph_height_px: Mapped[Decimal | None] = mapped_column(ScaledNumeric(8, 2))
+    glyph_height_mm: Mapped[Decimal | None] = mapped_column(ScaledNumeric(6, 2))
     is_on_pdp: Mapped[bool | None] = mapped_column(Boolean)
     corrected_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

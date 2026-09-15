@@ -4,12 +4,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey,
+from sqlalchemy import (Boolean, CheckConstraint, DateTime, ForeignKey,
                         Index, Integer, String, UniqueConstraint, Uuid, func, text)
-from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, JSONB
+from .base import BIGSERIAL, Base, INET, JSONB
 
 RULEPACK_STATES = ("CANDIDATE", "ACTIVE", "ARCHIVED")
 LEDGER_STATUSES = ("QUARANTINED", "APPROVED", "REJECTED")
@@ -51,8 +50,12 @@ class Rulepack(Base):
     approval_confirmations: Mapped[dict | None] = mapped_column(JSONB)
     __table_args__ = (
         CheckConstraint("state IN " + _in(RULEPACK_STATES), name="ck_rulepack_state"),
+        # Partial UNIQUE: exactly one ACTIVE rulepack, any number of CANDIDATE or
+        # ARCHIVED ones. sqlite_where is not decoration — without it the index degrades
+        # to UNIQUE(state) and a second ARCHIVED rulepack becomes unstorable.
         Index("one_active_rulepack", state, unique=True,
-              postgresql_where=text("state = 'ACTIVE'")),
+              postgresql_where=text("state = 'ACTIVE'"),
+              sqlite_where=text("state = 'ACTIVE'")),
     )
 
 
@@ -75,13 +78,15 @@ class AmendmentLedger(Base):
     __table_args__ = (
         CheckConstraint("status IN " + _in(LEDGER_STATUSES), name="ck_ledger_status"),
         Index("idx_ledger_node", node),
-        Index("idx_ledger_status", status, postgresql_where=text("status = 'QUARANTINED'")),
+        Index("idx_ledger_status", status,
+              postgresql_where=text("status = 'QUARANTINED'"),
+              sqlite_where=text("status = 'QUARANTINED'")),
     )
 
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BIGSERIAL, primary_key=True, autoincrement=True)
     entity_type: Mapped[str] = mapped_column(String(50))
     entity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))

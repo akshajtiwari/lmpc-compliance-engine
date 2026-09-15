@@ -1,8 +1,11 @@
-"""Portable localhost launcher used by the Windows release bundle.
+"""Portable launcher used by the Windows release bundle.
 
-The executable deliberately binds to loopback, uses the in-memory scan repository, and
-stores immutable image/report objects below the current user's application-data folder.
-It is a demo and field-test package: the PostgreSQL deployment remains the durable,
+The executable keeps a durable SQLite repository and immutable image/report objects below
+the current user's application-data folder, so investigations survive a restart and the
+build can pair with a phone — enrollments and sessions are database rows, so there is no
+pairing without a real store.
+
+It remains a single-user field package. The PostgreSQL deployment is still the durable,
 multi-user deployment described in README.md.
 """
 from __future__ import annotations
@@ -50,19 +53,33 @@ def _configure_windows_dlls() -> None:
         add_directory(str(root))
 
 
+def _database_url(data_root: Path) -> str:
+    return "sqlite+pysqlite:///" + str(data_root / "lmpc.sqlite3")
+
+
 def _configure_environment() -> Path:
+    """Export the LMPC_* settings this machine's copy runs under.
+
+    Authentication is on. It used to be disabled, which was safe for a loopback-only demo
+    but made the build unable to issue a Field-app enrollment at all: AccountService
+    refuses to manage accounts without local authentication, and the LAN launcher refuses
+    to bind a wider address when auth is off. Both refusals are correct; the fix is to
+    satisfy them, not to weaken them.
+    """
     root = _bundle_root()
     data_root = _app_data_root()
     data_root.mkdir(parents=True, exist_ok=True)
+    db_url = _database_url(data_root)
     os.environ.update({
         "LMPC_RULEPACK_PATH": str(root / "rulepack" / "current.json"),
         "LMPC_STORAGE_ROOT": str(data_root / "objects"),
-        "LMPC_DB_URL": "",
-        "LMPC_AUTH_MODE": "disabled",
         "LMPC_S3_BUCKET": "",
         "LMPC_S3_ENDPOINT": "",
         "LMPC_COOKIE_SECURE": "false",
     })
+    from lmpc.server.db import desktop_bootstrap
+    record = desktop_bootstrap.run(data_root, db_url)
+    os.environ.update(desktop_bootstrap.environment(data_root, record, db_url))
     _configure_windows_dlls()
     return data_root
 
