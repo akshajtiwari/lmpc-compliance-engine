@@ -8,6 +8,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { CaptureScreen } from "../screens/CaptureScreen";
+import { EvidenceViewerScreen } from "../screens/EvidenceViewerScreen";
 import { InvestigationEditScreen } from "../screens/InvestigationEditScreen";
 import { InvestigationScreen } from "../screens/InvestigationScreen";
 import { InvestigationsScreen } from "../screens/InvestigationsScreen";
@@ -31,6 +32,8 @@ export function RootNavigator() {
       <Stack.Screen name="ListingCapture" component={ListingCaptureScreen}
                     options={{presentation: "fullScreenModal", gestureEnabled: false}} />
       <Stack.Screen name="ScanReport" component={ScanReportScreen} />
+      <Stack.Screen name="EvidenceViewer" component={EvidenceViewerScreen}
+                    options={{presentation: "fullScreenModal"}} />
       <Stack.Screen name="Settings" component={SettingsScreen}
                     options={{presentation: "modal"}} />
     </Stack.Navigator>

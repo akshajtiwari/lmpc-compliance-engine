@@ -9,7 +9,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import { isConnectionError } from "../api";
 import { useSession } from "../session";
-import { listInvestigations } from "../storage";
+import { sweep } from "../cleanup";
+import { allInspectionsForRetention, listInvestigations } from "../storage";
 import { syncOutbox, type SyncSummary } from "../sync";
 import { styles } from "../theme";
 import { EmptyState, ErrorState, ListSkeleton, OfflineBanner } from "../ui/states";
@@ -55,6 +56,13 @@ export function InvestigationsScreen() {
     // queueMicrotask, not a bare call: the effect body must not set state synchronously
     // or every sync schedules a cascading render.
     queueMicrotask(() => { void sync(); });
+    // Once per launch: drop orphaned photographs (every retake used to leak one) and age
+    // out downloaded reports. Never deletes evidence the server has not confirmed.
+    queueMicrotask(() => {
+      void allInspectionsForRetention(scope)
+        .then((rows) => sweep(rows))
+        .catch(() => undefined);
+    });
     const network = NetInfo.addEventListener((state) => {
       if (state.isConnected && state.isInternetReachable !== false) void sync();
     });
@@ -62,7 +70,7 @@ export function InvestigationsScreen() {
       if (state === "active") void sync();
     });
     return () => { network(); app.remove(); };
-  }, [sync]);
+  }, [sync, scope]);
 
   async function refresh() {
     setRefreshing(true);

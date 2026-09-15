@@ -630,6 +630,17 @@
             ],
             "title": "Dimensions"
           },
+          "officer_remarks": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Officer Remarks"
+          },
           "package_shape": {
             "anyOf": [
               {

@@ -11,6 +11,7 @@ from ..db.models import (AuditLog, CommodityCategory, ExtractedDeclaration,
                          Jurisdiction, Manufacturer, Product, RuleEvaluation, Scan,
                          ScanImage)
 from ..db.paths import contains
+from .review_rules import affects_evaluation
 from .store_records import declaration_dict, evaluation_dict
 
 
@@ -69,8 +70,12 @@ class ReviewDb:
             for key, value in (changes.get("dimensions") or {}).items():
                 setattr(row, {"h_cm": "pdp_h_cm", "w_cm": "pdp_w_cm",
                               "capacity_cm3": "capacity_cm3"}[key], value)
+            if "officer_remarks" in changes:
+                row.officer_remarks = changes["officer_remarks"]
             row.updated_at = datetime.now(UTC)
-            if row.status == "EVALUATION_COMPLETE":
+            # A remark is an observation about the inspection, not an input to it. Only a
+            # change the engine actually reads invalidates the verdict.
+            if row.status == "EVALUATION_COMPLETE" and affects_evaluation(changes):
                 row.status, row.overall = "RECEIVED", None
             session.add(_audit(principal.id, "scan", row.id, "SCAN_UPDATED",
                                {"before": before, "after": _mutable(row)}))
@@ -266,6 +271,7 @@ def _summary(row: Scan, brand: str | None, manufacturer: str | None) -> dict:
 
 def _mutable(row: Scan) -> dict:
     return {"product_id": str(row.product_id) if row.product_id else None,
+            "officer_remarks": row.officer_remarks,
             "package_shape": row.package_shape, "category": row.category_code,
             "dimensions": {"h_cm": float(row.pdp_h_cm) if row.pdp_h_cm else None,
                            "w_cm": float(row.pdp_w_cm) if row.pdp_w_cm else None,

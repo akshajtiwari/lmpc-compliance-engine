@@ -65,6 +65,10 @@ class Scan(Base):
     geo_lat: Mapped[Decimal | None] = mapped_column(ScaledNumeric(9, 6))
     geo_lng: Mapped[Decimal | None] = mapped_column(ScaledNumeric(9, 6))
 
+    # A free-text note from the capturing officer. Never read by any rule, and writing
+    # one must not invalidate an evaluation — see ReviewDb.update_scan.
+    officer_remarks: Mapped[str | None] = mapped_column(String)
+
     rulepack_version: Mapped[str | None] = mapped_column(String(60))
     rulepack_sha256: Mapped[str | None] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(30), default="RECEIVED")

@@ -350,6 +350,14 @@ export async function findInspection(clientUuid: string, scope: AccountScope) {
   );
 }
 
+export async function allInspectionsForRetention(scope: AccountScope) {
+  return (await db()).getAllAsync<LocalInspection>(
+    `SELECT state, scan_id, synced_at, draft_json, result_json FROM inspections
+     WHERE account_id=? AND server_fingerprint=?`,
+    scope.accountId, scope.serverFingerprint,
+  );
+}
+
 export async function recentInspections(scope: AccountScope) {
   await claimLegacyInspections(scope);
   return (await db()).getAllAsync<LocalInspection>(

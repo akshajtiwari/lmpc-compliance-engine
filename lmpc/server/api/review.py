@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
 
 from ..svc.auth import Principal
+from ..svc.review_rules import affects_evaluation
 from ..svc.review import validate_bbox, validate_changes
 from .auth import require
 from .scan_payload import envelope
@@ -21,6 +22,7 @@ class ScanPatch(BaseModel):
     package_shape: str | None = None
     category: str | None = None
     dimensions: dict | None = None
+    officer_remarks: str | None = None
 
 
 class CorrectionBody(BaseModel):
@@ -73,7 +75,8 @@ async def update_scan(
 ) -> dict:
     changes = validate_changes(payload.model_dump(exclude_unset=True))
     record = request.app.state.review.update_scan(scan_id, changes, principal)
-    return {**envelope(record, created=True), "reevaluation_required": True}
+    return {**envelope(record, created=True),
+            "reevaluation_required": affects_evaluation(changes)}
 
 
 @router.post("/scans/{scan_id}/declarations/{field}")

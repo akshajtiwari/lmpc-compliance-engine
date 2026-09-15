@@ -62,6 +62,7 @@ def scan_metadata(row: Scan) -> dict:
         "geo_lat": float(row.geo_lat) if row.geo_lat is not None else None,
         "geo_lng": float(row.geo_lng) if row.geo_lng is not None else None,
         "ecommerce_url": row.ecommerce_url, "ecommerce_text": row.ecommerce_text,
+        "officer_remarks": row.officer_remarks,
     }
 
 

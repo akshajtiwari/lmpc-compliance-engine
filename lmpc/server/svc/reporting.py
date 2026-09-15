@@ -185,6 +185,10 @@ def _snapshot(scan, pack: dict, investigation: dict | None = None) -> dict[str, 
         "images": [{"panel": image.panel_label, "sha256": image.sha256,
                     "storage_key": image.storage_key} for image in scan.images],
     }
+    remark = (scan.metadata or {}).get("officer_remarks")
+    if remark:
+        body["notes"] = [{"body": remark, "author": "Capturing officer",
+                          "created_at": None}]
     if investigation:
         body["investigation"] = {
             "id": investigation.get("id"), "name": investigation.get("name"),

@@ -11,6 +11,7 @@ def envelope(rec, created: bool) -> dict:
             "client_uuid": rec.client_uuid, "officer_id": rec.officer_id,
             "jurisdiction_id": rec.jurisdiction_id,
             "investigation_id": rec.investigation_id,
+            "officer_remarks": rec.metadata.get("officer_remarks"),
             "status_url": f"/api/v1/scans/{rec.id}",
             "coverage_asserted": rec.coverage_asserted,
             "panels_captured": rec.panels,

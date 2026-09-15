@@ -10,6 +10,7 @@ from lmpc.engine.engine import FIELD_KINDS
 from ..api.errors import ApiError
 from ..obs import metrics
 from .review_db import ReviewDb, overall
+from .review_rules import affects_evaluation
 
 PACKAGE_SHAPES = {"RECTANGULAR", "CYLINDRICAL", "IRREGULAR"}
 OUTCOMES = {"PASS", "FAIL", "INDETERMINATE", "NOT_APPLICABLE",
@@ -57,7 +58,9 @@ class ReviewService:
         for key, value in (changes.get("dimensions") or {}).items():
             record.metadata[{"h_cm": "pdp_h_cm", "w_cm": "pdp_w_cm",
                              "capacity_cm3": "capacity_cm3"}[key]] = value
-        if record.status == "EVALUATION_COMPLETE":
+        if "officer_remarks" in changes:
+            record.metadata["officer_remarks"] = changes["officer_remarks"]
+        if record.status == "EVALUATION_COMPLETE" and affects_evaluation(changes):
             record.status, record.overall = "RECEIVED", None
         return record
 
@@ -173,6 +176,9 @@ def validate_changes(changes: dict) -> dict:
             raise ApiError("E_VALIDATION", "dimensions must be positive numbers")
         if ("h_cm" in dimensions) != ("w_cm" in dimensions):
             raise ApiError("E_VALIDATION", "dimensions require h_cm and w_cm together")
+    remarks = changes.get("officer_remarks")
+    if remarks is not None and len(remarks) > 4000:
+        raise ApiError("E_VALIDATION", "officer_remarks must be at most 4000 characters")
     if changes.get("category") is not None:
         from .scan_service import CATEGORIES
         if changes["category"] not in CATEGORIES:

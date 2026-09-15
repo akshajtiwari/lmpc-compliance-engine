@@ -86,7 +86,7 @@ export type ScanResult = {
     ocr_ran: boolean;
   } | null;
   evaluations: Finding[];
-  images?: {panel: string}[];
+  images?: {panel: string; sha256: string; url?: string}[];
 };
 
 export type RuleDetail = {

@@ -37,7 +37,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "tsc --ignoreConfig src/sync-policy.ts src/quality.ts src/quad.ts src/investigations.ts --target ES2022 --module commonjs --outDir .test-dist --skipLibCheck && node --test tests/*.test.cjs",
+    "test": "tsc --ignoreConfig src/sync-policy.ts src/quality.ts src/quad.ts src/investigations.ts src/retention.ts --target ES2022 --module commonjs --outDir .test-dist --skipLibCheck && node --test tests/*.test.cjs",
     "typecheck": "tsc --noEmit",
     "doctor": "npx --yes expo-doctor"
   },

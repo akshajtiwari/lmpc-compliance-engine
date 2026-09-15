@@ -5,12 +5,12 @@
  * makes a past report readable in a shop with no signal — the old screen did a blocking,
  * uncancellable fetch and showed an Alert when it failed. */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 
 import { isConnectionError } from "../api";
 import { useSession } from "../session";
-import { cacheScanResult, findInspection } from "../storage";
+import { cacheScanResult, findInspection, setScanRemarks } from "../storage";
 import { styles } from "../theme";
 import { EmptyState, ErrorState, InlineSpinner } from "../ui/states";
 import { Header, Outcome, RuleModal } from "../ui/primitives";
@@ -36,6 +36,7 @@ export function ScanReportScreen() {
   const [revalidating, setRevalidating] = useState(false);
   const [error, setError] = useState("");
   const [offline, setOffline] = useState(false);
+  const [remarks, setRemarks] = useState("");
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
@@ -43,6 +44,7 @@ export function ScanReportScreen() {
     const stored = await findInspection(clientUuid, scope);
     if (!alive.current) return;
     setRow(stored ?? null);
+    if (stored?.remarks) setRemarks(stored.remarks);
     if (stored?.result_json) {
       try { setResult(JSON.parse(stored.result_json) as ScanResult); } catch { /* refetch */ }
     }
@@ -129,6 +131,23 @@ export function ScanReportScreen() {
                 </Pressable>)}
             </View>
           </View>)}
+
+      <Text style={styles.eyebrow}>EVIDENCE</Text>
+      <Pressable style={styles.folderCard}
+                 onPress={() => navigation.navigate("EvidenceViewer",
+                   {clientUuid, panel: "FRONT"})}>
+        <Text style={styles.folderName}>View the photographs</Text>
+        <Text style={styles.folderMeta}>
+          Every panel, how it was taken, and the hash the server holds.
+        </Text>
+      </Pressable>
+
+      <Text style={styles.eyebrow}>YOUR NOTE</Text>
+      <TextInput
+        style={[styles.searchBox, {height: 88, paddingTop: 12, textAlignVertical: "top"}]}
+        multiline value={remarks} onChangeText={setRemarks}
+        onEndEditing={() => { void setScanRemarks(clientUuid, scope, remarks); }}
+        placeholder="Anything the photographs do not show" placeholderTextColor="#93a29a" />
 
       <Text style={styles.eyebrow}>FINDINGS</Text>
       {result.evaluations.map((item) => <View key={item.check} style={styles.checkRow}>

@@ -156,3 +156,19 @@ async def test_dashboard_summarises_effective_scoped_findings(app):
     assert "lmpc_scan_submitted_total" in metrics.text
     assert 'lmpc_verdict_total{check="' in metrics.text
     assert 'lmpc_pipeline_duration_seconds_count{stage="total"}' in metrics.text
+
+
+def test_a_remark_does_not_throw_away_a_finished_evaluation():
+    """update_scan resets status and overall whenever a completed scan is patched,
+    because the engine's inputs changed. An officer's remark is an observation about the
+    inspection, not an input to it — typing one must not discard the verdict.
+    """
+    from lmpc.server.svc.review_rules import affects_evaluation
+
+    assert affects_evaluation({"category": "COSMETIC"}) is True
+    assert affects_evaluation({"dimensions": {"h_cm": 4, "w_cm": 3}}) is True
+    assert affects_evaluation({"package_shape": "CYLINDRICAL"}) is True
+    assert affects_evaluation({"product_id": "x"}) is True
+
+    assert affects_evaluation({"officer_remarks": "Shopkeeper produced no invoice"}) is False
+    assert affects_evaluation({}) is False
