@@ -30,19 +30,26 @@ rather than guessing.
 
 ## Install a released build (no building required)
 
-> **Android release notice:** the `v0.3.0-preview` APK was assembled as a debug
-> variant, so it expected a Metro development server after showing the splash logo. Do
-> not use that APK as a standalone build. The source is fixed for `v0.4.0`: the release
-> workflow now assembles the release variant and refuses to publish an APK unless the
-> JavaScript bundle is embedded. Publish a new `v0.4.0-preview` tag before distributing
-> the Field app again.
+> **Current preview: `v0.5.0-preview`.** Download both assets from that tag. The
+> executable now pairs a phone by itself — no Docker, no npm, no Workbench — and the
+> Field app is the officer's control surface: create an investigation, scan products into
+> it, reopen it later, and export PDF/DOCX. The release workflow refuses to publish an
+> APK unless the JavaScript bundle is embedded, and refuses to publish the executable
+> unless the packaged build can render a pairing QR.
+>
+> **No physical-device drill has been run against `v0.5.0-preview`.** Treat it as a
+> preview to test. The Field app's local database schema changed in this release, so
+> installing over an older build is unexercised.
+>
+> Do not use the older `v0.3.0-preview` APK: it was assembled as a debug variant and
+> expects a Metro development server after the splash logo.
 
 Every published tag on the [Releases page](https://github.com/akshajtiwari/lmpc-compliance-engine/releases)
 carries **all** preview assets together:
 
 | Asset | What it is |
 |---|---|
-| `LMPC-Compliance-<tag>-windows-x64.zip` + `SHA256SUMS.txt` | Portable Windows server + capture PWA + Workbench launcher |
+| `LMPC-Compliance-<tag>-windows-x64.zip` + `SHA256SUMS.txt` | Portable Windows server, phone pairing page, and capture PWA |
 | `LMPC-Field-<tag>-android.apk` | Installable Android Field app (debug-signed, LAN preview) |
 | `LMPC-Field-<tag>-SHA256SUMS.txt` | APK checksum |
 
