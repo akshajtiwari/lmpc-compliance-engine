@@ -38,12 +38,17 @@ async def readyz(request: Request):
 
 @router.get("/version")
 async def version(request: Request) -> dict:
-    return {
+    from ..tls import configured_pin
+
+    body = {
         "git_sha": request.app.state.settings.git_sha,
         "server_fingerprint": request.app.state.auth.server_fingerprint(),
         "public_base_url": request.app.state.settings.public_base_url,
         **rulepack.summary(),
     }
+    if pin := configured_pin(request.app.state.settings):
+        body["tls_pin"] = pin
+    return body
 
 
 @router.get("/metrics", response_class=PlainTextResponse)

@@ -14,8 +14,8 @@ LMPC_LOAD_PASSWORD ?= $(LMPC_BOOTSTRAP_PASSWORD)
 
 DESKTOP_DEV_DATA := $(CURDIR)/.lmpc-data/desktop
 
-.PHONY: setup db-up db-down migrate bootstrap dev dev-lan dev-desktop dev-app \
-	addresses desktop-reset test test-db load-smoke
+.PHONY: setup db-up db-down migrate bootstrap dev dev-lan dev-lan-tls dev-desktop \
+	dev-app addresses desktop-reset test test-db load-smoke
 
 setup:
 	python -m venv .venv
@@ -38,6 +38,11 @@ dev: bootstrap
 
 dev-lan: bootstrap
 	$(PYTHON) -m lmpc.server.run --lan --reload --port 8000
+
+# dev-lan with a self-signed certificate: the QR carries the pin, the phone pins it.
+# A preview APK without certificate pinning cannot connect to an HTTPS pairing yet.
+dev-lan-tls: bootstrap
+	$(PYTHON) -m lmpc.server.run --lan --tls --port 8000
 
 # The portable build, from source. Same code path as LMPC-Compliance.exe — SQLite store,
 # pairing page, QR — with no PyInstaller step, so a pairing or scan change is testable in

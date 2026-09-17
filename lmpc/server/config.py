@@ -32,6 +32,8 @@ class Settings:
     git_sha: str = ""
     container_digest: str = ""
     public_base_url: str = ""
+    tls_cert: str = ""                    # self-signed TLS, opt-in (lmpc/server/tls.py)
+    tls_key: str = ""
     desktop_mode: bool = False            # the portable single-user build (lmpc/desktop.py)
 
     @classmethod
@@ -64,6 +66,8 @@ class Settings:
             git_sha=e.get("LMPC_GIT_SHA", ""),
             container_digest=e.get("LMPC_CONTAINER_DIGEST", ""),
             public_base_url=e.get("LMPC_PUBLIC_BASE_URL", "").rstrip("/"),
+            tls_cert=e.get("LMPC_TLS_CERT", ""),
+            tls_key=e.get("LMPC_TLS_KEY", ""),
             desktop_mode=_bool(e.get("LMPC_DESKTOP_MODE", "false")))
 
 

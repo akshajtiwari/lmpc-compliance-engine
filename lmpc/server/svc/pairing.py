@@ -28,11 +28,13 @@ class PairingService:
     """
 
     def __init__(self, accounts, auth, credentials: dict, port: int, *,
-                 advertised: str = "", network_open: bool = False):
+                 advertised: str = "", network_open: bool = False,
+                 scheme: str = "http"):
         self.accounts = accounts
         self.auth = auth
         self.credentials = credentials
         self.port = port
+        self.scheme = scheme
         self.network_open = bool(network_open)
         self._advertised = normalise_base_url(advertised, default_port=port) \
             if advertised else ""
@@ -52,7 +54,7 @@ class PairingService:
         if configured:
             return configured.rstrip("/")
         address = best_address()
-        return f"http://{address}:{self.port}" if address else None
+        return f"{self.scheme}://{address}:{self.port}" if address else None
 
     def set_advertised(self, value: str) -> str:
         """Point the QR at a different address, and mint a code that carries it.

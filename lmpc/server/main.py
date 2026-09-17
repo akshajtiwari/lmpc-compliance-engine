@@ -23,6 +23,7 @@ from .svc.review import ReviewService
 from .svc.scan_store import open_store
 from .svc.investigations import InvestigationService
 from .svc.pairing import PairingService
+from .tls import configured_pin
 from .svc.rate_limit import RateLimiter
 from .obs.logging import setup as setup_logging, trace_id
 
@@ -124,7 +125,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.object_store = open_object_store(s)
     app.state.scan_store = open_store(s)
     app.state.auth = AuthManager(s)
-    app.state.accounts = AccountService(app.state.auth)
+    app.state.accounts = AccountService(app.state.auth,
+                                        tls_pin=configured_pin(s))
     app.state.review = ReviewService(app.state.scan_store, app.state.auth)
     app.state.dashboard = DashboardService(app.state.scan_store, app.state.review)
     app.state.investigations = InvestigationService(app.state.scan_store,

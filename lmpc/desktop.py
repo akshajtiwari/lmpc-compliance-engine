@@ -150,19 +150,21 @@ def _self_test() -> int:
     return 0
 
 
-def _attach_pairing(app, data_root: Path, port: int, advertised: str, allow: bool):
+def _attach_pairing(app, data_root: Path, port: int, advertised: str, allow: bool,
+                    scheme: str = "http"):
     """Give the running app the state behind /pair: identities, QR, and the LAN switch."""
     from lmpc.server.db.desktop_bootstrap import credentials_path
     from lmpc.server.svc.pairing import PairingService
 
     record = json.loads(credentials_path(data_root).read_text(encoding="utf-8"))
     app.state.pairing = PairingService(app.state.accounts, app.state.auth, record, port,
-                                       advertised=advertised, network_open=allow)
+                                       advertised=advertised, network_open=allow,
+                                       scheme=scheme)
     return app.state.pairing
 
 
 def _serve(host: str, port: int, open_browser: bool, advertised: str = "",
-           allow: bool = False) -> int:
+           allow: bool = False, tls: bool = False) -> int:
     # A console is line-buffered; a redirected log is not, and the pairing banner is the
     # whole point of the output. Without this a headless server writes its QR and its
     # address to the log only when it exits.
@@ -174,23 +176,39 @@ def _serve(host: str, port: int, open_browser: bool, advertised: str = "",
               file=sys.stderr)
         return 2
 
+    scheme = "http"
+    tls_args: dict = {}
+    if tls:
+        from lmpc.server.net import lan_candidates
+        from lmpc.server.tls import ensure_certificate
+        material = ensure_certificate(
+            data_root / "tls", addresses=[c.host for c in lan_candidates()])
+        os.environ["LMPC_TLS_CERT"] = material["cert"]
+        os.environ["LMPC_TLS_KEY"] = material["key"]
+        tls_args = {"ssl_certfile": material["cert"], "ssl_keyfile": material["key"]}
+        scheme = "https"
+
     from lmpc.server.main import app
     import uvicorn
 
-    pairing = _attach_pairing(app, data_root, port, advertised, allow)
-    local = f"http://127.0.0.1:{port}/"
+    pairing = _attach_pairing(app, data_root, port, advertised, allow, scheme)
+    local = f"{scheme}://127.0.0.1:{port}/"
     pair_url = f"{local}pair"
     print("LMPC Compliance portable mode")
     print(f"Open: {local}")
     print(f"Connect a phone: {pair_url}")
     print(f"Local files: {data_root}")
+    if scheme == "https":
+        print("TLS is on: the QR carries the certificate pin the phone must hold. "
+              "A preview APK without certificate pinning cannot connect to an "
+              "HTTPS pairing yet.")
     print_pairing_banner(pairing, host)
     print("This window is the local server. Press Ctrl+C to stop it.")
     if open_browser:
         threading.Thread(
             target=_open_when_ready, args=(pair_url, "127.0.0.1", port),
             daemon=True).start()
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="info", **tls_args)
     return 0
 
 
@@ -215,6 +233,10 @@ def _parser() -> argparse.ArgumentParser:
                         help="the address phones should dial, when it is not one of this "
                              "computer's own — a public host name or a tunnel, e.g. "
                              "https://lmpc.example.gov.in")
+    parser.add_argument("--tls", action="store_true",
+                        help="serve HTTPS with a self-signed certificate and put its pin "
+                             "in the QR. A phone without certificate pinning cannot "
+                             "connect to an HTTPS pairing yet, so this is opt-in.")
     parser.add_argument("--addresses", action="store_true",
                         help="list this computer's network addresses and say which a "
                              "phone could reach, then exit")
@@ -242,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     # from the network until the officer allows it on the pairing page.
     host = args.host or ("127.0.0.1" if args.loopback_only else "0.0.0.0")
     return _serve(host, args.port, not args.no_browser,
-                  advertised=args.public_url, allow=args.allow_phones)
+                  advertised=args.public_url, allow=args.allow_phones, tls=args.tls)
 
 
 if __name__ == "__main__":

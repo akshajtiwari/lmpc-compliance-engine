@@ -162,8 +162,14 @@ and a VPN usually holds the default route, so it is the address a naive guess pi
 - `LMPC-Compliance.exe --addresses` prints the same list from a console and exits.
 
 For a server nobody is sitting at, `--allow-phones` accepts connections from the start
-instead of waiting for a click. Traffic is still plain HTTP in this preview, so a server
-reachable beyond a private network you control needs HTTPS in front of it.
+instead of waiting for a click. Traffic is still plain HTTP by default in this preview;
+`LMPC-Compliance.exe --tls` (or `make dev-lan-tls` from source) serves HTTPS with a
+self-signed certificate and puts its SHA-256 pin in the QR, so a phone that pins
+certificates can refuse a substituted one. It is opt-in because a phone without
+certificate pinning — every preview APK so far — cannot connect to an HTTPS pairing at
+all; the remaining phone-side work is recorded in
+[`docs/evidence/DEVICE-DRILL.md`](docs/evidence/DEVICE-DRILL.md). A server reachable
+beyond a private network you control needs HTTPS in front of it either way.
 
 Open Workbench at `http://<computer-lan-ip>:3000`, sign in with the bootstrap administrator,
 create a field-officer account, and show its one-time enrollment QR. Install/open **LMPC
@@ -174,7 +180,9 @@ when the server is unreachable and retried with the same idempotency UUID.
 Workbench also provides **Investigations** — the shared case files officers open on the
 phone, with their products, running totals, notes and consolidated reports — and
 **Inspections → New inspection** for non-guided physical evidence
-and e-commerce product listings. The listing path retains pasted shopper-visible text, an
+and e-commerce product listings. The **Rulepack** section shows the compiled rulepack the
+server is applying — its version, SHA-256, applicability gates and every check, each with
+the plain-language explanation served by the API. The listing path retains pasted shopper-visible text, an
 optional HTTP(S) source URL, and up to six hash-verified screenshots; it never asserts
 physical-package coverage.
 

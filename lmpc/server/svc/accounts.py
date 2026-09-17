@@ -19,8 +19,9 @@ ENROLLMENT_TTL = timedelta(minutes=15)
 
 
 class AccountService:
-    def __init__(self, auth: AuthManager):
+    def __init__(self, auth: AuthManager, tls_pin: str = ""):
         self.auth = auth
+        self.tls_pin = tls_pin
 
     def list_users(self, principal: Principal) -> list[dict]:
         sessions = self._sessions()
@@ -141,9 +142,14 @@ class AccountService:
                 "server_fingerprint": self.auth.server_fingerprint(),
                 "token": raw, "expires_at": row.expires_at.isoformat(),
             }
-            invitation["enrollment_uri"] = "lmpc://enroll?" + urlencode({
+            uri_fields = {
                 "server": advertised, "fingerprint": invitation["server_fingerprint"],
-                "token": raw})
+                "token": raw}
+            if self.tls_pin:
+                # The pin travels in the same out-of-band channel as the fingerprint: a
+                # phone that pins it refuses a substituted certificate.
+                uri_fields["tls_pin"] = self.tls_pin
+            invitation["enrollment_uri"] = "lmpc://enroll?" + urlencode(uri_fields)
             session.commit()
             return invitation
 
