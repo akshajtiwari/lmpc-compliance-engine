@@ -47,6 +47,7 @@ ENDPOINT_PERMISSIONS = {
     ("GET", "/dashboard/top-non-compliant"): "dashboard:read",
     ("GET", "/dashboard/geo"): "dashboard:read",
     ("GET", "/dashboard/quality"): "dashboard:read",
+    ("GET", "/rules"): "rules:read",
     ("GET", "/rules/{check_code}"): "rules:read",
     ("POST", "/investigations"): "investigations:create",
     ("GET", "/investigations"): "investigations:read",

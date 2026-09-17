@@ -2343,6 +2343,35 @@
         ]
       }
     },
+    "/rules": {
+      "get": {
+        "description": "The loaded rulepack: version, instruments and every check it applies.",
+        "operationId": "get_rulepack_overview_rules_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Rulepack Overview Rules Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Rulepack Overview",
+        "tags": [
+          "rules"
+        ]
+      }
+    },
     "/rules/{check_code}": {
       "get": {
         "operationId": "get_rule_detail_rules__check_code__get",

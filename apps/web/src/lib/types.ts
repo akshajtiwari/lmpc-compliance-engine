@@ -98,20 +98,6 @@ export type Enrollment = {
   enrollment_uri: string;
 };
 
-export type RuleDetail = {
-  check: string;
-  title: string;
-  clause: string;
-  requirement: string;
-  method: string;
-  evidence_needed: string;
-  effective_from: string | null;
-  authority: Record<string, unknown>;
-  important_limits: string[];
-  outcomes: Record<string, string>;
-  non_normative_notice: string;
-};
-
 export type Investigation = {
   id: string;
   client_uuid: string | null;
@@ -142,4 +128,55 @@ export type InvestigationNote = {
   body: string;
   author: string | null;
   created_at: string | null;
+};
+
+export type RuleAuthority = {
+  gsr?: string;
+  dated?: string;
+  page?: number;
+};
+
+export type RuleDetail = {
+  check: string;
+  title: string;
+  clause: string;
+  requirement: string;
+  method: string;
+  evidence_needed: string;
+  effective_from: string | null;
+  authority: RuleAuthority;
+  important_limits: string[];
+  outcomes: Record<string, string>;
+  non_normative_notice: string;
+};
+
+export type RuleCheck = {
+  check: string;
+  title: string;
+  clause: string;
+  operator: string | null;
+  requirement: string;
+  evidence_needed: string;
+  effective_from: string | null;
+  authority: RuleAuthority;
+};
+
+export type RuleGate = {
+  gate: string;
+  clause: string;
+  operator: string;
+  authority: RuleAuthority;
+};
+
+export type RulepackOverview = {
+  rulepack: {
+    version: string;
+    built_at: string;
+    sha256: string;
+    check_count: number;
+    gate_count: number;
+    unverified_bindings: number;
+  };
+  gates: RuleGate[];
+  checks: RuleCheck[];
 };

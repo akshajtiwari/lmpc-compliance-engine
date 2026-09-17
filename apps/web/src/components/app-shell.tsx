@@ -19,6 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ["/dashboard", "Overview", "⌂"],
     ["/investigations", "Investigations", "🗂"],
     ["/scans", "Inspections", "▦"],
+    ...(user.permissions.includes("rules:read") ? [["/rules", "Rulepack", "§"]] : []),
     ...(user.permissions.includes("users:read") ? [["/accounts", "Accounts", "◎"]] : []),
   ];
   return (
