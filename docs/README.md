@@ -35,6 +35,7 @@ the system, not by estimating.
 | [`evidence/LOAD-TEST.md`](evidence/LOAD-TEST.md) | Managed-account inspection load harness, thresholds and measured-run status |
 | [`evidence/ACCESSIBILITY.md`](evidence/ACCESSIBILITY.md) | Automated Workbench WCAG 2.1 A/AA audit, remediations and remaining manual scope |
 | [`evidence/MOBILE-CLIENT-SLICE.md`](evidence/MOBILE-CLIENT-SLICE.md) | What the Field app slice proves by test, what needs a physical device, and what was deliberately not built |
+| [`evidence/DEVICE-DRILL.md`](evidence/DEVICE-DRILL.md) | The physical-device drill script for the M1–M6 device gates and the SQLite upgrade path — record results here |
 
 ## Source material
 
