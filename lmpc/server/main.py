@@ -85,9 +85,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             restart, but a closed gate must look shut from outside: until the officer
             clicks "Allow phone connections", the only thing the network can see is a
             403."""
-            opened = getattr(app.state, "pairing", None)
-            if not is_loopback(request.client.host if request.client else None) \
-                    and not (opened and opened.network_open):
+            pairing = getattr(app.state, "pairing", None)
+            peer = request.client.host if request.client else None
+            if is_loopback(peer):
+                return await call_next(request)
+            allowed = bool(pairing and pairing.network_open)
+            # Record the contact either way. A refused request is the most useful thing
+            # the pairing page can report: the phone found the right address, and the
+            # switch is the only thing left in its way.
+            if pairing is not None:
+                pairing.note_contact(peer or "unknown", allowed)
+            if not allowed:
                 return JSONResponse(
                     {"error": {"code": "E_FORBIDDEN",
                                "message": "this computer is not accepting phone "

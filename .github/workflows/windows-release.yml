@@ -124,6 +124,17 @@ jobs:
             if ($qr.Content -notmatch '<svg') {
               throw "Packaged build could not render a QR code"
             }
+            # A QR that draws is not a QR that works. The preview failed here: the code
+            # was perfect and carried an address no phone could dial. Assert the build
+            # advertises a real address, not loopback and not nothing.
+            $state = Invoke-RestMethod -Uri "http://127.0.0.1:8765/pair/status" -TimeoutSec 5
+            if (-not $state.lan_url) {
+              throw "Packaged build issued a QR with no server address in it"
+            }
+            if ($state.lan_url -match '127\.0\.0\.1|localhost') {
+              throw "Packaged build advertised a loopback address no phone can reach: $($state.lan_url)"
+            }
+            Write-Host "Pairing advertises $($state.lan_url)"
           } finally {
             if (-not $server.HasExited) { Stop-Process -Id $server.Id -Force }
             if (Test-Path $stdout) { Get-Content $stdout }

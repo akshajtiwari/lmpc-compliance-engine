@@ -12,7 +12,10 @@ LMPC_LOAD_BASE_URL ?= http://127.0.0.1:8000
 LMPC_LOAD_EMAIL ?= $(LMPC_BOOTSTRAP_EMAIL)
 LMPC_LOAD_PASSWORD ?= $(LMPC_BOOTSTRAP_PASSWORD)
 
-.PHONY: setup db-up db-down migrate bootstrap dev dev-lan test test-db load-smoke
+DESKTOP_DEV_DATA := $(CURDIR)/.lmpc-data/desktop
+
+.PHONY: setup db-up db-down migrate bootstrap dev dev-lan dev-desktop dev-app \
+	addresses desktop-reset test test-db load-smoke
 
 setup:
 	python -m venv .venv
@@ -35,6 +38,29 @@ dev: bootstrap
 
 dev-lan: bootstrap
 	$(PYTHON) -m lmpc.server.run --lan --reload --port 8000
+
+# The portable build, from source. Same code path as LMPC-Compliance.exe — SQLite store,
+# pairing page, QR — with no PyInstaller step, so a pairing or scan change is testable in
+# seconds instead of a release build. Phone connections are allowed from the start and
+# the store is kept inside the repo, so this is a development target, not the shipped
+# default. `make desktop-reset` throws the store away to retest first-run.
+dev-desktop:
+	LMPC_DESKTOP_DATA_DIR=$(DESKTOP_DEV_DATA) \
+		$(PYTHON) -m lmpc.desktop --no-browser --allow-phones --port 8000
+
+# Which addresses a phone could actually dial, and why the rest were passed over.
+# Run this first when a phone says it cannot reach the server.
+addresses:
+	$(PYTHON) -m lmpc.desktop --addresses
+
+desktop-reset:
+	rm -rf $(DESKTOP_DEV_DATA)
+
+# The Field app over Metro, on a phone running Expo Go — no APK build. The QR scanner
+# reads the code off the camera, so pairing works here exactly as it does in a release
+# build. Keep the phone on the same Wi-Fi as this machine.
+dev-app:
+	cd apps/mobile && npx expo start
 
 test:
 	$(PYTHON) -m pytest -q

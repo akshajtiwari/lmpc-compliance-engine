@@ -120,12 +120,50 @@ make dev-lan
 cd apps/web && npm ci && npm run dev -- --hostname 0.0.0.0
 ```
 
+To work on pairing, capture or reports without building the executable, run the portable
+build's own code path from source — same SQLite store, same pairing page, same QR:
+
+```bash
+make addresses        # which addresses a phone could dial, and why not the others
+make dev-desktop      # the portable build from source, on :8000, phones allowed
+make dev-app          # the Field app over Metro, on a phone running Expo Go
+make desktop-reset    # throw the development store away and retest first run
+```
+
+`make dev-desktop` keeps its database under `.lmpc-data/desktop/`, so it never touches a
+real install, and it allows phone connections immediately because nobody is going to click
+a button during a test run. The app's QR scanner reads the code off the camera, so pairing
+over Expo Go behaves exactly as it does in a release build.
+
 The portable Windows build pairs a phone on its own — no Docker, no npm, no Workbench.
-Run `LMPC-Compliance.exe`; it opens a **Connect a phone** page showing the QR, the LAN
-address and a typed fallback. Nothing outside the computer is answered until you click
-**Allow phone connections**, and the pairing page itself is refused to everything except
-this machine. The Workbench route below remains available for departmental deployments
-that manage many officers.
+Run `LMPC-Compliance.exe`; it opens a **Connect a phone** page showing the QR, the address
+the phone will dial, and a typed fallback. Nothing outside the computer is answered until
+you click **Allow phone connections**, and the pairing page itself is refused to everything
+except this machine. The Workbench route below remains available for departmental
+deployments that manage many officers.
+
+#### When the phone says it cannot reach the server
+
+The address inside the QR is the only thing that has to be right, and a wrong one fails
+silently — the code scans perfectly and the phone then reports that it could not reach
+that address. The **Connect a phone** page lists every address this computer holds, marks
+the ones a phone could actually dial, and says why the rest were passed over: a VPN
+endpoint and a Docker bridge are both private addresses that only this computer can reach,
+and a VPN usually holds the default route, so it is the address a naive guess picks.
+
+- **Pick a different address** on that page if the phone is on a network the chosen one
+  does not serve, then scan the new code — changing the address re-mints it.
+- **Type an address** for a server the phone reaches some other way: a public host name,
+  a port-forward, or a tunnel. `LMPC-Compliance.exe --public-url https://lmpc.example.gov.in`
+  sets the same thing at start-up.
+- **Watch the switch card.** It reports the last device that reached this computer and
+  whether it was let through. A phone that is refused there has found the right address,
+  and only the switch is in its way.
+- `LMPC-Compliance.exe --addresses` prints the same list from a console and exits.
+
+For a server nobody is sitting at, `--allow-phones` accepts connections from the start
+instead of waiting for a click. Traffic is still plain HTTP in this preview, so a server
+reachable beyond a private network you control needs HTTPS in front of it.
 
 Open Workbench at `http://<computer-lan-ip>:3000`, sign in with the bootstrap administrator,
 create a field-officer account, and show its one-time enrollment QR. Install/open **LMPC

@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from html import escape
 
+from .pairing_cards import address_card, network_card
+
 
 def render(state: dict, csrf: str) -> str:
-    lan = state["lan_url"]
-    reachable = bool(lan)
+    advertised = state["advertised_url"]
+    ready = bool(advertised)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -26,16 +28,19 @@ def render(state: dict, csrf: str) -> str:
   <header>
     <h1>Connect a phone</h1>
     <p class="lede">Open <strong>LMPC Field</strong> on the phone and scan this code.
-    The phone and this computer must be on the same Wi-Fi.</p>
+    The phone needs to be able to reach the address below — the same Wi-Fi is the usual
+    way, but any network that can reach it will do.</p>
   </header>
 
-  {_network_card(state, csrf, reachable)}
+  {address_card(state, csrf)}
+
+  {network_card(state, csrf)}
 
   <section class="card qr-card" aria-labelledby="qr-heading">
     <h2 id="qr-heading">Scan to connect</h2>
-    {_qr_block(state, reachable)}
+    {_qr_block(state, ready)}
     <p class="status" id="status" data-open="{str(state['network_open']).lower()}">
-      {_status_text(state, reachable)}</p>
+      {_status_text(state, ready)}</p>
     <form method="post" action="/pair/enrollment" class="inline-form">
       <input type="hidden" name="csrf" value="{escape(csrf)}">
       <button type="submit" class="secondary">New code</button>
@@ -46,7 +51,7 @@ def render(state: dict, csrf: str) -> str:
     <h2 id="manual-heading">If the camera will not scan</h2>
     <p>In the app, choose <em>Can’t scan? Use server sign-in</em> and type:</p>
     <dl class="kv">
-      <dt>Server</dt><dd class="mono">{escape(lan or 'no network address yet')}</dd>
+      <dt>Server</dt><dd class="mono break">{escape(advertised or 'no address yet')}</dd>
       <dt>Email</dt><dd class="mono">{escape(state['officer_email'])}</dd>
       <dt>Password</dt><dd class="mono">{escape(state['officer_password'])}</dd>
     </dl>
@@ -73,33 +78,9 @@ def render(state: dict, csrf: str) -> str:
 """
 
 
-def _network_card(state: dict, csrf: str, reachable: bool) -> str:
-    if not reachable:
-        return ('<section class="card blocked"><h2>No network address</h2>'
-                '<p>This computer has no private Wi-Fi or hotspot address, so a phone '
-                'cannot reach it. Connect to the same network as the phone, then reload '
-                'this page.</p></section>')
-    on = state["network_open"]
-    return f"""<section class="card switch-card">
-    <div>
-      <h2>Phone connections {'allowed' if on else 'blocked'}</h2>
-      <p class="muted">{'Phones on this Wi-Fi can reach the server at '
-                        + escape(state['lan_url']) + '.' if on else
-                        'Nothing outside this computer is being answered yet. '
-                        'Turn this on to let the phone connect.'}</p>
-    </div>
-    <form method="post" action="/pair/network">
-      <input type="hidden" name="csrf" value="{escape(csrf)}">
-      <input type="hidden" name="allow" value="{'' if on else 'on'}">
-      <button type="submit" class="{'danger' if on else 'primary'}">
-        {'Block' if on else 'Allow phone connections'}</button>
-    </form>
-  </section>"""
-
-
-def _qr_block(state: dict, reachable: bool) -> str:
-    if not reachable:
-        return '<p class="muted">The code appears once this computer is on a network.</p>'
+def _qr_block(state: dict, ready: bool) -> str:
+    if not ready:
+        return ('<p class="muted">Choose an address above and the code will appear.</p>')
     if not state["network_open"]:
         return ('<div class="qr-dim"><img src="/pair/qr.svg" alt="Enrollment QR code" '
                 'width="260" height="260">'
@@ -107,9 +88,9 @@ def _qr_block(state: dict, reachable: bool) -> str:
     return ('<img src="/pair/qr.svg" alt="Enrollment QR code" width="260" height="260">')
 
 
-def _status_text(state: dict, reachable: bool) -> str:
-    if not reachable:
-        return "Waiting for a network."
+def _status_text(state: dict, ready: bool) -> str:
+    if not ready:
+        return "Waiting for an address."
     if not state["network_open"]:
         return "The code will work once connections are allowed."
     enrolled = state["devices_enrolled"]

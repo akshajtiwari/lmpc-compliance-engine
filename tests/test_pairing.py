@@ -31,7 +31,27 @@ def anyio_backend():
 
 
 @pytest.fixture()
-def desktop(tmp_path, monkeypatch):
+def addresses(monkeypatch):
+    """Pin what this machine appears to hold.
+
+    Otherwise these tests pass or fail on whether the machine running them has Wi-Fi, a
+    VPN, or Docker — and the VPN case is precisely the bug being pinned.
+    """
+    from lmpc.server import net
+    from lmpc.server.ifaces import Interface
+
+    found = [
+        Interface("wlan0", "192.168.1.20", 24, point_to_point=False, running=True),
+        Interface("CloudflareWARP", "172.16.0.2", 32, point_to_point=True, running=True),
+        Interface("docker0", "172.17.0.1", 16, point_to_point=False, running=False),
+    ]
+    monkeypatch.setattr(net, "enumerate_ipv4", lambda: list(found))
+    monkeypatch.setattr(net, "routed_address", lambda: "172.16.0.2")
+    return found
+
+
+@pytest.fixture()
+def desktop(tmp_path, monkeypatch, addresses):
     data_root = tmp_path / "portable"
     data_root.mkdir()
     db_url = f"sqlite+pysqlite:///{data_root / 'lmpc.sqlite3'}"
@@ -45,6 +65,14 @@ def desktop(tmp_path, monkeypatch):
         jurisdiction_uuid=record["jurisdiction_id"]))
     app.state.pairing = PairingService(app.state.accounts, app.state.auth, record, 8000)
     return app
+
+
+@pytest.fixture()
+def desktop_service(desktop):
+    """What `lmpc/desktop.py --allow-phones --public-url ...` builds."""
+    return PairingService(desktop.state.accounts, desktop.state.auth,
+                          desktop.state.pairing.credentials, 8000,
+                          advertised="https://lmpc.example.gov.in", network_open=True)
 
 
 def client(app, peer=HERE) -> httpx.AsyncClient:
@@ -190,3 +218,159 @@ def test_a_server_without_the_qr_library_still_starts(tmp_path, monkeypatch):
     # the pairing one, whether or not the pairing routes are mounted.
     app = rebuilt(Settings(storage_root=str(tmp_path / "objects")))
     assert app.title == "LMPC Compliance API"
+
+
+# ---- the address in the code --------------------------------------------------------
+
+async def test_the_code_carries_a_reachable_address_not_the_vpn(desktop):
+    """The shipped failure, end to end.
+
+    With a VPN holding the default route, the old code advertised the tunnel's /32. The
+    QR was valid, the server was running, and every phone that scanned it reported that
+    it could not reach the server — which reads as "we are on different networks".
+    """
+    invitation = desktop.state.pairing.invitation()
+    assert invitation["server_url"] == "http://192.168.1.20:8000"
+    assert "172.16.0.2" not in invitation["enrollment_uri"]
+
+
+async def test_the_page_shows_what_else_it_found_and_why_it_was_passed_over(desktop):
+    """An officer whose phone still cannot connect needs to see the alternatives."""
+    async with client(desktop) as http:
+        page = (await http.get("/pair")).text
+    assert "http://192.168.1.20:8000" in page
+    assert "172.16.0.2" in page and "VPN / tunnel" in page
+    assert "172.17.0.1" in page and "Container network" in page
+    assert 'name="custom"' in page, "an address can be typed for a server elsewhere"
+
+
+async def test_an_officer_can_point_the_code_at_a_remote_server(desktop):
+    """The server is not always in the room. A public host name has to be acceptable,
+    and the invitation has to be re-minted to carry it — a stale one keeps handing out
+    the address that was just corrected."""
+    before = desktop.state.pairing.invitation()["token"]
+    async with client(desktop) as http:
+        token = (await http.get("/pair")).text.split('name="csrf" value="')[1].split('"')[0]
+        saved = await http.post("/pair/address",
+                                data={"csrf": token, "custom": "https://lmpc.example.gov.in"},
+                                follow_redirects=False)
+        assert saved.status_code == 303
+
+    invitation = desktop.state.pairing.invitation()
+    assert invitation["server_url"] == "https://lmpc.example.gov.in"
+    assert invitation["token"] != before, "the code must carry the new address"
+    assert desktop.state.pairing.overridden
+
+
+async def test_an_officer_can_choose_a_different_local_address(desktop):
+    """Detection cannot always be right — a laptop with two live networks has to be told
+    which one the phone is on."""
+    async with client(desktop) as http:
+        token = (await http.get("/pair")).text.split('name="csrf" value="')[1].split('"')[0]
+        await http.post("/pair/address", data={"csrf": token, "choice": "172.16.0.2"},
+                        follow_redirects=False)
+    assert desktop.state.pairing.invitation()["server_url"] == "http://172.16.0.2:8000"
+
+    async with client(desktop) as http:
+        token = (await http.get("/pair")).text.split('name="csrf" value="')[1].split('"')[0]
+        await http.post("/pair/address", data={"csrf": token, "reset": "on"},
+                        follow_redirects=False)
+    assert desktop.state.pairing.invitation()["server_url"] == "http://192.168.1.20:8000"
+
+
+async def test_an_address_the_app_would_refuse_is_refused_on_the_page(desktop):
+    """Better a message on the page than a phone that has already scanned the code."""
+    async with client(desktop) as http:
+        token = (await http.get("/pair")).text.split('name="csrf" value="')[1].split('"')[0]
+        refused = await http.post("/pair/address",
+                                  data={"csrf": token, "custom": "http://box/api/v1"},
+                                  follow_redirects=False)
+        assert refused.status_code == 303
+        assert "error=" in refused.headers["location"]
+        page = (await http.get(refused.headers["location"])).text
+        assert "must not carry a path" in page
+    assert desktop.state.pairing.invitation()["server_url"] == "http://192.168.1.20:8000"
+
+
+async def test_a_forged_post_cannot_move_the_address(desktop):
+    """Same reasoning as the network switch: a page the user visits can POST here."""
+    async with client(desktop) as http:
+        for body in ({"custom": "http://evil.test"},
+                     {"csrf": "guessed", "custom": "http://evil.test"}):
+            assert (await http.post("/pair/address", data=body)).status_code == 403
+    assert desktop.state.pairing.invitation()["server_url"] == "http://192.168.1.20:8000"
+
+
+async def test_a_machine_with_no_usable_address_still_renders_the_page(desktop, monkeypatch):
+    """The one screen that can fix the problem must not be taken down by it.
+
+    Minting an enrollment with no address raises E_VALIDATION, which used to 500 the
+    whole page — so a laptop with its Wi-Fi off showed an error instead of the form for
+    typing the address of a server somewhere else.
+    """
+    from lmpc.server import net
+    monkeypatch.setattr(net, "enumerate_ipv4", list)
+    monkeypatch.setattr(net, "routed_address", lambda: None)
+    desktop.state.pairing.clear_advertised()
+
+    async with client(desktop) as http:
+        page = await http.get("/pair")
+        assert page.status_code == 200
+        assert 'name="custom"' in page.text
+        assert "no network address at all" in page.text
+        assert (await http.get("/pair/qr.svg")).status_code == 400
+
+
+# ---- telling the officer what is actually happening ---------------------------------
+
+async def test_a_refused_phone_is_reported_on_the_page(desktop):
+    """A phone dialling the right address and being refused looks identical, from the
+    officer's side, to a phone that cannot find the machine at all."""
+    async with client(desktop, PHONE) as phone:
+        assert (await phone.get("/readyz")).status_code == 403
+
+    async with client(desktop) as http:
+        page = (await http.get("/pair")).text
+        assert "192.168.1.55" in page and "was refused" in page
+        status = (await http.get("/pair/status")).json()
+        assert status["last_contact"]["peer"] == "192.168.1.55"
+        assert status["last_contact"]["allowed"] is False
+
+
+async def test_an_accepted_phone_is_reported_too(desktop):
+    desktop.state.pairing.set_network_open(True)
+    async with client(desktop, PHONE) as phone:
+        assert (await phone.get("/readyz")).status_code == 200
+
+    async with client(desktop) as http:
+        contact = (await http.get("/pair/status")).json()["last_contact"]
+        assert contact["allowed"] is True and contact["peer"] == "192.168.1.55"
+
+
+async def test_nothing_is_reported_before_anything_reaches_the_machine(desktop):
+    async with client(desktop) as http:
+        assert (await http.get("/pair/status")).json()["last_contact"] is None
+        assert "reached this computer yet" in (await http.get("/pair")).text
+
+
+async def test_the_code_is_reminted_when_the_network_changes(desktop, monkeypatch):
+    """Wi-Fi changes under a running server. Without this, an officer who joins the right
+    network still scans a code pointing at the one they left."""
+    assert desktop.state.pairing.invitation()["server_url"] == "http://192.168.1.20:8000"
+
+    from lmpc.server import net
+    from lmpc.server.ifaces import Interface
+    monkeypatch.setattr(net, "enumerate_ipv4", lambda: [
+        Interface("wlan0", "10.42.0.7", 24, point_to_point=False, running=True)])
+    monkeypatch.setattr(net, "routed_address", lambda: "10.42.0.7")
+
+    assert desktop.state.pairing.invitation()["server_url"] == "http://10.42.0.7:8000"
+
+
+async def test_a_server_nobody_sits_at_can_start_already_open(desktop_service):
+    """A server at a remote location has no one to click 'Allow phone connections', and
+    no local address worth advertising. Both have to be settable at start-up."""
+    assert desktop_service.network_open is True
+    assert desktop_service.advertised_url() == "https://lmpc.example.gov.in"
+    assert desktop_service.invitation()["server_url"] == "https://lmpc.example.gov.in"
+    assert desktop_service.overridden

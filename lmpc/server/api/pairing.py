@@ -19,11 +19,12 @@ the listener to the network:
 from __future__ import annotations
 
 import secrets
+from urllib.parse import quote
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from ..net import is_loopback, lan_address
+from ..net import is_loopback
 from ..svc.pairing import PairingService
 from .errors import ApiError
 from .pairing_page import render
@@ -31,6 +32,10 @@ from .pairing_page import render
 router = APIRouter(tags=["pairing"], include_in_schema=False)
 
 CSRF_TOKEN = secrets.token_urlsafe(24)
+
+
+def _state(service: PairingService, error: str = "") -> dict:
+    return {**service.snapshot(), "port": service.port, "address_error": error}
 
 
 def _guard(request: Request) -> PairingService:
@@ -49,9 +54,9 @@ def _check_csrf(value: str) -> None:
 
 
 @router.get("/pair", response_class=HTMLResponse)
-async def pair_page(request: Request) -> HTMLResponse:
+async def pair_page(request: Request, error: str = "") -> HTMLResponse:
     service = _guard(request)
-    return HTMLResponse(render(service.snapshot(), CSRF_TOKEN))
+    return HTMLResponse(render(_state(service, error), CSRF_TOKEN))
 
 
 @router.get("/pair/qr.svg")
@@ -59,7 +64,11 @@ async def pair_qr(request: Request) -> Response:
     """The QR as same-origin SVG. The page's CSP forbids inline script and style, so it
     cannot be drawn in the browser."""
     service = _guard(request)
-    return Response(service.qr_svg(), media_type="image/svg+xml",
+    try:
+        drawn = service.qr_svg()
+    except ValueError as refused:
+        raise ApiError("E_VALIDATION", str(refused)) from refused
+    return Response(drawn, media_type="image/svg+xml",
                     headers={"Cache-Control": "no-store"})
 
 
@@ -86,12 +95,44 @@ async def pair_network(request: Request, csrf: str = Form(""),
     return RedirectResponse("/pair", status_code=303)
 
 
+@router.post("/pair/address")
+async def pair_address(request: Request, csrf: str = Form(""), choice: str = Form(""),
+                       custom: str = Form(""), reset: str = Form("")) -> RedirectResponse:
+    """Point the QR at an address the phone can actually reach.
+
+    Automatic detection picks the right address on a plain laptop, and the wrong one on
+    any machine that also holds a VPN tunnel or a container bridge. It is also no help at
+    all when the server is somewhere else entirely and reached through a public name. The
+    officer gets the final say, and a bad address is refused here — on the page where it
+    can be corrected — rather than by a phone that has already scanned the code.
+    """
+    service = _guard(request)
+    _check_csrf(csrf)
+    if reset == "on":
+        service.clear_advertised()
+        return RedirectResponse("/pair", status_code=303)
+    typed = custom.strip()
+    value = typed or (f"{choice.strip()}:{service.port}" if choice.strip() else "")
+    if not value:
+        return _back("Choose an address, or type one.")
+    try:
+        service.set_advertised(value)
+    except ValueError as refused:
+        return _back(str(refused))
+    return RedirectResponse("/pair", status_code=303)
+
+
+def _back(message: str) -> RedirectResponse:
+    return RedirectResponse(f"/pair?error={quote(message)}", status_code=303)
+
+
 @router.get("/pair/status")
 async def pair_status(request: Request) -> dict:
-    """Polled by the page so it can say 'phone connected' without a reload."""
+    """Polled by the page so it can report progress without a reload."""
     service = _guard(request)
     state = service.snapshot()
     return {"network_open": state["network_open"],
             "devices_enrolled": state["devices_enrolled"],
             "expires_at": state["expires_at"],
-            "lan_url": state["lan_url"] or (lan_address() or "")}
+            "last_contact": state["last_contact"],
+            "lan_url": state["advertised_url"] or ""}

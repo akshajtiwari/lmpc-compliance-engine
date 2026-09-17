@@ -11,6 +11,7 @@ multi-user deployment described in README.md.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import io
 import json
 import os
@@ -20,6 +21,8 @@ import threading
 import time
 import webbrowser
 from pathlib import Path
+
+from .desktop_console import print_addresses, print_pairing_banner
 
 
 def _bundle_root() -> Path:
@@ -147,17 +150,24 @@ def _self_test() -> int:
     return 0
 
 
-def _attach_pairing(app, data_root: Path, port: int):
+def _attach_pairing(app, data_root: Path, port: int, advertised: str, allow: bool):
     """Give the running app the state behind /pair: identities, QR, and the LAN switch."""
     from lmpc.server.db.desktop_bootstrap import credentials_path
     from lmpc.server.svc.pairing import PairingService
 
     record = json.loads(credentials_path(data_root).read_text(encoding="utf-8"))
-    app.state.pairing = PairingService(app.state.accounts, app.state.auth, record, port)
+    app.state.pairing = PairingService(app.state.accounts, app.state.auth, record, port,
+                                       advertised=advertised, network_open=allow)
     return app.state.pairing
 
 
-def _serve(host: str, port: int, open_browser: bool) -> int:
+def _serve(host: str, port: int, open_browser: bool, advertised: str = "",
+           allow: bool = False) -> int:
+    # A console is line-buffered; a redirected log is not, and the pairing banner is the
+    # whole point of the output. Without this a headless server writes its QR and its
+    # address to the log only when it exits.
+    with contextlib.suppress(AttributeError, ValueError):
+        sys.stdout.reconfigure(line_buffering=True)
     data_root = _configure_environment()
     if not _port_available(host, port):
         print(f"LMPC Compliance cannot start: {host}:{port} is already in use.",
@@ -167,14 +177,14 @@ def _serve(host: str, port: int, open_browser: bool) -> int:
     from lmpc.server.main import app
     import uvicorn
 
-    pairing = _attach_pairing(app, data_root, port)
+    pairing = _attach_pairing(app, data_root, port, advertised, allow)
     local = f"http://127.0.0.1:{port}/"
     pair_url = f"{local}pair"
     print("LMPC Compliance portable mode")
     print(f"Open: {local}")
     print(f"Connect a phone: {pair_url}")
     print(f"Local files: {data_root}")
-    _print_pairing_banner(pairing, host)
+    print_pairing_banner(pairing, host)
     print("This window is the local server. Press Ctrl+C to stop it.")
     if open_browser:
         threading.Thread(
@@ -182,29 +192,6 @@ def _serve(host: str, port: int, open_browser: bool) -> int:
             daemon=True).start()
     uvicorn.run(app, host=host, port=port, log_level="info")
     return 0
-
-
-def _print_pairing_banner(pairing, host: str) -> None:
-    """Print the QR into this console too.
-
-    The browser may not open — a headless machine, a locked-down default browser, a
-    remote session. The console is the one surface that is definitely there.
-    """
-    lan = pairing.lan_url()
-    if host == "127.0.0.1":
-        print("Loopback only: phones cannot reach this computer. "
-              "Restart without --loopback-only to pair one.")
-        return
-    if not lan:
-        print("No private network address found. Join the same Wi-Fi as the phone, "
-              "then restart.")
-        return
-    print(f"\nPhone address: {lan}")
-    print("Open the page above and click 'Allow phone connections', then scan:\n")
-    try:
-        print(pairing.qr_terminal())
-    except Exception:                       # pragma: no cover - console encoding
-        print("(This console cannot draw the code — use the page in the browser.)")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -220,6 +207,17 @@ def _parser() -> argparse.ArgumentParser:
                         help="do not open the app in the default browser")
     parser.add_argument("--self-test", action="store_true",
                         help="test bundled OCR and report runtimes, then exit")
+    parser.add_argument("--allow-phones", action="store_true",
+                        help="accept phone connections from the start, instead of "
+                             "waiting for someone to allow them on the pairing page "
+                             "(for a server nobody is sitting at)")
+    parser.add_argument("--public-url", default="",
+                        help="the address phones should dial, when it is not one of this "
+                             "computer's own — a public host name or a tunnel, e.g. "
+                             "https://lmpc.example.gov.in")
+    parser.add_argument("--addresses", action="store_true",
+                        help="list this computer's network addresses and say which a "
+                             "phone could reach, then exit")
     return parser
 
 
@@ -228,12 +226,23 @@ def main(argv: list[str] | None = None) -> int:
     if not 1 <= args.port <= 65535:
         print("--port must be between 1 and 65535", file=sys.stderr)
         return 2
+    if args.addresses:
+        return print_addresses()
     if args.self_test:
         return _self_test()
+    if args.public_url:
+        from lmpc.server.net import normalise_base_url
+        try:
+            args.public_url = normalise_base_url(args.public_url,
+                                                 default_port=args.port)
+        except ValueError as refused:
+            print(f"--public-url: {refused}", file=sys.stderr)
+            return 2
     # Bind every interface by default so pairing needs no restart, but answer nothing
     # from the network until the officer allows it on the pairing page.
     host = args.host or ("127.0.0.1" if args.loopback_only else "0.0.0.0")
-    return _serve(host, args.port, not args.no_browser)
+    return _serve(host, args.port, not args.no_browser,
+                  advertised=args.public_url, allow=args.allow_phones)
 
 
 if __name__ == "__main__":

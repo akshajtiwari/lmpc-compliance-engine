@@ -20,6 +20,10 @@ export function isConnectionError(cause: unknown): cause is ConnectionError {
   return cause instanceof ConnectionError;
 }
 
+function hostOf(url: string) {
+  try { return new URL(url).host; } catch { return "the server"; }
+}
+
 async function timedFetch(url: string, options: RequestInit = {}, timeoutMs = 15_000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -27,10 +31,14 @@ async function timedFetch(url: string, options: RequestInit = {}, timeoutMs = 15
     return await fetch(url, {...options, signal: controller.signal});
   } catch (cause) {
     if (cause instanceof Error && cause.name === "AbortError") {
-      throw new ConnectionError("The local server did not respond in time.", {cause});
+      throw new ConnectionError(`${hostOf(url)} did not respond in time.`, {cause});
     }
     if (cause instanceof TypeError) {
-      throw new ConnectionError("Could not reach the local server from this network.", {cause});
+      // Name the address. "Could not reach the server" reads as "we are on different
+      // networks" and sends the officer off to check the Wi-Fi, when the usual cause is
+      // that the QR carried an address — a VPN or container address on the server — that
+      // no phone was ever going to reach.
+      throw new ConnectionError(`Could not reach ${hostOf(url)} from this phone. Check that address against the ones listed on the server's "Connect a phone" page.`, {cause});
     }
     throw cause;
   } finally {
@@ -141,7 +149,13 @@ export class ApiClient {
         panelForm.append("panel",item.panel);
         panelForm.append("image_sha256",await sha256(file));
         panelForm.append("image_quality",JSON.stringify(item.quality??{source:item.source}));
-        panelForm.append("image",{uri:file.uri,name:`${item.panel.toLowerCase()}.jpg`,type:"image/jpeg"} as unknown as Blob);
+        // Append the File itself, not React Native's legacy {uri,name,type} shorthand.
+        // Expo's WinterCG fetch builds the multipart body in JS and accepts only a
+        // string, a Blob, or something with a bytes() method — its own source says
+        // "uri is not supported" — so the shorthand threw "Unsupported FormDataPart
+        // implementation" and no panel ever reached the server. File carries bytes(),
+        // name and type, which is also what the server checks the MIME against.
+        panelForm.append("image", file as unknown as Blob);
         await this.request(`/scans/${begun.scan_id}/images`,{method:"POST",body:panelForm},true,45_000);
       }
       await this.request(`/scans/${begun.scan_id}/complete-upload`,{method:"POST"},true,45_000);
@@ -179,4 +193,9 @@ export class ApiClient {
   }
 }
 
-async function sha256(file: File) { const hashed=await digest(CryptoDigestAlgorithm.SHA256,await file.arrayBuffer()); return [...new Uint8Array(hashed)].map(byte=>byte.toString(16).padStart(2,"0")).join(""); }
+// `bytes()`, not `arrayBuffer()`. expo-crypto's digest is typed as taking a BufferSource,
+// but the Kotlin bridge cannot convert a bare ArrayBuffer and fails at runtime with
+// "Cannot convert '[object ArrayBuffer]' to a Kotlin type. no ArrayBuffer attached" —
+// which stopped every panel upload, and so every scan, on a real device. `File.bytes()`
+// hands back a Uint8Array, which is what the native side can actually read.
+async function sha256(file: File) { const hashed=await digest(CryptoDigestAlgorithm.SHA256,await file.bytes()); return [...new Uint8Array(hashed)].map(byte=>byte.toString(16).padStart(2,"0")).join(""); }

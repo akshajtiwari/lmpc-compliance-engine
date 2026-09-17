@@ -76,3 +76,43 @@ summary { cursor: pointer; font-weight: 600; }
   .kv { grid-template-columns: 1fr; gap: .1rem .5rem; }
   .kv dd { margin-bottom: .5rem; }
 }
+
+/* ---- choosing the address the QR carries ------------------------------------- */
+.address-now {
+  font-size: 1.15rem; font-weight: 600; margin: 0 0 .35rem; color: var(--accent);
+}
+.addresses { list-style: none; margin: 1rem 0 .25rem; padding: 0; }
+.address { border-top: 1px solid var(--line); }
+.address label {
+  display: grid; grid-template-columns: auto 1fr; gap: 0 .6rem;
+  align-items: baseline; padding: .7rem .1rem; cursor: pointer;
+}
+.address input { grid-row: 1 / span 3; align-self: center; margin: 0; }
+.address .kind, .address .why { grid-column: 2; font-size: .9rem; }
+.address .why { margin-top: .1rem; }
+.address.unusable label { cursor: not-allowed; opacity: .62; }
+.tag {
+  font-size: .75rem; font-weight: 600; letter-spacing: .02em; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--line); border-radius: 999px;
+  padding: .05rem .45rem; white-space: nowrap;
+}
+.field { margin: 1.1rem 0 .9rem; }
+.field label { display: block; color: var(--muted); margin-bottom: .35rem; }
+.field input {
+  font: inherit; width: 100%; padding: .55rem .7rem;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+}
+.field input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.address-card button + button { margin-left: .5rem; }
+.error {
+  color: var(--danger); font-weight: 600; margin: .8rem 0 0;
+}
+.contact { margin: .55rem 0 0; font-size: .95rem; }
+.contact.good { color: var(--good); font-weight: 600; }
+.contact.warn-text { color: #8a5a06; font-weight: 600; }
+
+@media (max-width: 30rem) {
+  .address label { grid-template-columns: auto 1fr; }
+  .address-card button { width: 100%; margin: .35rem 0 0; }
+  .address-card button + button { margin-left: 0; }
+}
