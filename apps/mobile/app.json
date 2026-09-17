@@ -60,7 +60,8 @@
           "configureAndroidBackup": true,
           "faceIDPermission": "Allow LMPC Field to unlock this device session."
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }
