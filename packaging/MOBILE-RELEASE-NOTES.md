@@ -1,5 +1,13 @@
 Installable LMPC Field Android preview for local-network testing.
 
+**New in v0.6.0-preview.** When a scan fails to reach the server, the app now names the
+address it tried, instead of blaming "this network" — the usual cause is an address the
+phone cannot dial (a VPN tunnel or a Docker bridge), and the pairing page now lists every
+address the computer holds, marks the ones a phone could dial, lets the officer pick one,
+and reports each device that reached the machine. The server can also be launched with
+`--tls`, which puts a certificate pin in the QR — server-side only: a preview APK cannot
+pin certificates yet, so HTTPS pairing is a later build.
+
 **The app is now the officer's control surface.** Create an investigation, work inside it,
 and never open the laptop again:
 

@@ -30,14 +30,14 @@ rather than guessing.
 
 ## Install a released build (no building required)
 
-> **Current preview: `v0.5.0-preview`.** Download both assets from that tag. The
+> **Current preview: `v0.6.0-preview`.** Download both assets from that tag. The
 > executable now pairs a phone by itself — no Docker, no npm, no Workbench — and the
 > Field app is the officer's control surface: create an investigation, scan products into
 > it, reopen it later, and export PDF/DOCX. The release workflow refuses to publish an
 > APK unless the JavaScript bundle is embedded, and refuses to publish the executable
 > unless the packaged build can render a pairing QR.
 >
-> **No physical-device drill has been run against `v0.5.0-preview`.** Treat it as a
+> **No physical-device drill has been run against `v0.6.0-preview`.** Treat it as a
 > preview to test. The Field app's local database schema changed in this release, so
 > installing over an older build is unexercised.
 >
