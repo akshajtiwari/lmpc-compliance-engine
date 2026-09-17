@@ -22,7 +22,9 @@ import time
 import webbrowser
 from pathlib import Path
 
-from .desktop_console import print_addresses, print_pairing_banner
+# Absolute, not relative: the PyInstaller entry script runs this file as a bare script
+# with no parent package, so a relative import here killed the packaged EXE at startup.
+from lmpc.desktop_console import print_addresses, print_pairing_banner
 
 
 def _bundle_root() -> Path:
